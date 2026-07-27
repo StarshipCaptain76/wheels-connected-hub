@@ -104,8 +104,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "@context": "https://schema.org",
           "@type": "Organization",
           name: "Just Wheels Hessequa",
-          url: "https://wheels-connected-hub.lovable.app",
-          logo: "https://wheels-connected-hub.lovable.app/icon-512.png",
+          url: "https://justwheels.co.za",
+          logo: "https://justwheels.co.za/icon-512.png",
           description:
             "Community car club in the Southern Cape — Riversdale, Stilbaai, Heidelberg, Albertinia.",
           areaServed: "Hessequa, Southern Cape, South Africa",

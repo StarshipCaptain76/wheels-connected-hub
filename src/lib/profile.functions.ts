@@ -9,11 +9,15 @@ export type MemberProfile = {
   town: string | null;
   favourite_ride: string | null;
   avatar_url: string | null;
+  preferred_lang: "en" | "af" | null;
   member_number: number;
   membership_status: string;
   joined_at: string;
   email: string | null;
 };
+
+const PROFILE_COLS =
+  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -21,14 +25,16 @@ export const getMyProfile = createServerFn({ method: "GET" })
     const { supabase, userId, claims } = context;
     const { data, error } = await supabase
       .from("profiles")
-      .select(
-        "id, display_name, phone, town, favourite_ride, avatar_url, member_number, membership_status, joined_at",
-      )
+      .select(PROFILE_COLS)
       .eq("id", userId)
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Profile not found");
-    return { ...data, email: (claims as { email?: string })?.email ?? null };
+    return {
+      ...data,
+      preferred_lang: (data.preferred_lang as "en" | "af" | null) ?? null,
+      email: (claims as { email?: string })?.email ?? null,
+    };
   });
 
 const updateSchema = z.object({
@@ -36,6 +42,7 @@ const updateSchema = z.object({
   phone: z.string().trim().max(40).nullable().optional(),
   town: z.string().trim().max(80).nullable().optional(),
   favourite_ride: z.string().trim().max(120).nullable().optional(),
+  preferred_lang: z.enum(["en", "af"]).nullable().optional(),
 });
 
 export const updateMyProfile = createServerFn({ method: "POST" })
@@ -47,10 +54,12 @@ export const updateMyProfile = createServerFn({ method: "POST" })
       .from("profiles")
       .update(data)
       .eq("id", userId)
-      .select(
-        "id, display_name, phone, town, favourite_ride, avatar_url, member_number, membership_status, joined_at",
-      )
+      .select(PROFILE_COLS)
       .single();
     if (error) throw error;
-    return { ...row, email: (claims as { email?: string })?.email ?? null };
+    return {
+      ...row,
+      preferred_lang: (row.preferred_lang as "en" | "af" | null) ?? null,
+      email: (claims as { email?: string })?.email ?? null,
+    };
   });

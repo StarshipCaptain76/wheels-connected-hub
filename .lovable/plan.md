@@ -1,45 +1,69 @@
+## Scope
 
-# Global Admin Rights for Two Emails
+Content and access-control adjustments across Join, Contact, Gallery, Classifieds, Shop and Sponsors. WhatsApp deep link target: **Hugo van Dyk +27 83 686 9237** → `https://wa.me/27836869237`.
 
-Grant `admin` role to `admin@justwheels.co.za` and `dawie@polka.co.za` on every sign-in, and keep all other users limited to their own profile/listings/photos (already enforced by existing RLS).
+## 1. `/join` — rework (no yearly fee)
 
-## Current state (verified)
+- Remove price card (`join.priceLabel`, `join.priceValue`, `join.priceNote`) from `src/routes/join.tsx` and drop those keys from `src/i18n/dictionaries.ts`.
+- Replace with a "How to join" panel: benefits list (kept) + steps → 1) Create account, 2) Fill in profile, 3) Meet the crew at the next run.
+- "Sign up now" button becomes a working `<Link to="/auth">` (currently a dead `<button>` — that's the "clicking does nothing" bug). Add a secondary "See next event" link to `/events`.
+- Update `join.subtitle` copy to remove "sign up" fee wording; add `join.howTitle`, `join.step1/2/3` dictionary keys (EN + AF).
 
-- `public.user_roles` + `public.has_role(uuid, app_role)` already exist. All admin-gated policies (listings moderation, sponsors, newsletter, listing_contacts, listing_photos, profiles admin read/update) use `has_role(auth.uid(), 'admin')`.
-- `public.handle_new_user()` currently inserts `'member'` for every new signup. There is no trigger that grants `admin` based on email, and no backfill for existing users.
-- Non-admin users are already correctly scoped: `listings_owner_*`, `listing_photos_owner_*`, `profiles_update_own`, etc.
+## 2. `/contact`
 
-So the only gap is: these two specific emails are not guaranteed to hold the `admin` role.
+- Remove Facebook and Instagram tiles from `src/routes/contact.tsx`.
+- Replace WhatsApp "group" tile with a single WhatsApp deep-link tile:
+  - Label: "WhatsApp Hugo" / "WhatsApp Hugo" (AF)
+  - `href="https://wa.me/27836869237"` with `target="_blank" rel="noopener"`.
+- Update `contact.subtitle` copy to drop "socials" mention (EN + AF).
 
-## Migration (schema + backfill in one file)
+## 3. `/gallery`
 
-1. **New security-definer function** `public.grant_admin_if_allowlisted(_user_id uuid, _email text, _confirmed_at timestamptz)`:
-   - Hardcoded allowlist: `admin@justwheels.co.za`, `dawie@polka.co.za` (lowercased compare).
-   - Only grants when `_confirmed_at is not null` (prevents the "sign up with someone else's email" privilege-escalation vector — see email-domain-role-assignment guidance).
-   - `INSERT INTO public.user_roles(user_id, 'admin') ON CONFLICT DO NOTHING`.
+- Currently no socials render on gallery; audit shows only the grid. Confirm nothing to remove there — the "socials icons" the user mentions are actually only on `/contact`. **Action**: none on gallery beyond what's in §2. (If the intent was the footer, clarify — footer currently has no socials either.)
+- Add a small "Share a photo? WhatsApp Hugo" link under the header pointing to `https://wa.me/27836869237`.
 
-2. **Update `public.handle_new_user()`** to additionally call `grant_admin_if_allowlisted(NEW.id, NEW.email, NEW.email_confirmed_at)` after the existing member insert. Keeps existing member-role behavior for everyone else.
+## 4. `/classifieds` — auth-gate posting only
 
-3. **New trigger `on_auth_user_confirmed_grant_admin`** on `auth.users` `AFTER UPDATE OF email_confirmed_at` (when it transitions from null → not null) that calls the same function. Covers Google-OAuth first-login and delayed email confirmation.
+Public browsing is already open; posting/editing already lives under `_authenticated/` and RLS restricts edit/delete to owner or admin. Two UX fixes:
 
-4. **Backfill** in the same migration:
-   ```sql
-   INSERT INTO public.user_roles (user_id, role)
-   SELECT u.id, 'admin'::app_role
-   FROM auth.users u
-   WHERE lower(u.email) IN ('admin@justwheels.co.za','dawie@polka.co.za')
-     AND u.email_confirmed_at IS NOT NULL
-   ON CONFLICT (user_id, role) DO NOTHING;
-   ```
+- In `src/routes/classifieds.tsx`, read auth state (via existing supabase client hook pattern used in `SiteLayout`) and:
+  - Show **"Post a listing"** button only when signed in.
+  - When signed out, show a subtle "Sign in to post a listing" link → `/auth`.
+- No RLS changes required (already correct per current migrations).
 
-No code changes required — the existing admin UI (`/admin/classifieds`, `/admin/newsletter`, etc.) is already gated on `has_role(..., 'admin')` and will light up automatically for these two accounts on next sign-in.
+## 5. `/shop` — admin-managed catalog
 
-## Verification
+Today the catalogue is hard-coded in `src/routes/shop.tsx`. Move it to the database so admins can CRUD items + prices.
 
-- `SELECT u.email, r.role FROM auth.users u JOIN public.user_roles r ON r.user_id = u.id WHERE lower(u.email) IN ('admin@justwheels.co.za','dawie@polka.co.za');` → both rows show `admin`.
-- Confirm non-admin users still only see their own listings via existing `listings_owner_read_own` policy (no change).
+- **Migration** (new): create `public.merch_items` with columns: `name`, `name_af`, `description`, `description_af`, `price_zar` (numeric), `sizes` (text[]), `image_url` (nullable, from existing storage), `is_active` (bool), `sort` (int). Standard `id/created_at/updated_at`.
+  - GRANTs: `SELECT` to `anon, authenticated`; `ALL` to `authenticated` (policy-gated) and `service_role`.
+  - RLS: public `SELECT` where `is_active = true`; admin `ALL` via `has_role(auth.uid(),'admin')`.
+  - Trigger: `set_updated_at`.
+  - Seed the current 6 hardcoded items so the page is not empty on first load.
+- **Server fns** (`src/lib/merch.functions.ts`): add `listActiveMerch`, `listAllMerch` (admin), `upsertMerchItem`, `deleteMerchItem` (both admin-gated in handler via `has_role` check).
+- **`/shop`**: fetch from `listActiveMerch`; enquiry form flow untouched.
+- **New admin route**: `src/routes/_authenticated/admin.shop.tsx` — table with add/edit/delete/toggle-active, gated by role check in loader/component (redirect non-admins).
 
-## Notes
+## 6. `/sponsors` + carousel — admin-only management
 
-- Allowlist is intentionally hardcoded in SQL, not a table, so it can't be modified from the app UI (safer). If you later want a UI to add/remove admins, we'd add a small admin-only management screen — say the word.
-- No client/RLS changes needed; ownership scoping for regular users is already in place.
+Sponsor DB + RLS already admin-only; only missing piece is an admin UI (currently sponsors can only be added via SQL).
+
+- **New admin route**: `src/routes/_authenticated/admin.sponsors.tsx` — list/create/edit/delete sponsors, upload logo to existing private `sponsors` bucket, toggle `is_active`, reorder via `sort`. Role-gated identical to admin.shop.
+- Public `/sponsors` page and `<SponsorCarousel />` unchanged (already read-only for non-admins).
+- Add nav links to `/admin/shop` and `/admin/sponsors` in the members/admin menu (visible only when `has_role admin`).
+
+## 7. Nav / menu
+
+- Extend the admin dropdown (already showing Classifieds moderation + Newsletter) with **Shop** and **Sponsors** entries, gated on admin role.
+
+## Technical notes
+
+- WA link format: `https://wa.me/27836869237` (no `+`, no spaces).
+- Admin gating pattern reuses `has_role(auth.uid(),'admin')` in server-fn handlers and a client-side role check (already used elsewhere) to hide admin nav.
+- All new admin server fns use `.middleware([requireSupabaseAuth])` and re-check `has_role` inside `.handler()` before mutating.
+- No changes to auth flow, PWA config, or SEO.
+
+## Out of scope / to confirm
+
+- Whether to also delete `join.priceLabel/Value/Note` translations entirely (recommended: yes).
+- Whether footer should get a WhatsApp/Hugo link too (not requested).

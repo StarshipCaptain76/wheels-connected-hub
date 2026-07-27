@@ -11,6 +11,8 @@ import {
 } from "@/lib/sponsors.functions";
 import { Trash2, Plus, X } from "lucide-react";
 
+const TAGLINE_MAX = 200;
+
 const sponsorsAdminQuery = queryOptions({
   queryKey: ["sponsors", "admin"],
   queryFn: () => listAllSponsors(),
@@ -133,6 +135,21 @@ function AdminSponsors() {
   );
 }
 
+function CharCount({ value, max }: { value: string; max: number }) {
+  const remaining = max - value.length;
+  const isLow = remaining <= 20;
+  const isOver = remaining < 0;
+  return (
+    <span
+      className={`text-[11px] font-medium tabular-nums ${
+        isOver ? "text-primary" : isLow ? "text-amber-600" : "text-ink/40"
+      }`}
+    >
+      {remaining} left
+    </span>
+  );
+}
+
 function EditModal({
   state,
   onSave,
@@ -146,8 +163,12 @@ function EditModal({
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const taglineEn = form.tagline ?? "";
+  const taglineAf = form.tagline_af ?? "";
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX) return;
     setBusy(true);
     try {
       await onSave(form);
@@ -172,11 +193,29 @@ function EditModal({
         <Row label="Business name">
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
-        <Row label="Tagline (EN)">
-          <input value={form.tagline ?? ""} onChange={(e) => set("tagline", e.target.value)} className={input} />
+        <Row
+          label="Tagline (EN)"
+          trailing={<CharCount value={taglineEn} max={TAGLINE_MAX} />}
+        >
+          <input
+            value={taglineEn}
+            maxLength={TAGLINE_MAX}
+            onChange={(e) => set("tagline", e.target.value)}
+            className={input}
+            placeholder="Short English tagline"
+          />
         </Row>
-        <Row label="Tagline (AF)">
-          <input value={form.tagline_af ?? ""} onChange={(e) => set("tagline_af", e.target.value)} className={input} />
+        <Row
+          label="Tagline (AF)"
+          trailing={<CharCount value={taglineAf} max={TAGLINE_MAX} />}
+        >
+          <input
+            value={taglineAf}
+            maxLength={TAGLINE_MAX}
+            onChange={(e) => set("tagline_af", e.target.value)}
+            className={input}
+            placeholder="Kort Afrikaanse tagline"
+          />
         </Row>
         <Row label="Website URL">
           <input value={form.website_url ?? ""} onChange={(e) => set("website_url", e.target.value)} className={input} />
@@ -202,7 +241,7 @@ function EditModal({
         </label>
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX}
           className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60"
         >
           {busy ? "Saving…" : "Save"}
@@ -214,10 +253,21 @@ function EditModal({
 
 const input = "mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2";
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  trailing,
+  children,
+}: {
+  label: string;
+  trailing?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="text-xs font-bold uppercase tracking-wider text-ink/70">{label}</span>
+      <span className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-ink/70">{label}</span>
+        {trailing}
+      </span>
       {children}
     </label>
   );

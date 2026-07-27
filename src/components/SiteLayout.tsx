@@ -29,6 +29,43 @@ function LangToggle() {
   );
 }
 
+function AuthAffordance() {
+  const { t } = useI18n();
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  if (signedIn) {
+    return (
+      <Link
+        to="/members"
+        className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:text-sm"
+      >
+        <UserRound className="h-4 w-4" /> {t("nav.members")}
+      </Link>
+    );
+  }
+  return (
+    <Link
+      to="/auth"
+      className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:text-sm"
+    >
+      {t("nav.signIn")}
+    </Link>
+  );
+}
+
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const navItems = [

@@ -10,6 +10,9 @@ export const dictionaries = {
     "nav.contact": "Contact",
     "nav.signIn": "Sign in",
     "nav.members": "Members",
+    "nav.classifieds": "Classifieds",
+    "classifieds.postCta": "Post a listing",
+
 
     "cta.join": "Join the club",
     "cta.viewEvents": "See what's on",
@@ -128,6 +131,9 @@ export const dictionaries = {
     "nav.contact": "Kontak",
     "nav.signIn": "Teken in",
     "nav.members": "Lede",
+    "nav.classifieds": "Markplek",
+    "classifieds.postCta": "Plaas advertensie",
+
 
     "cta.join": "Sluit by die klub aan",
     "cta.viewEvents": "Kyk wat's aan",

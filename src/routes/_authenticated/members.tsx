@@ -6,8 +6,9 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyProfile, type MemberProfile } from "@/lib/profile.functions";
+import { getMyRoles } from "@/lib/roles.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
-import { IdCard, LogOut } from "lucide-react";
+import { IdCard, LogOut, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members")({
   head: () => ({
@@ -25,11 +26,17 @@ function MembersPage() {
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
   const saveProfile = useServerFn(updateMyProfile);
+  const fetchRoles = useServerFn(getMyRoles);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", "me"],
     queryFn: () => fetchProfile(),
   });
+  const { data: roles } = useQuery({
+    queryKey: ["roles", "me"],
+    queryFn: () => fetchRoles(),
+  });
+  const isAdmin = Boolean(roles?.isAdmin);
 
   // Cache profile locally so /members/card works offline.
   useEffect(() => {

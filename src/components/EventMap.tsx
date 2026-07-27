@@ -82,7 +82,8 @@ export function EventMap({ destination, waypoints = [], encodedPolyline, classNa
               strokeOpacity: 0.9,
               strokeWeight: 4,
             });
-            path.forEach((p) => bounds.extend(p));
+            path.forEach((p: google.maps.LatLng) => bounds.extend(p));
+
           } catch {
             // ignore polyline errors — pins still show
           }

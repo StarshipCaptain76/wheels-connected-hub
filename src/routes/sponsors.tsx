@@ -8,22 +8,27 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { applySponsor, listSponsors } from "@/lib/sponsors.functions";
 import { Handshake, Mail, ExternalLink } from "lucide-react";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/sponsors")({
   head: () => ({
     meta: [
-      { title: "Sponsors — Just Wheels Hessequa" },
+      { title: "Sponsors | Just Wheels Hessequa" },
       {
         name: "description",
         content:
           "Meet the businesses that keep Just Wheels Hessequa on the road — and apply to become a club sponsor.",
       },
-      { property: "og:title", content: "Just Wheels Hessequa — Sponsors" },
-      { property: "og:description", content: "Our supporters + how to become a club sponsor." },
+      { property: "og:title", content: "Sponsors | Just Wheels Hessequa" },
+      { property: "og:description", content: "Our supporters and how to become a club sponsor." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/sponsors" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: `${SITE_ORIGIN}/sponsors` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/sponsors" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/sponsors` }],
   }),
   component: Sponsors,
 });

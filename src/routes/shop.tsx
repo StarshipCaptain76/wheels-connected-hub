@@ -7,22 +7,27 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { sendMerchEnquiry } from "@/lib/merch.functions";
 import { ShoppingBag, Mail } from "lucide-react";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "Shop — Just Wheels Hessequa Club Merch" },
+      { title: "Shop | Just Wheels Hessequa Merch" },
       {
         name: "description",
         content:
-          "Club caps, tees, patches and stickers. Enquire online and we'll email you back with payment and pickup details.",
+          "Club caps, tees, patches, stickers and more. Enquire online and we'll email you with payment and pickup details.",
       },
-      { property: "og:title", content: "Just Wheels Hessequa — Club Merch" },
-      { property: "og:description", content: "Rep the tribe. Caps, tees, patches, stickers." },
+      { property: "og:title", content: "Shop | Just Wheels Hessequa Merch" },
+      { property: "og:description", content: "Rep the tribe. Caps, tees, patches, stickers and more." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/shop" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: `${SITE_ORIGIN}/shop` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/shop" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/shop` }],
   }),
   component: Shop,
 });

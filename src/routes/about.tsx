@@ -2,24 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — Just Wheels Hessequa" },
+      { title: "About Just Wheels Hessequa | Southern Cape Car Club" },
       {
         name: "description",
         content:
-          "Just Wheels Hessequa is a community car club in the Southern Cape — Riversdale, Stilbaai, Heidelberg, Albertinia. Every era, every make, every budget.",
+          "Just Wheels Hessequa is a community car club in the Hessequa region — Riversdale, Stilbaai, Heidelberg, Albertinia and beyond.",
       },
-      { property: "og:title", content: "About — Just Wheels Hessequa" },
+      { property: "og:title", content: "About Just Wheels Hessequa | Southern Cape Car Club" },
       {
         property: "og:description",
-        content: "A community car club in the Southern Cape. Every era, every make, every budget.",
+        content:
+          "A community car club in the Hessequa region. Every era, every make, every budget.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/about" },
+      { property: "og:url", content: `${SITE_ORIGIN}/about` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/about" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/about` }],
   }),
   component: About,
 });

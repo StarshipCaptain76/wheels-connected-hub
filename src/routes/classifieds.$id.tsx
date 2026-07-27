@@ -6,6 +6,9 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { getListing } from "@/lib/listings.functions";
 import { ArrowLeft, MapPin, Phone, Mail } from "lucide-react";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 const listingQuery = (id: string) =>
   queryOptions({
     queryKey: ["listing", id],
@@ -21,8 +24,8 @@ export const Route = createFileRoute("/classifieds/$id")({
   },
   head: ({ params, loaderData }) => {
     const title = loaderData?.title ?? "Listing";
-    const url = `https://wheels-connected-hub.lovable.app/classifieds/${params.id}`;
-    const image = loaderData?.photos[0]?.url;
+    const url = `${SITE_ORIGIN}/classifieds/${params.id}`;
+    const image = loaderData?.photos[0]?.url ?? OG_LOGO;
     const jsonLd = loaderData
       ? {
           "@context": "https://schema.org",
@@ -41,7 +44,7 @@ export const Route = createFileRoute("/classifieds/$id")({
       : null;
     return {
       meta: [
-        { title: `${title} — Just Wheels Classifieds` },
+        { title: `${title} | Just Wheels Classifieds` },
         {
           name: "description",
           content:
@@ -55,12 +58,8 @@ export const Route = createFileRoute("/classifieds/$id")({
         },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
-        ...(image
-          ? [
-              { property: "og:image", content: image },
-              { name: "twitter:image", content: image },
-            ]
-          : []),
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
         { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [{ rel: "canonical", href: url }],

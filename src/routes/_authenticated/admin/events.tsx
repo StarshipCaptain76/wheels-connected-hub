@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
 import {
   listAllEvents,
   upsertEvent,
@@ -19,6 +18,7 @@ import {
   placeDetails,
   type PlaceSuggestion,
 } from "@/lib/maps.functions";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trash2, Plus, X, MapPin, ExternalLink, Loader2 } from "lucide-react";
 
 const eventsAdminQuery = queryOptions({
@@ -31,11 +31,9 @@ export const Route = createFileRoute("/_authenticated/admin/events")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsAdminQuery),
   component: AdminEvents,
   errorComponent: ({ error }) => (
-    <SiteLayout>
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="text-ink/70">Access denied: {error.message}</p>
-      </div>
-    </SiteLayout>
+    <div className="py-20 text-center">
+      <p className="text-ink/70">Access denied: {error.message}</p>
+    </div>
   ),
 });
 
@@ -121,60 +119,60 @@ function AdminEvents() {
   }
 
   return (
-    <SiteLayout>
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl tracking-wide text-ink">Manage events</h1>
-            <p className="mt-1 text-sm text-ink/60">
-              Add or edit club events with map, route stops, distances and RSVPs. Google Calendar entries appear on /events automatically.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditing({ is_published: true, starts_at: new Date().toISOString() })}
-            className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
-          >
-            <Plus className="h-4 w-4" /> New event
-          </button>
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">Manage events</h1>
+          <p className="mt-1 text-sm text-ink/60">
+            Add or edit club events with map, route stops, distances and RSVPs.
+          </p>
         </div>
-
-        <ul className="mt-6 space-y-3">
-          {events.map((e) => (
-            <li key={e.id} className="flex gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
-              <div className="min-w-0 flex-1">
-                <div className="text-xs uppercase tracking-wider text-primary">
-                  {e.is_published ? "Published" : "Hidden"} · {new Date(e.starts_at).toLocaleString()}
-                </div>
-                <p className="font-display text-lg text-ink">{e.title}</p>
-                <p className="line-clamp-1 text-sm text-ink/70">{e.location ?? ""}</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Link
-                  to="/events/$id"
-                  params={{ id: e.id }}
-                  className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
-                >
-                  View <ExternalLink className="h-3 w-3" />
-                </Link>
-                <button type="button" onClick={() => setEditing(e as ExtendedEvent)} className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase">
-                  Edit
-                </button>
-                <button type="button" onClick={() => remove(e.id)} className="rounded border-2 border-primary bg-primary p-2 text-paper">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}
+        <button
+          type="button"
+          onClick={() => setEditing({ is_published: true, starts_at: new Date().toISOString() })}
+          className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
+        >
+          <Plus className="h-4 w-4" /> New event
+        </button>
       </div>
-    </SiteLayout>
+
+      <ul className="mt-6 space-y-3">
+        {events.map((e) => (
+          <li key={e.id} className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4">
+            {e.cover_url ? (
+              <img src={e.cover_url} alt="" className="h-20 w-full rounded border-2 border-ink object-cover sm:h-20 sm:w-28 sm:flex-none" />
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <div className="text-xs uppercase tracking-wider text-primary">
+                {e.is_published ? "Published" : "Hidden"} · {new Date(e.starts_at).toLocaleString()}
+              </div>
+              <p className="font-display text-lg text-ink">{e.title}</p>
+              <p className="line-clamp-1 text-sm text-ink/70">{e.location ?? ""}</p>
+            </div>
+            <div className="flex flex-row gap-2 sm:flex-col">
+              <Link
+                to="/events/$id"
+                params={{ id: e.id }}
+                className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
+              >
+                View <ExternalLink className="h-3 w-3" />
+              </Link>
+              <button type="button" onClick={() => setEditing(e as ExtendedEvent)} className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase">
+                Edit
+              </button>
+              <button type="button" onClick={() => remove(e.id)} className="rounded border-2 border-primary bg-primary p-2 text-paper">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}
+    </div>
   );
 }
 
-/** Address input with Google Places suggestions as you type */
 function AddressAutocomplete({
   value,
   onChange,
@@ -195,12 +193,9 @@ function AddressAutocomplete({
   const autocomplete = useServerFn(placesAutocomplete);
   const details = useServerFn(placeDetails);
 
-  // Close dropdown on outside click
   useEffect(() => {
     function onDoc(e: MouseEvent) {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -238,7 +233,6 @@ function AddressAutocomplete({
     try {
       const r = await details({ data: { placeId: s.placeId } });
       if (!r) {
-        // Fall back to description only
         onChange(s.description);
         return;
       }
@@ -281,9 +275,7 @@ function AddressAutocomplete({
                 className="flex w-full flex-col items-start gap-0.5 border-b border-ink/10 px-3 py-2 text-left last:border-0 hover:bg-ink/5"
               >
                 <span className="text-sm font-semibold text-ink">{s.mainText}</span>
-                {s.secondaryText ? (
-                  <span className="text-xs text-ink/55">{s.secondaryText}</span>
-                ) : null}
+                {s.secondaryText ? <span className="text-xs text-ink/55">{s.secondaryText}</span> : null}
               </button>
             </li>
           ))}
@@ -307,7 +299,6 @@ function EditModal({
   const [tab, setTab] = useState<"basics" | "destination" | "details" | "stops">("basics");
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  // Load waypoints if editing
   const existingWaypoints = useQuery({
     queryKey: ["waypoints", "admin", form.id],
     enabled: !!form.id,
@@ -370,12 +361,24 @@ function EditModal({
             </div>
             <Field label="Description (EN)"><textarea value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={inp} rows={2} /></Field>
             <Field label="Description (AF)"><textarea value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={inp} rows={2} /></Field>
-            <Field label="Cover image URL (card thumbnail)">
-              <input value={form.cover_url ?? ""} onChange={(e) => set("cover_url", e.target.value)} className={inp} placeholder="https://..." />
-            </Field>
-            <Field label="Hero image URL (event page)">
-              <input value={form.hero_image_url ?? ""} onChange={(e) => set("hero_image_url", e.target.value)} className={inp} placeholder="https://..." />
-            </Field>
+
+            <ImageUploadField
+              label="Cover image (card thumbnail)"
+              value={form.cover_url ?? ""}
+              onChange={(v) => set("cover_url", v || null)}
+              bucket="gallery"
+              folder="events/covers"
+              maxMb={5}
+            />
+            <ImageUploadField
+              label="Hero image (event page)"
+              value={form.hero_image_url ?? ""}
+              onChange={(v) => set("hero_image_url", v || null)}
+              bucket="gallery"
+              folder="events/heroes"
+              maxMb={8}
+            />
+
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_published ?? true} onChange={(e) => set("is_published", e.target.checked)} />
               <span className="text-sm">Published (visible on site)</span>
@@ -408,9 +411,7 @@ function EditModal({
                 {form.destination_place_id ? " · place resolved" : ""}
               </p>
             ) : (
-              <p className="text-xs text-ink/50">
-                Pick a suggestion from the list to lock in coordinates for the map.
-              </p>
+              <p className="text-xs text-ink/50">Pick a suggestion from the list to lock in coordinates for the map.</p>
             )}
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Lat (manual override)">
@@ -450,29 +451,21 @@ function EditModal({
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <Field label="Label (EN)">
-                      <input value={w.label ?? ""} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, label: e.target.value } : x))} className={inp} />
+                      <input value={w.label ?? ""} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} className={inp} />
                     </Field>
                     <Field label="Label (AF)">
-                      <input value={w.label_af ?? ""} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, label_af: e.target.value } : x))} className={inp} />
+                      <input value={w.label_af ?? ""} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, label_af: e.target.value } : x)))} className={inp} />
                     </Field>
                   </div>
                   <Field label="Address">
                     <AddressAutocomplete
                       value={w.address ?? ""}
-                      onChange={(v) =>
-                        setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, address: v } : x)))
-                      }
+                      onChange={(v) => setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, address: v } : x)))}
                       onResolved={(r) =>
                         setWaypoints((ws) =>
                           ws.map((x, j) =>
                             j === i
-                              ? {
-                                  ...x,
-                                  address: r.formatted,
-                                  lat: r.lat,
-                                  lng: r.lng,
-                                  place_id: r.placeId,
-                                }
+                              ? { ...x, address: r.formatted, lat: r.lat, lng: r.lng, place_id: r.placeId }
                               : x,
                           ),
                         )
@@ -488,10 +481,10 @@ function EditModal({
                   )}
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <Field label="Meet time">
-                      <input type="datetime-local" value={toLocalDT(w.meet_time)} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, meet_time: e.target.value ? new Date(e.target.value).toISOString() : null } : x))} className={inp} />
+                      <input type="datetime-local" value={toLocalDT(w.meet_time)} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, meet_time: e.target.value ? new Date(e.target.value).toISOString() : null } : x)))} className={inp} />
                     </Field>
                     <Field label="Sort">
-                      <input type="number" value={w.sort ?? i} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, sort: Number(e.target.value) } : x))} className={inp} />
+                      <input type="number" value={w.sort ?? i} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, sort: Number(e.target.value) } : x)))} className={inp} />
                     </Field>
                   </div>
                 </li>

@@ -100,6 +100,41 @@ export type Database = {
           },
         ]
       }
+      listing_contacts: {
+        Row: {
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          listing_id: string
+        }
+        Insert: {
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_contacts_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_photos: {
         Row: {
           created_at: string
@@ -136,9 +171,6 @@ export type Database = {
         Row: {
           category: Database["public"]["Enums"]["listing_category"]
           condition: Database["public"]["Enums"]["listing_condition"]
-          contact_email: string
-          contact_name: string
-          contact_phone: string | null
           created_at: string
           description: string
           description_af: string | null
@@ -154,9 +186,6 @@ export type Database = {
         Insert: {
           category?: Database["public"]["Enums"]["listing_category"]
           condition?: Database["public"]["Enums"]["listing_condition"]
-          contact_email: string
-          contact_name: string
-          contact_phone?: string | null
           created_at?: string
           description: string
           description_af?: string | null
@@ -172,9 +201,6 @@ export type Database = {
         Update: {
           category?: Database["public"]["Enums"]["listing_category"]
           condition?: Database["public"]["Enums"]["listing_condition"]
-          contact_email?: string
-          contact_name?: string
-          contact_phone?: string | null
           created_at?: string
           description?: string
           description_af?: string | null

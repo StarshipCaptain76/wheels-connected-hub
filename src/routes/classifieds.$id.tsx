@@ -1,28 +1,33 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { getListing } from "@/lib/listings.functions";
+import { getPublicListing, getListing } from "@/lib/listings.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, MapPin, Phone, Mail } from "lucide-react";
 
-const listingQuery = (id: string) =>
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
+const publicListingQuery = (id: string) =>
   queryOptions({
-    queryKey: ["listing", id],
-    queryFn: () => getListing({ data: { id } }),
+    queryKey: ["listing", id, "public"],
+    queryFn: () => getPublicListing({ data: { id } }),
     staleTime: 30_000,
   });
 
 export const Route = createFileRoute("/classifieds/$id")({
   loader: async ({ params, context }) => {
-    const data = await context.queryClient.ensureQueryData(listingQuery(params.id));
+    const data = await context.queryClient.ensureQueryData(publicListingQuery(params.id));
     if (!data) throw notFound();
     return data;
   },
   head: ({ params, loaderData }) => {
     const title = loaderData?.title ?? "Listing";
-    const url = `https://wheels-connected-hub.lovable.app/classifieds/${params.id}`;
-    const image = loaderData?.photos[0]?.url;
+    const url = `${SITE_ORIGIN}/classifieds/${params.id}`;
+    const image = loaderData?.photos[0]?.url ?? OG_LOGO;
     const jsonLd = loaderData
       ? {
           "@context": "https://schema.org",
@@ -41,7 +46,7 @@ export const Route = createFileRoute("/classifieds/$id")({
       : null;
     return {
       meta: [
-        { title: `${title} — Just Wheels Classifieds` },
+        { title: `${title} | Just Wheels Classifieds` },
         {
           name: "description",
           content:
@@ -55,12 +60,8 @@ export const Route = createFileRoute("/classifieds/$id")({
         },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
-        ...(image
-          ? [
-              { property: "og:image", content: image },
-              { name: "twitter:image", content: image },
-            ]
-          : []),
+        { property: "og:image", content: image },
+        { name: "twitter:image", content: image },
         { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [{ rel: "canonical", href: url }],
@@ -86,15 +87,35 @@ export const Route = createFileRoute("/classifieds/$id")({
 function ListingDetail() {
   const { lang } = useI18n();
   const params = Route.useParams();
-  const { data: listing } = useSuspenseQuery(listingQuery(params.id));
+  const { data: listing } = useSuspenseQuery(publicListingQuery(params.id));
   const [revealEmail, setRevealEmail] = useState(false);
-  if (!listing) return null;
+  const [session, setSession] = useState<unknown>(null);
 
-  const title = lang === "af" && listing.title_af ? listing.title_af : listing.title;
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const getListingFn = useServerFn(getListing);
+  const { data: fullListing } = useQuery({
+    queryKey: ["listing", params.id, "full"],
+    queryFn: () => getListingFn({ data: { id: params.id } }),
+    enabled: !!session && !!listing,
+    staleTime: 60_000,
+  });
+
+  const display = fullListing ?? listing;
+  if (!display) return null;
+
+  const title = lang === "af" && display.title_af ? display.title_af : display.title;
   const description =
-    lang === "af" && listing.description_af ? listing.description_af : listing.description;
+    lang === "af" && display.description_af ? display.description_af : display.description;
 
-  const [emailUser, emailDomain] = listing.contact_email.split("@");
+  const contact = display.contact;
+  const [emailUser, emailDomain] = contact?.contact_email
+    ? contact.contact_email.split("@")
+    : ["", ""];
 
   return (
     <SiteLayout>
@@ -108,8 +129,8 @@ function ListingDetail() {
 
         <div className="mt-6 grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
-            {listing.photos.length > 0 ? (
-              listing.photos.map((p) => (
+            {display.photos.length > 0 ? (
+              display.photos.map((p) => (
                 <img
                   key={p.id}
                   src={p.url}
@@ -131,21 +152,21 @@ function ListingDetail() {
 
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-primary">
-              {listing.category} · {listing.condition}
+              {display.category} · {display.condition}
             </div>
             <h1 className="mt-2 font-display text-4xl tracking-wide text-ink">{title}</h1>
-            {listing.price_zar != null ? (
+            {display.price_zar != null ? (
               <p className="mt-3 font-display text-3xl text-primary">
-                R {listing.price_zar.toLocaleString("en-ZA")}
+                R {display.price_zar.toLocaleString("en-ZA")}
               </p>
             ) : (
               <p className="mt-3 italic text-ink/70">
                 {lang === "af" ? "Prys op aanvraag" : "Price on request"}
               </p>
             )}
-            {listing.location ? (
+            {display.location ? (
               <p className="mt-2 inline-flex items-center gap-1 text-sm text-ink/70">
-                <MapPin className="h-4 w-4" /> {listing.location}
+                <MapPin className="h-4 w-4" /> {display.location}
               </p>
             ) : null}
 
@@ -162,34 +183,52 @@ function ListingDetail() {
                   ? "Betaling word direk met die verkoper hanteer. Die klub is nie betrokke nie."
                   : "Payment is arranged directly with the seller. The club is not involved."}
               </p>
-              <p className="mt-3 font-semibold">{listing.contact_name}</p>
-              {listing.contact_phone ? (
-                <p className="mt-1 inline-flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4" />
-                  <a href={`tel:${listing.contact_phone}`} className="hover:underline">
-                    {listing.contact_phone}
-                  </a>
-                </p>
-              ) : null}
-              <p className="mt-1 inline-flex items-center gap-2 text-sm">
-                <Mail className="h-4 w-4" />
-                {revealEmail ? (
-                  <a
-                    href={`mailto:${emailUser}@${emailDomain}`}
-                    className="hover:underline"
+              {contact ? (
+                <>
+                  <p className="mt-3 font-semibold">{contact.contact_name}</p>
+                  {contact.contact_phone ? (
+                    <p className="mt-1 inline-flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4" />
+                      <a href={`tel:${contact.contact_phone}`} className="hover:underline">
+                        {contact.contact_phone}
+                      </a>
+                    </p>
+                  ) : null}
+                  <p className="mt-1 inline-flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4" />
+                    {revealEmail ? (
+                      <a
+                        href={`mailto:${emailUser}@${emailDomain}`}
+                        className="hover:underline"
+                      >
+                        {emailUser}@{emailDomain}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setRevealEmail(true)}
+                        className="text-primary underline"
+                      >
+                        {lang === "af" ? "Wys e-pos" : "Show email"}
+                      </button>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <div className="mt-3 text-sm text-ink/70">
+                  <p>
+                    {lang === "af"
+                      ? "Teken in om die verkoper se kontakbesonderhede te sien."
+                      : "Sign in to see the seller's contact details."}
+                  </p>
+                  <Link
+                    to="/auth"
+                    className="mt-2 inline-block rounded border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
                   >
-                    {emailUser}@{emailDomain}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setRevealEmail(true)}
-                    className="text-primary underline"
-                  >
-                    {lang === "af" ? "Wys e-pos" : "Show email"}
-                  </button>
-                )}
-              </p>
+                    {lang === "af" ? "Teken in" : "Sign in"}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

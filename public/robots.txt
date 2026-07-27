@@ -4,4 +4,4 @@ Disallow: /auth
 Disallow: /members
 Disallow: /admin
 
-Sitemap: https://wheels-connected-hub.lovable.app/sitemap.xml
+Sitemap: https://justwheels.co.za/sitemap.xml

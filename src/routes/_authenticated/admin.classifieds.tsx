@@ -67,7 +67,7 @@ function AdminClassifieds() {
                 <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
                 <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>
                 <p className="mt-1 text-xs text-ink/60">
-                  {l.contact_name} · {l.contact_email}
+                  {l.contact?.contact_name} · {l.contact?.contact_email}
                 </p>
               </div>
               <div className="flex flex-col gap-2">

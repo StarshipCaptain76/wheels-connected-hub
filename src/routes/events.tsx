@@ -21,6 +21,9 @@ const eventsQuery = queryOptions({
 });
 
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/events")({
   head: ({ loaderData }) => {
     const events = (loaderData as PublicEvent[] | undefined) ?? [];
@@ -46,25 +49,27 @@ export const Route = createFileRoute("/events")({
             : undefined,
           description: ev.description ?? undefined,
           image: ev.cover_url ?? undefined,
-          organizer: { "@type": "Organization", name: "Just Wheels Hessequa", url: "https://wheels-connected-hub.lovable.app" },
+          organizer: { "@type": "Organization", name: "Just Wheels Hessequa", url: SITE_ORIGIN },
         },
       })),
     };
     return {
       meta: [
-        { title: "Events — Just Wheels Hessequa" },
+        { title: "Events | Just Wheels Hessequa" },
         {
           name: "description",
           content:
-            "Upcoming breakfast runs, show-and-shines, cruises and workshop days for the Just Wheels Hessequa car club.",
+            "Upcoming breakfast runs, show-and-shines, cruises and workshop days for the Just Wheels Hessequa car club in the Southern Cape.",
         },
-        { property: "og:title", content: "Events — Just Wheels Hessequa" },
-        { property: "og:description", content: "Upcoming runs, shows and cruises." },
+        { property: "og:title", content: "Events | Just Wheels Hessequa" },
+        { property: "og:description", content: "Upcoming runs, shows and cruises across the Southern Cape." },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: "https://wheels-connected-hub.lovable.app/events" },
-        { name: "twitter:card", content: "summary" },
+        { property: "og:url", content: `${SITE_ORIGIN}/events` },
+        { property: "og:image", content: OG_LOGO },
+        { name: "twitter:image", content: OG_LOGO },
+        { name: "twitter:card", content: "summary_large_image" },
       ],
-      links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/events" }],
+      links: [{ rel: "canonical", href: `${SITE_ORIGIN}/events` }],
       scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
     };
   },

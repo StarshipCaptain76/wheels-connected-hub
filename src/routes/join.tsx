@@ -3,23 +3,31 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { Check } from "lucide-react";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/join")({
   head: () => ({
     meta: [
-      { title: "Join — Just Wheels Hessequa" },
+      { title: "Join Just Wheels Hessequa | Membership" },
       {
         name: "description",
         content:
-          "Become a Just Wheels Hessequa member. Monthly runs, show-and-shines, digital member card and access to the members-only crew.",
+          "Become a Just Wheels Hessequa member. Get access to monthly runs, show-and-shines, a digital member card and the members-only crew.",
       },
-      { property: "og:title", content: "Join Just Wheels Hessequa" },
+      { property: "og:title", content: "Join Just Wheels Hessequa | Membership" },
       {
         property: "og:description",
-        content: "Membership benefits and pricing for the Just Wheels Hessequa car club.",
+        content:
+          "Membership benefits and pricing for the Just Wheels Hessequa car club.",
       },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/join" },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/join` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/join" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/join` }],
   }),
   component: Join,
 });

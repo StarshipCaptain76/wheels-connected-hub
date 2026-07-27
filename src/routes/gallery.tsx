@@ -11,22 +11,27 @@ const galleryQuery = queryOptions({
   staleTime: 60_000,
 });
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/gallery")({
   head: () => ({
     meta: [
-      { title: "Gallery — Just Wheels Hessequa" },
+      { title: "Gallery | Just Wheels Hessequa" },
       {
         name: "description",
         content:
-          "Photos from Just Wheels Hessequa runs, shows and workshop days across the Southern Cape.",
+          "Photos from Just Wheels Hessequa runs, shows and workshop days across the Hessequa region and Southern Cape.",
       },
-      { property: "og:title", content: "Gallery — Just Wheels Hessequa" },
+      { property: "og:title", content: "Gallery | Just Wheels Hessequa" },
       { property: "og:description", content: "Photos from runs, shows and workshop days." },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/gallery" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: `${SITE_ORIGIN}/gallery` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/gallery" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/gallery` }],
   }),
 
   loader: ({ context }) => context.queryClient.ensureQueryData(galleryQuery),

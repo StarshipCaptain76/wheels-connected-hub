@@ -13,25 +13,31 @@ const nextEventQuery = queryOptions({
   staleTime: 60_000,
 });
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}${logoAsset.url}`;
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Just Wheels Hessequa — Southern Cape Car Club" },
+      { title: "Just Wheels Hessequa | Southern Cape Car Club" },
       {
         name: "description",
         content:
-          "The Just Wheels Hessequa car club: classics, hot rods, bakkies and bikes across Riversdale, Stilbaai and the Southern Cape. Monthly runs, show-and-shines and a members-only crew.",
+          "Join Just Wheels Hessequa — a car club for classics, hot rods, bakkies and bikes across Riversdale, Stilbaai and the Southern Cape.",
       },
-      { property: "og:title", content: "Just Wheels Hessequa — Southern Cape Car Club" },
+      { property: "og:title", content: "Just Wheels Hessequa | Southern Cape Car Club" },
       {
         property: "og:description",
-        content: "Monthly runs, show-and-shines and a members crew based in Hessequa.",
+        content:
+          "Join a community car club for classics, hot rods, bakkies and bikes across the Southern Cape.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/" },
-      { name: "twitter:card", content: "summary" },
+      { property: "og:url", content: `${SITE_ORIGIN}/` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/` }],
     scripts: [
       {
         type: "application/ld+json",
@@ -39,7 +45,7 @@ export const Route = createFileRoute("/")({
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: "Just Wheels Hessequa",
-          url: "https://wheels-connected-hub.lovable.app",
+          url: SITE_ORIGIN,
         }),
       },
     ],

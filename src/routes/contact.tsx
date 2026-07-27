@@ -5,23 +5,30 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { Facebook, Instagram, MessageCircle } from "lucide-react";
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — Just Wheels Hessequa" },
+      { title: "Contact Just Wheels Hessequa" },
       {
         name: "description",
         content:
-          "Get in touch with Just Wheels Hessequa. Message the committee, join the WhatsApp group or find us on socials.",
+          "Get in touch with Just Wheels Hessequa. Message the committee, join the WhatsApp group or find us on Facebook and Instagram.",
       },
       { property: "og:title", content: "Contact Just Wheels Hessequa" },
       {
         property: "og:description",
         content: "Message the club, join our WhatsApp group or find us on socials.",
       },
-      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/contact" },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/contact` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/contact" }],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/contact` }],
   }),
   component: Contact,
 });

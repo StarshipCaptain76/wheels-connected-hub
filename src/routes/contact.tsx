@@ -39,6 +39,12 @@ export const Route = createFileRoute("/contact")({
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Mobile number is required")
+    .max(40)
+    .regex(/^[+\d\s()-]+$/, "Enter a valid mobile number"),
   message: z.string().trim().min(1).max(1000),
 });
 
@@ -89,6 +95,14 @@ function Contact() {
           >
             <Field name="name" label={t("contact.name")} error={errors.name} />
             <Field name="email" label={t("contact.email")} type="email" error={errors.email} />
+            <Field
+              name="phone"
+              label={t("contact.phone")}
+              type="tel"
+              error={errors.phone}
+              placeholder="+27 82 123 4567"
+              autoComplete="tel"
+            />
             <Field name="message" label={t("contact.message")} textarea error={errors.message} />
             <button
               type="submit"
@@ -102,7 +116,6 @@ function Contact() {
               <p className="text-sm text-primary">{errMsg || "Could not send. Please try again."}</p>
             )}
           </form>
-
 
           <div className="space-y-4">
             <a
@@ -132,12 +145,16 @@ function Field({
   type = "text",
   textarea,
   error,
+  placeholder,
+  autoComplete,
 }: {
   name: string;
   label: string;
   type?: string;
   textarea?: boolean;
   error?: string;
+  placeholder?: string;
+  autoComplete?: string;
 }) {
   const base =
     "w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-ink outline-none focus:ring-2 focus:ring-primary";
@@ -147,7 +164,15 @@ function Field({
       {textarea ? (
         <textarea name={name} rows={5} className={base} required maxLength={1000} />
       ) : (
-        <input name={name} type={type} className={base} required maxLength={255} />
+        <input
+          name={name}
+          type={type}
+          className={base}
+          required
+          maxLength={255}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+        />
       )}
       {error && <span className="mt-1 block text-xs text-primary">{error}</span>}
     </label>

@@ -14,13 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_rsvps: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          note: string | null
+          party_size: number
+          status: Database["public"]["Enums"]["rsvp_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          note?: string | null
+          party_size?: number
+          status: Database["public"]["Enums"]["rsvp_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          note?: string | null
+          party_size?: number
+          status?: Database["public"]["Enums"]["rsvp_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_waypoints: {
+        Row: {
+          address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          label: string
+          label_af: string | null
+          lat: number | null
+          lng: number | null
+          meet_time: string | null
+          place_id: string | null
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          label: string
+          label_af?: string | null
+          lat?: number | null
+          lng?: number | null
+          meet_time?: string | null
+          place_id?: string | null
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          label?: string
+          label_af?: string | null
+          lat?: number | null
+          lng?: number | null
+          meet_time?: string | null
+          place_id?: string | null
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_waypoints_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_waypoints_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           cover_url: string | null
           created_at: string
           description: string | null
           description_af: string | null
+          destination_address: string | null
+          destination_lat: number | null
+          destination_lng: number | null
+          destination_place_id: string | null
+          details_af_md: string | null
+          details_md: string | null
           ends_at: string | null
+          hero_image_url: string | null
           id: string
           is_published: boolean
           location: string | null
@@ -34,7 +149,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           description_af?: string | null
+          destination_address?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_place_id?: string | null
+          details_af_md?: string | null
+          details_md?: string | null
           ends_at?: string | null
+          hero_image_url?: string | null
           id?: string
           is_published?: boolean
           location?: string | null
@@ -48,7 +170,14 @@ export type Database = {
           created_at?: string
           description?: string | null
           description_af?: string | null
+          destination_address?: string | null
+          destination_lat?: number | null
+          destination_lng?: number | null
+          destination_place_id?: string | null
+          details_af_md?: string | null
+          details_md?: string | null
           ends_at?: string | null
+          hero_image_url?: string | null
           id?: string
           is_published?: boolean
           location?: string | null
@@ -91,6 +220,13 @@ export type Database = {
           title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "gallery_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
           {
             foreignKeyName: "gallery_items_event_id_fkey"
             columns: ["event_id"]
@@ -344,6 +480,27 @@ export type Database = {
         }
         Relationships: []
       }
+      route_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          payload: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at?: string
+          payload: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       sponsors: {
         Row: {
           created_at: string
@@ -406,7 +563,16 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      event_rsvp_counts: {
+        Row: {
+          event_id: string | null
+          going_count: number | null
+          going_party_total: number | null
+          maybe_count: number | null
+          not_going_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       grant_admin_if_allowlisted: {
@@ -426,6 +592,7 @@ export type Database = {
       listing_category: "parts" | "cars" | "memorabilia" | "other"
       listing_condition: "new" | "used" | "project"
       listing_status: "pending" | "approved" | "rejected" | "sold"
+      rsvp_status: "going" | "maybe" | "not_going"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -557,6 +724,7 @@ export const Constants = {
       listing_category: ["parts", "cars", "memorabilia", "other"],
       listing_condition: ["new", "used", "project"],
       listing_status: ["pending", "approved", "rejected", "sold"],
+      rsvp_status: ["going", "maybe", "not_going"],
     },
   },
 } as const

@@ -120,7 +120,27 @@ export const dictionaries = {
     "pwa.install": "Install",
     "pwa.later": "Later",
     "pwa.offline": "You're offline — showing cached content",
+
+    "nav.shop": "Shop",
+    "shop.title": "Club Merch",
+    "shop.subtitle": "Rep the tribe. Enquire below and we'll email you back with payment & pickup.",
+    "shop.enquire": "Enquire",
+    "shop.enquireFor": "Enquire about",
+    "shop.close": "Close",
+    "shop.name": "Your name",
+    "shop.email": "Your email",
+    "shop.phone": "Phone (optional)",
+    "shop.size": "Size",
+    "shop.quantity": "Quantity",
+    "shop.notes": "Notes (optional)",
+    "shop.send": "Send enquiry",
+    "shop.sending": "Sending…",
+    "shop.sent": "Enquiry sent — we'll be in touch shortly.",
+    "shop.error": "Could not send. Please try again or WhatsApp us.",
+    "shop.masked": "Emails go to admin (address hidden to keep bots away).",
+    "shop.priceFrom": "From",
   },
+
 
   af: {
     "nav.home": "Tuis",
@@ -241,7 +261,27 @@ export const dictionaries = {
     "pwa.install": "Installeer",
     "pwa.later": "Later",
     "pwa.offline": "Jy is aflyn — wys gekasde inhoud",
+
+    "nav.shop": "Winkel",
+    "shop.title": "Klub Handelsware",
+    "shop.subtitle": "Wys jou kleure. Stuur 'n navraag en ons e-pos jou terug met betaling & afhaal.",
+    "shop.enquire": "Navraag",
+    "shop.enquireFor": "Navraag oor",
+    "shop.close": "Maak toe",
+    "shop.name": "Jou naam",
+    "shop.email": "Jou e-pos",
+    "shop.phone": "Foon (opsioneel)",
+    "shop.size": "Grootte",
+    "shop.quantity": "Hoeveelheid",
+    "shop.notes": "Notas (opsioneel)",
+    "shop.send": "Stuur navraag",
+    "shop.sending": "Stuur tans…",
+    "shop.sent": "Navraag gestuur — ons kontak jou binnekort.",
+    "shop.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
+    "shop.masked": "E-posse gaan na admin (adres versteek teen bots).",
+    "shop.priceFrom": "Vanaf",
   },
+
 
 } as const;
 

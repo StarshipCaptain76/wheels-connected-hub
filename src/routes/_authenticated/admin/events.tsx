@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import {
   listAllEvents,
@@ -14,8 +14,12 @@ import {
   saveEventWaypoints,
   type EventWaypoint,
 } from "@/lib/events-detail.functions";
-import { geocodeAddress } from "@/lib/maps.functions";
-import { Trash2, Plus, X, MapPin, ExternalLink } from "lucide-react";
+import {
+  placesAutocomplete,
+  placeDetails,
+  type PlaceSuggestion,
+} from "@/lib/maps.functions";
+import { Trash2, Plus, X, MapPin, ExternalLink, Loader2 } from "lucide-react";
 
 const eventsAdminQuery = queryOptions({
   queryKey: ["events", "admin"],
@@ -108,8 +112,12 @@ function AdminEvents() {
 
   async function remove(id: string) {
     if (!confirm("Delete this event?")) return;
-    await del({ data: { id } });
-    await qc.invalidateQueries({ queryKey: ["events"] });
+    try {
+      await del({ data: { id } });
+      await qc.invalidateQueries({ queryKey: ["events"] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed");
+    }
   }
 
   return (
@@ -166,6 +174,125 @@ function AdminEvents() {
   );
 }
 
+/** Address input with Google Places suggestions as you type */
+function AddressAutocomplete({
+  value,
+  onChange,
+  onResolved,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onResolved: (r: { formatted: string; lat: number; lng: number; placeId: string }) => void;
+  placeholder?: string;
+}) {
+  const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const autocomplete = useServerFn(placesAutocomplete);
+  const details = useServerFn(placeDetails);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const search = useCallback(
+    (q: string) => {
+      if (timer.current) clearTimeout(timer.current);
+      if (q.trim().length < 2) {
+        setSuggestions([]);
+        setOpen(false);
+        return;
+      }
+      timer.current = setTimeout(async () => {
+        setLoading(true);
+        try {
+          const rows = await autocomplete({ data: { query: q.trim() } });
+          setSuggestions(rows);
+          setOpen(rows.length > 0);
+        } catch {
+          setSuggestions([]);
+          setOpen(false);
+        } finally {
+          setLoading(false);
+        }
+      }, 280);
+    },
+    [autocomplete],
+  );
+
+  async function pick(s: PlaceSuggestion) {
+    setOpen(false);
+    setSuggestions([]);
+    setResolving(true);
+    try {
+      const r = await details({ data: { placeId: s.placeId } });
+      if (!r) {
+        // Fall back to description only
+        onChange(s.description);
+        return;
+      }
+      onChange(r.formatted);
+      onResolved(r);
+    } catch {
+      onChange(s.description);
+    } finally {
+      setResolving(false);
+    }
+  }
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <div className="relative">
+        <input
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            search(e.target.value);
+          }}
+          onFocus={() => {
+            if (suggestions.length > 0) setOpen(true);
+          }}
+          className={inp}
+          placeholder={placeholder ?? "Start typing an address…"}
+          autoComplete="off"
+        />
+        {(loading || resolving) && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-ink/40" />
+        )}
+      </div>
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-md border-2 border-ink bg-paper shadow-[3px_3px_0_0_var(--color-ink)]">
+          {suggestions.map((s) => (
+            <li key={s.placeId}>
+              <button
+                type="button"
+                onClick={() => pick(s)}
+                className="flex w-full flex-col items-start gap-0.5 border-b border-ink/10 px-3 py-2 text-left last:border-0 hover:bg-ink/5"
+              >
+                <span className="text-sm font-semibold text-ink">{s.mainText}</span>
+                {s.secondaryText ? (
+                  <span className="text-xs text-ink/55">{s.secondaryText}</span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function EditModal({
   state,
   onSave,
@@ -179,7 +306,6 @@ function EditModal({
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"basics" | "destination" | "details" | "stops">("basics");
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const geocode = useServerFn(geocodeAddress);
 
   // Load waypoints if editing
   const existingWaypoints = useQuery({
@@ -191,36 +317,6 @@ function EditModal({
   useEffect(() => {
     if (existingWaypoints.data) setWaypoints(existingWaypoints.data);
   }, [existingWaypoints.data]);
-
-  async function doGeocodeDest() {
-    const q = (form.destination_address ?? form.location ?? "").trim();
-    if (!q) return;
-    const r = await geocode({ data: { query: q } });
-    if (!r) {
-      alert("No match found for that address.");
-      return;
-    }
-    setForm((f) => ({
-      ...f,
-      destination_address: r.formatted,
-      destination_lat: r.lat,
-      destination_lng: r.lng,
-      destination_place_id: r.placeId,
-    }));
-  }
-
-  async function doGeocodeWaypoint(idx: number) {
-    const q = (waypoints[idx].address ?? "").trim();
-    if (!q) return;
-    const r = await geocode({ data: { query: q } });
-    if (!r) {
-      alert("No match found.");
-      return;
-    }
-    setWaypoints((ws) =>
-      ws.map((w, i) => (i === idx ? { ...w, address: r.formatted, lat: r.lat, lng: r.lng, place_id: r.placeId } : w)),
-    );
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
@@ -290,18 +386,32 @@ function EditModal({
         {tab === "destination" && (
           <div className="space-y-3">
             <Field label="Destination address">
-              <input value={form.destination_address ?? ""} onChange={(e) => set("destination_address", e.target.value)} className={inp} placeholder="Farm, town, postal code..." />
+              <AddressAutocomplete
+                value={form.destination_address ?? ""}
+                onChange={(v) => set("destination_address", v)}
+                onResolved={(r) =>
+                  setForm((f) => ({
+                    ...f,
+                    destination_address: r.formatted,
+                    destination_lat: r.lat,
+                    destination_lng: r.lng,
+                    destination_place_id: r.placeId,
+                  }))
+                }
+                placeholder="Start typing — e.g. Stilbaai Harbour, Western Cape"
+              />
             </Field>
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={doGeocodeDest} className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase">
-                <MapPin className="h-3 w-3" /> Geocode
-              </button>
-              {form.destination_lat != null && form.destination_lng != null && (
-                <span className="text-xs text-ink/60">
-                  {form.destination_lat.toFixed(5)}, {form.destination_lng.toFixed(5)}
-                </span>
-              )}
-            </div>
+            {form.destination_lat != null && form.destination_lng != null ? (
+              <p className="inline-flex items-center gap-1 text-xs text-ink/60">
+                <MapPin className="h-3 w-3 text-primary" />
+                {form.destination_lat.toFixed(5)}, {form.destination_lng.toFixed(5)}
+                {form.destination_place_id ? " · place resolved" : ""}
+              </p>
+            ) : (
+              <p className="text-xs text-ink/50">
+                Pick a suggestion from the list to lock in coordinates for the map.
+              </p>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Lat (manual override)">
                 <input type="number" step="any" value={form.destination_lat ?? ""} onChange={(e) => set("destination_lat", e.target.value ? Number(e.target.value) : null)} className={inp} />
@@ -347,16 +457,35 @@ function EditModal({
                     </Field>
                   </div>
                   <Field label="Address">
-                    <input value={w.address ?? ""} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, address: e.target.value } : x))} className={inp} />
+                    <AddressAutocomplete
+                      value={w.address ?? ""}
+                      onChange={(v) =>
+                        setWaypoints((ws) => ws.map((x, j) => (j === i ? { ...x, address: v } : x)))
+                      }
+                      onResolved={(r) =>
+                        setWaypoints((ws) =>
+                          ws.map((x, j) =>
+                            j === i
+                              ? {
+                                  ...x,
+                                  address: r.formatted,
+                                  lat: r.lat,
+                                  lng: r.lng,
+                                  place_id: r.placeId,
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                      placeholder="Start typing a stop address…"
+                    />
                   </Field>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <button type="button" onClick={() => doGeocodeWaypoint(i)} className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase">
-                      <MapPin className="h-3 w-3" /> Geocode
-                    </button>
-                    {w.lat != null && w.lng != null && (
-                      <span className="text-xs text-ink/60">{w.lat.toFixed(4)}, {w.lng.toFixed(4)}</span>
-                    )}
-                  </div>
+                  {w.lat != null && w.lng != null && (
+                    <p className="mt-1 text-xs text-ink/60">
+                      <MapPin className="mr-1 inline h-3 w-3 text-primary" />
+                      {w.lat.toFixed(4)}, {w.lng.toFixed(4)}
+                    </p>
+                  )}
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     <Field label="Meet time">
                       <input type="datetime-local" value={toLocalDT(w.meet_time)} onChange={(e) => setWaypoints((ws) => ws.map((x, j) => j === i ? { ...x, meet_time: e.target.value ? new Date(e.target.value).toISOString() : null } : x))} className={inp} />

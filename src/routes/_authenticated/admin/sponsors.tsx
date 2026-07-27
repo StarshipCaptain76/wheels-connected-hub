@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
 import {
   listAllSponsors,
   upsertSponsor,
   deleteSponsor,
   type AdminSponsor,
 } from "@/lib/sponsors.functions";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trash2, Plus, X } from "lucide-react";
 
 const TAGLINE_MAX = 200;
@@ -23,11 +23,9 @@ export const Route = createFileRoute("/_authenticated/admin/sponsors")({
   loader: ({ context }) => context.queryClient.ensureQueryData(sponsorsAdminQuery),
   component: AdminSponsors,
   errorComponent: ({ error }) => (
-    <SiteLayout>
-      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="text-ink/70">Access denied: {error.message}</p>
-      </div>
-    </SiteLayout>
+    <div className="py-20 text-center">
+      <p className="text-ink/70">Access denied: {error.message}</p>
+    </div>
   ),
 });
 
@@ -41,6 +39,9 @@ function AdminSponsors() {
   const [editing, setEditing] = useState<FormState | null>(null);
 
   async function save(form: FormState) {
+    if (!(form.logo_path ?? "").trim()) {
+      throw new Error("Logo is required — upload an image or paste a URL");
+    }
     await upsert({
       data: {
         id: form.id ?? null,
@@ -64,74 +65,80 @@ function AdminSponsors() {
   }
 
   return (
-    <SiteLayout>
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl tracking-wide text-ink">Manage sponsors</h1>
-            <p className="mt-1 text-sm text-ink/60">
-              Paste a public logo URL (e.g. the sponsor's own hosted logo).
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              setEditing({ is_active: true, sort: (sponsors.at(-1)?.sort ?? 0) + 10 })
-            }
-            className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
-          >
-            <Plus className="h-4 w-4" /> New sponsor
-          </button>
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">Manage sponsors</h1>
+          <p className="mt-1 text-sm text-ink/60">Upload a logo or paste a public image URL.</p>
         </div>
-
-        <ul className="mt-6 space-y-3">
-          {sponsors.map((s) => (
-            <li
-              key={s.id}
-              className="flex gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
-            >
-              <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20 p-1">
-                {/^https?:\/\//i.test(s.logo_path) ? (
-                  <img src={s.logo_path} alt="" className="h-full w-full object-contain" />
-                ) : (
-                  <div className="text-[10px] text-ink/50">(bucket)</div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs uppercase tracking-wider text-primary">
-                  {s.is_active ? "Active" : "Hidden"} · sort {s.sort}
-                </div>
-                <p className="font-display text-lg text-ink">{s.name}</p>
-                <p className="line-clamp-1 text-sm text-ink/70">{s.tagline ?? ""}</p>
-                {s.website_url && (
-                  <a href={s.website_url} target="_blank" rel="noreferrer" className="text-xs text-rust">
-                    {s.website_url}
-                  </a>
-                )}
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditing(s)}
-                  className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(s.id)}
-                  className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}
+        <button
+          type="button"
+          onClick={() => setEditing({ is_active: true, sort: (sponsors.at(-1)?.sort ?? 0) + 10 })}
+          className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
+        >
+          <Plus className="h-4 w-4" /> New sponsor
+        </button>
       </div>
-    </SiteLayout>
+
+      <ul className="mt-6 space-y-3">
+        {sponsors.map((s) => (
+          <li
+            key={s.id}
+            className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4"
+          >
+            <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20 p-1">
+              {/^https?:\/\//i.test(s.logo_path) ? (
+                <img src={s.logo_path} alt="" className="h-full w-full object-contain" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-[10px] text-ink/50">logo</div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs uppercase tracking-wider text-primary">
+                {s.is_active ? "Active" : "Hidden"} · sort {s.sort}
+              </div>
+              <p className="font-display text-lg text-ink">{s.name}</p>
+              <p className="line-clamp-1 text-sm text-ink/70">{s.tagline ?? ""}</p>
+              {s.website_url && (
+                <a href={s.website_url} target="_blank" rel="noreferrer" className="text-xs text-rust">
+                  {s.website_url}
+                </a>
+              )}
+            </div>
+            <div className="flex flex-row gap-2 sm:flex-col">
+              <button
+                type="button"
+                onClick={() => setEditing(s)}
+                className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(s.id)}
+                className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      {editing && (
+        <EditModal
+          state={editing}
+          onSave={async (f) => {
+            try {
+              await save(f);
+            } catch (err) {
+              alert(err instanceof Error ? err.message : "Save failed");
+            }
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -182,7 +189,7 @@ function EditModal({
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]"
+        className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))] max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-ink">{form.id ? "Edit sponsor" : "New sponsor"}</h2>
@@ -193,10 +200,7 @@ function EditModal({
         <Row label="Business name">
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
-        <Row
-          label="Tagline (EN)"
-          trailing={<CharCount value={taglineEn} max={TAGLINE_MAX} />}
-        >
+        <Row label="Tagline (EN)" trailing={<CharCount value={taglineEn} max={TAGLINE_MAX} />}>
           <input
             value={taglineEn}
             maxLength={TAGLINE_MAX}
@@ -205,10 +209,7 @@ function EditModal({
             placeholder="Short English tagline"
           />
         </Row>
-        <Row
-          label="Tagline (AF)"
-          trailing={<CharCount value={taglineAf} max={TAGLINE_MAX} />}
-        >
+        <Row label="Tagline (AF)" trailing={<CharCount value={taglineAf} max={TAGLINE_MAX} />}>
           <input
             value={taglineAf}
             maxLength={TAGLINE_MAX}
@@ -220,9 +221,17 @@ function EditModal({
         <Row label="Website URL">
           <input value={form.website_url ?? ""} onChange={(e) => set("website_url", e.target.value)} className={input} />
         </Row>
-        <Row label="Logo URL (paste a public image URL)">
-          <input required value={form.logo_path ?? ""} onChange={(e) => set("logo_path", e.target.value)} className={input} placeholder="https://..." />
-        </Row>
+
+        <ImageUploadField
+          label="Logo"
+          value={form.logo_path ?? ""}
+          onChange={(v) => set("logo_path", v)}
+          bucket="sponsors"
+          folder="logos"
+          storePath
+          maxMb={3}
+        />
+
         <Row label="Sort">
           <input
             type="number"

@@ -54,7 +54,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-
 function formatDate(iso: string, lang: "en" | "af") {
   return new Date(iso).toLocaleDateString(lang === "af" ? "af-ZA" : "en-ZA", {
     weekday: "short",
@@ -147,7 +146,10 @@ function Index() {
         </div>
       </Link>
 
-      {/* FEATURES */}
+      {/* SPONSORS — between NEXT UP and WHY JOIN */}
+      <SponsorCarousel />
+
+      {/* FEATURES / WHY JOIN */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
           {t("home.featuresTitle")}
@@ -188,10 +190,7 @@ function Index() {
           </div>
         </div>
       </section>
-
-      <SponsorCarousel />
     </SiteLayout>
-
   );
 }
 

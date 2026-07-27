@@ -7,7 +7,7 @@ import { createListing } from "@/lib/listings.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, X, Upload } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/classifieds/new")({
+export const Route = createFileRoute("/classifieds/new")({
   head: () => ({
     meta: [{ title: "Post a listing — Just Wheels" }],
   }),
@@ -86,7 +86,7 @@ function NewListingPage() {
           photo_paths: photos.map((p) => p.path),
         },
       });
-      navigate({ to: "/_authenticated/classifieds/mine" });
+      navigate({ to: "/classifieds/mine" });
       void res;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Submit failed");
@@ -98,7 +98,7 @@ function NewListingPage() {
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Link
-          to="/_authenticated/classifieds/mine"
+          to="/classifieds/mine"
           className="inline-flex items-center gap-1 text-sm text-ink/70 hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" /> {t("members.back")}

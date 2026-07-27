@@ -17,7 +17,7 @@ const myListingsQuery = queryOptions({
   queryFn: () => listMyListings(),
 });
 
-export const Route = createFileRoute("/_authenticated/classifieds/mine")({
+export const Route = createFileRoute("/classifieds/mine")({
   head: () => ({ meta: [{ title: "My listings — Just Wheels" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(myListingsQuery),
   component: MyListingsPage,
@@ -61,7 +61,7 @@ function MyListingsPage() {
             {lang === "af" ? "My advertensies" : "My listings"}
           </h1>
           <Link
-            to="/_authenticated/classifieds/new"
+            to="/classifieds/new"
             className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-3 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
           >
             <Plus className="h-4 w-4" /> {lang === "af" ? "Nuwe" : "New"}

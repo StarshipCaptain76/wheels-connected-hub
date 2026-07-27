@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
 
 export type PublicEvent = {
   id: string;
@@ -10,6 +12,7 @@ export type PublicEvent = {
   starts_at: string;
   ends_at: string | null;
   cover_url: string | null;
+  is_published?: boolean;
 };
 
 export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
@@ -48,3 +51,66 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
     return (data as PublicEvent | null) ?? null;
   },
 );
+
+export const listAllEvents = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PublicEvent[]> => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { data, error } = await supabase
+      .from("events")
+      .select(
+        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published",
+      )
+      .order("starts_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as PublicEvent[];
+  });
+
+const upsertSchema = z.object({
+  id: z.string().uuid().nullable().optional(),
+  title: z.string().trim().min(1).max(200),
+  title_af: z.string().trim().max(200).nullable().optional(),
+  description: z.string().trim().max(2000).nullable().optional(),
+  description_af: z.string().trim().max(2000).nullable().optional(),
+  location: z.string().trim().max(200).nullable().optional(),
+  starts_at: z.string().min(1),
+  ends_at: z.string().nullable().optional(),
+  cover_url: z.string().trim().max(1000).nullable().optional(),
+  is_published: z.boolean().default(true),
+});
+
+export const upsertEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => upsertSchema.parse(i))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { id, ...values } = data;
+    if (id) {
+      const { error } = await supabase.from("events").update(values).eq("id", id);
+      if (error) throw error;
+      return { id };
+    }
+    const { data: row, error } = await supabase
+      .from("events")
+      .insert(values)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { id: row.id };
+  });
+
+export const deleteEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await supabase.from("events").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });

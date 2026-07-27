@@ -214,6 +214,14 @@ function ListingDetail() {
                     )}
                   </p>
                 </>
+              ) : session ? (
+                <div className="mt-3 text-sm text-ink/70">
+                  <p>
+                    {lang === "af"
+                      ? "Slegs die verkoper en admins kan die kontakbesonderhede sien. Kontak die klub as jy dringend die verkoper wil bereik."
+                      : "Only the seller and admins can see the contact details. Reach out to the club if you need to contact the seller urgently."}
+                  </p>
+                </div>
               ) : (
                 <div className="mt-3 text-sm text-ink/70">
                   <p>

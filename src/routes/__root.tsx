@@ -11,26 +11,41 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { SiteLayout } from "../components/SiteLayout";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <SiteLayout>
+      <section className="mx-auto max-w-xl px-4 py-24 text-center">
+        <p className="font-display text-xs tracking-[0.3em] text-primary">404</p>
+        <h1 className="mt-2 font-display text-5xl tracking-wide text-ink sm:text-6xl">
+          Off the map
+        </h1>
+        <p className="mt-3 text-ink/70">
+          That page took a wrong turn. Get back on the road below.
         </p>
-        <div className="mt-6">
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-md border-2 border-ink bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
           >
-            Go home
+            Home
+          </Link>
+          <Link
+            to="/events"
+            className="rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
+          >
+            Events
+          </Link>
+          <Link
+            to="/classifieds"
+            className="rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
+          >
+            Classifieds
           </Link>
         </div>
-      </div>
-    </div>
+      </section>
+    </SiteLayout>
   );
 }
 
@@ -42,33 +57,33 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+    <SiteLayout>
+      <section className="mx-auto max-w-xl px-4 py-24 text-center">
+        <h1 className="font-display text-3xl tracking-wide text-ink">
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-2 text-sm text-ink/70">
+          Something went wrong on our end. You can try again or head back home.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-md border-2 border-ink bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
           >
             Try again
           </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          <Link
+            to="/"
+            className="rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
           >
             Go home
-          </a>
+          </Link>
         </div>
-      </div>
-    </div>
+      </section>
+    </SiteLayout>
   );
 }
 

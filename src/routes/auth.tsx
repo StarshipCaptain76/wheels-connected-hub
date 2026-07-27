@@ -45,7 +45,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/members`,
+            emailRedirectTo: `${window.location.origin}/auth`,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -74,7 +74,7 @@ function AuthPage() {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth`,
       });
       if (result.error) throw result.error;
       if (!result.redirected) navigate({ to: "/members", replace: true });

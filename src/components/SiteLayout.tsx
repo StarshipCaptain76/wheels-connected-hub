@@ -4,6 +4,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
 import { Facebook, Instagram, MessageCircle, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 function LangToggle() {
   const { lang, setLang } = useI18n();

@@ -7,12 +7,18 @@ const FROM = "Just Wheels Contact <contact@notify.justwheels.co.za>";
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
+  phone: z
+    .string()
+    .trim()
+    .min(7, "Mobile number is required")
+    .max(40)
+    .regex(/^[+\d\s()-]+$/, "Enter a valid mobile number"),
   message: z.string().trim().min(1).max(2000),
 });
 
 function esc(v: string) {
   return v.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+    ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[c]!),
   );
 }
 
@@ -31,6 +37,7 @@ export const sendContactMessage = createServerFn({ method: "POST" })
           <tbody>
             <tr><td style="padding:6px 0;color:#666">From</td><td style="padding:6px 0"><strong>${esc(data.name)}</strong></td></tr>
             <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:${esc(data.email)}">${esc(data.email)}</a></td></tr>
+            <tr><td style="padding:6px 0;color:#666">Mobile</td><td style="padding:6px 0"><a href="tel:${esc(data.phone.replace(/\s/g, ""))}">${esc(data.phone)}</a></td></tr>
             <tr><td style="padding:12px 0 6px;color:#666;vertical-align:top">Message</td><td style="padding:12px 0 6px;white-space:pre-wrap">${esc(data.message)}</td></tr>
           </tbody>
         </table>

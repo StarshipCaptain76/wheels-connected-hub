@@ -17,7 +17,7 @@ const myListingsQuery = queryOptions({
   queryFn: () => listMyListings(),
 });
 
-export const Route = createFileRoute("/classifieds/mine")({
+export const Route = createFileRoute("/_authenticated/classifieds/mine")({
   head: () => ({ meta: [{ title: "My listings — Just Wheels" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(myListingsQuery),
   component: MyListingsPage,

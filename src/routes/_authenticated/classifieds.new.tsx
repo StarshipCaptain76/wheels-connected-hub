@@ -7,7 +7,7 @@ import { createListing } from "@/lib/listings.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, X, Upload } from "lucide-react";
 
-export const Route = createFileRoute("/classifieds/new")({
+export const Route = createFileRoute("/_authenticated/classifieds/new")({
   head: () => ({
     meta: [{ title: "Post a listing — Just Wheels" }],
   }),

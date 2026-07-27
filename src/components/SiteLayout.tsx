@@ -72,10 +72,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     { to: "/", label: t("nav.home") },
     { to: "/events", label: t("nav.events") },
     { to: "/gallery", label: t("nav.gallery") },
+    { to: "/classifieds", label: t("nav.classifieds") },
     { to: "/about", label: t("nav.about") },
     { to: "/join", label: t("nav.join") },
     { to: "/contact", label: t("nav.contact") },
   ] as const;
+
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">

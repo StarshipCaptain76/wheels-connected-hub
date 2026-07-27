@@ -100,6 +100,95 @@ export type Database = {
           },
         ]
       }
+      listing_photos: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          listing_id: string
+          sort: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          listing_id: string
+          sort?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          listing_id?: string
+          sort?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          category: Database["public"]["Enums"]["listing_category"]
+          condition: Database["public"]["Enums"]["listing_condition"]
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          description: string
+          description_af: string | null
+          id: string
+          location: string | null
+          price_zar: number | null
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          title_af: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["listing_category"]
+          condition?: Database["public"]["Enums"]["listing_condition"]
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          description: string
+          description_af?: string | null
+          id?: string
+          location?: string | null
+          price_zar?: number | null
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          title_af?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["listing_category"]
+          condition?: Database["public"]["Enums"]["listing_condition"]
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          description?: string
+          description_af?: string | null
+          id?: string
+          location?: string | null
+          price_zar?: number | null
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          title_af?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -178,6 +267,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "member"
+      listing_category: "parts" | "cars" | "memorabilia" | "other"
+      listing_condition: "new" | "used" | "project"
+      listing_status: "pending" | "approved" | "rejected" | "sold"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -306,6 +398,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "member"],
+      listing_category: ["parts", "cars", "memorabilia", "other"],
+      listing_condition: ["new", "used", "project"],
+      listing_status: ["pending", "approved", "rejected", "sold"],
     },
   },
 } as const

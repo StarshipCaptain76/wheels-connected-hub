@@ -88,7 +88,6 @@ const upsertSchema = z.object({
   is_published: z.boolean().default(true),
 });
 
-
 export const upsertEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => upsertSchema.parse(i))
@@ -98,8 +97,18 @@ export const upsertEvent = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { id, ...values } = data;
     if (id) {
-      const { error } = await supabase.from("events").update(values).eq("id", id);
+      const { data: updated, error } = await supabase
+        .from("events")
+        .update(values)
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+      if (!updated) {
+        throw new Error(
+          "Update blocked by database permissions. Run the events admin RLS policies in Supabase SQL editor.",
+        );
+      }
       return { id };
     }
     const { data: row, error } = await supabase
@@ -118,7 +127,22 @@ export const deleteEvent = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    const { error } = await supabase.from("events").delete().eq("id", data.id);
+
+    // Delete dependent rows first (in case cascade policies are missing)
+    await supabase.from("event_rsvps").delete().eq("event_id", data.id);
+    await supabase.from("event_waypoints").delete().eq("event_id", data.id);
+
+    const { data: deleted, error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
+    if (!deleted) {
+      throw new Error(
+        "Delete blocked by database permissions. Run the events admin RLS policies in Supabase SQL editor.",
+      );
+    }
     return { ok: true };
   });

@@ -17,10 +17,13 @@ export const Route = createFileRoute("/join")({
         property: "og:description",
         content: "Membership benefits and pricing for the Just Wheels Hessequa car club.",
       },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/join" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/join" }],
   }),
   component: Join,
 });
+
 
 function Join() {
   const { t } = useI18n();

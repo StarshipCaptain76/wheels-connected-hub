@@ -31,9 +31,12 @@ export const Route = createFileRoute("/classifieds")({
         content: "Cars, parts and memorabilia from club members.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/classifieds" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/classifieds" }],
   }),
+
   loader: ({ context }) => context.queryClient.ensureQueryData(listingsQuery),
   component: ClassifiedsPage,
   pendingComponent: () => (

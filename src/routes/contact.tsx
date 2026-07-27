@@ -19,10 +19,13 @@ export const Route = createFileRoute("/contact")({
         property: "og:description",
         content: "Message the club, join our WhatsApp group or find us on socials.",
       },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/contact" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/contact" }],
   }),
   component: Contact,
 });
+
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),

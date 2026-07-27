@@ -20,11 +20,14 @@ export const Route = createFileRoute("/sponsors")({
       { property: "og:title", content: "Just Wheels Hessequa — Sponsors" },
       { property: "og:description", content: "Our supporters + how to become a club sponsor." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/sponsors" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/sponsors" }],
   }),
   component: Sponsors,
 });
+
 
 function Sponsors() {
   const { t, lang } = useI18n();

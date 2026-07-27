@@ -95,8 +95,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;800&display=swap",
       },
     ],
-
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "Just Wheels Hessequa",
+          url: "https://wheels-connected-hub.lovable.app",
+          logo: "https://wheels-connected-hub.lovable.app/icon-512.png",
+          description:
+            "Community car club in the Southern Cape — Riversdale, Stilbaai, Heidelberg, Albertinia.",
+          areaServed: "Hessequa, Southern Cape, South Africa",
+          sameAs: [],
+        }),
+      },
+    ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,

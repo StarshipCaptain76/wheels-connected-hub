@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SponsorsRouteImport } from './routes/sponsors'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as GalleryRouteImport } from './routes/gallery'
@@ -32,6 +33,11 @@ import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api
 const SponsorsRoute = SponsorsRouteImport.update({
   id: '/sponsors',
   path: '/sponsors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/shop': typeof ShopRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/join'
     | '/shop'
+    | '/sitemap.xml'
     | '/sponsors'
     | '/members'
     | '/classifieds/$id'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/join'
     | '/shop'
+    | '/sitemap.xml'
     | '/sponsors'
     | '/members'
     | '/classifieds/$id'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/gallery'
     | '/join'
     | '/shop'
+    | '/sitemap.xml'
     | '/sponsors'
     | '/_authenticated/members'
     | '/classifieds/$id'
@@ -267,6 +279,7 @@ export interface RootRouteChildren {
   GalleryRoute: typeof GalleryRoute
   JoinRoute: typeof JoinRoute
   ShopRoute: typeof ShopRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
   ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/sponsors'
       fullPath: '/sponsors'
       preLoaderRoute: typeof SponsorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -462,6 +482,7 @@ const rootRouteChildren: RootRouteChildren = {
   GalleryRoute: GalleryRoute,
   JoinRoute: JoinRoute,
   ShopRoute: ShopRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,
   ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }

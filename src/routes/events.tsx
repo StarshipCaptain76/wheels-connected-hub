@@ -22,20 +22,52 @@ const eventsQuery = queryOptions({
 
 
 export const Route = createFileRoute("/events")({
-  head: () => ({
-    meta: [
-      { title: "Events — Just Wheels Hessequa" },
-      {
-        name: "description",
-        content:
-          "Upcoming breakfast runs, show-and-shines, cruises and workshop days for the Just Wheels Hessequa car club.",
-      },
-      { property: "og:title", content: "Events — Just Wheels Hessequa" },
-      { property: "og:description", content: "Upcoming runs, shows and cruises." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const events = (loaderData as PublicEvent[] | undefined) ?? [];
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      itemListElement: events.slice(0, 20).map((ev, idx) => ({
+        "@type": "ListItem",
+        position: idx + 1,
+        item: {
+          "@type": "Event",
+          name: ev.title,
+          startDate: ev.starts_at,
+          endDate: ev.ends_at ?? undefined,
+          eventStatus: "https://schema.org/EventScheduled",
+          eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+          location: ev.location
+            ? {
+                "@type": "Place",
+                name: ev.location,
+                address: { "@type": "PostalAddress", addressRegion: "Western Cape", addressCountry: "ZA" },
+              }
+            : undefined,
+          description: ev.description ?? undefined,
+          image: ev.cover_url ?? undefined,
+          organizer: { "@type": "Organization", name: "Just Wheels Hessequa", url: "https://wheels-connected-hub.lovable.app" },
+        },
+      })),
+    };
+    return {
+      meta: [
+        { title: "Events — Just Wheels Hessequa" },
+        {
+          name: "description",
+          content:
+            "Upcoming breakfast runs, show-and-shines, cruises and workshop days for the Just Wheels Hessequa car club.",
+        },
+        { property: "og:title", content: "Events — Just Wheels Hessequa" },
+        { property: "og:description", content: "Upcoming runs, shows and cruises." },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: "https://wheels-connected-hub.lovable.app/events" },
+        { name: "twitter:card", content: "summary" },
+      ],
+      links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/events" }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    };
+  },
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
   component: EventsPage,
   errorComponent: ({ error }) => (
@@ -51,6 +83,7 @@ export const Route = createFileRoute("/events")({
     </SiteLayout>
   ),
 });
+
 
 function formatDate(iso: string, lang: "en" | "af") {
   return new Date(iso).toLocaleDateString(lang === "af" ? "af-ZA" : "en-ZA", {

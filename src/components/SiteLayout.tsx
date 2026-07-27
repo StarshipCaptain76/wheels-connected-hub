@@ -137,7 +137,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="mt-16 border-t-2 border-ink bg-ink text-paper">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <img
@@ -191,6 +191,10 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 <MessageCircle className="h-4 w-4" />
               </a>
             </div>
+          </div>
+
+          <div className="sm:col-span-2 lg:col-span-1">
+            <NewsletterSignup />
           </div>
         </div>
         <div className="border-t border-paper/10">

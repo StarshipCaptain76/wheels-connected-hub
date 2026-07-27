@@ -164,3 +164,12 @@
     mix-blend-mode: multiply;
   }
 }
+
+/* Hide scrollbar on horizontal scrollers (mobile nav) */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

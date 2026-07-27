@@ -9,6 +9,7 @@ import {
   type AdminSponsor,
 } from "@/lib/sponsors.functions";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X } from "lucide-react";
 
 const TAGLINE_MAX = 200;
@@ -82,10 +83,7 @@ function AdminSponsors() {
 
       <ul className="mt-6 space-y-3">
         {sponsors.map((s) => (
-          <li
-            key={s.id}
-            className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4"
-          >
+          <li key={s.id} className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4">
             <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20 p-1">
               {/^https?:\/\//i.test(s.logo_path) ? (
                 <img src={s.logo_path} alt="" className="h-full w-full object-contain" />
@@ -99,27 +97,10 @@ function AdminSponsors() {
               </div>
               <p className="font-display text-lg text-ink">{s.name}</p>
               <p className="line-clamp-1 text-sm text-ink/70">{s.tagline ?? ""}</p>
-              {s.website_url && (
-                <a href={s.website_url} target="_blank" rel="noreferrer" className="text-xs text-rust">
-                  {s.website_url}
-                </a>
-              )}
             </div>
             <div className="flex flex-row gap-2 sm:flex-col">
-              <button
-                type="button"
-                onClick={() => setEditing(s)}
-                className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={() => remove(s.id)}
-                className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <button type="button" onClick={() => setEditing(s)} className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase">Edit</button>
+              <button type="button" onClick={() => remove(s.id)} className="rounded border-2 border-primary bg-primary p-2 text-paper"><Trash2 className="h-4 w-4" /></button>
             </div>
           </li>
         ))}
@@ -129,11 +110,7 @@ function AdminSponsors() {
         <EditModal
           state={editing}
           onSave={async (f) => {
-            try {
-              await save(f);
-            } catch (err) {
-              alert(err instanceof Error ? err.message : "Save failed");
-            }
+            try { await save(f); } catch (err) { alert(err instanceof Error ? err.message : "Save failed"); }
           }}
           onClose={() => setEditing(null)}
         />
@@ -144,23 +121,15 @@ function AdminSponsors() {
 
 function CharCount({ value, max }: { value: string; max: number }) {
   const remaining = max - value.length;
-  const isLow = remaining <= 20;
-  const isOver = remaining < 0;
   return (
-    <span
-      className={`text-[11px] font-medium tabular-nums ${
-        isOver ? "text-primary" : isLow ? "text-amber-600" : "text-ink/40"
-      }`}
-    >
+    <span className={`text-[11px] font-medium tabular-nums ${remaining < 0 ? "text-primary" : remaining <= 20 ? "text-amber-600" : "text-ink/40"}`}>
       {remaining} left
     </span>
   );
 }
 
 function EditModal({
-  state,
-  onSave,
-  onClose,
+  state, onSave, onClose,
 }: {
   state: FormState;
   onSave: (s: FormState) => Promise<void>;
@@ -169,90 +138,62 @@ function EditModal({
   const [form, setForm] = useState<FormState>(state);
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
-
   const taglineEn = form.tagline ?? "";
   const taglineAf = form.tagline_af ?? "";
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX) return;
-    setBusy(true);
-    try {
-      await onSave(form);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
       <form
-        onSubmit={submit}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX) return;
+          setBusy(true);
+          try { await onSave(form); } finally { setBusy(false); }
+        }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))] max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-ink">{form.id ? "Edit sponsor" : "New sponsor"}</h2>
-          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1">
-            <X className="h-4 w-4" />
-          </button>
+          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1"><X className="h-4 w-4" /></button>
         </div>
         <Row label="Business name">
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
-        <Row label="Tagline (EN)" trailing={<CharCount value={taglineEn} max={TAGLINE_MAX} />}>
-          <input
-            value={taglineEn}
-            maxLength={TAGLINE_MAX}
-            onChange={(e) => set("tagline", e.target.value)}
-            className={input}
-            placeholder="Short English tagline"
-          />
+        <Row
+          label="Tagline (EN)"
+          trailing={
+            <span className="flex items-center gap-2">
+              <TranslateButton source={taglineAf} from="af" to="en" onResult={(t) => set("tagline", t.slice(0, TAGLINE_MAX))} />
+              <CharCount value={taglineEn} max={TAGLINE_MAX} />
+            </span>
+          }
+        >
+          <input value={taglineEn} maxLength={TAGLINE_MAX} onChange={(e) => set("tagline", e.target.value)} className={input} />
         </Row>
-        <Row label="Tagline (AF)" trailing={<CharCount value={taglineAf} max={TAGLINE_MAX} />}>
-          <input
-            value={taglineAf}
-            maxLength={TAGLINE_MAX}
-            onChange={(e) => set("tagline_af", e.target.value)}
-            className={input}
-            placeholder="Kort Afrikaanse tagline"
-          />
+        <Row
+          label="Tagline (AF)"
+          trailing={
+            <span className="flex items-center gap-2">
+              <TranslateButton source={taglineEn} from="en" to="af" onResult={(t) => set("tagline_af", t.slice(0, TAGLINE_MAX))} />
+              <CharCount value={taglineAf} max={TAGLINE_MAX} />
+            </span>
+          }
+        >
+          <input value={taglineAf} maxLength={TAGLINE_MAX} onChange={(e) => set("tagline_af", e.target.value)} className={input} />
         </Row>
         <Row label="Website URL">
           <input value={form.website_url ?? ""} onChange={(e) => set("website_url", e.target.value)} className={input} />
         </Row>
-
-        <ImageUploadField
-          label="Logo"
-          value={form.logo_path ?? ""}
-          onChange={(v) => set("logo_path", v)}
-          bucket="sponsors"
-          folder="logos"
-          storePath
-          maxMb={3}
-        />
-
+        <ImageUploadField label="Logo" value={form.logo_path ?? ""} onChange={(v) => set("logo_path", v)} bucket="sponsors" folder="logos" storePath maxMb={3} />
         <Row label="Sort">
-          <input
-            type="number"
-            value={form.sort ?? 0}
-            onChange={(e) => set("sort", Number(e.target.value))}
-            className={input}
-          />
+          <input type="number" value={form.sort ?? 0} onChange={(e) => set("sort", Number(e.target.value))} className={input} />
         </Row>
         <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.is_active ?? true}
-            onChange={(e) => set("is_active", e.target.checked)}
-          />
-          <span className="text-sm">Active (visible on site)</span>
+          <input type="checkbox" checked={form.is_active ?? true} onChange={(e) => set("is_active", e.target.checked)} />
+          <span className="text-sm">Active</span>
         </label>
-        <button
-          type="submit"
-          disabled={busy || taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX}
-          className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60"
-        >
+        <button type="submit" disabled={busy} className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60">
           {busy ? "Saving…" : "Save"}
         </button>
       </form>
@@ -262,15 +203,7 @@ function EditModal({
 
 const input = "mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2";
 
-function Row({
-  label,
-  trailing,
-  children,
-}: {
-  label: string;
-  trailing?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function Row({ label, trailing, children }: { label: string; trailing?: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="flex items-center justify-between gap-2">

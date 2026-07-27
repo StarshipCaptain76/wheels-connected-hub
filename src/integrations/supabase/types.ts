@@ -296,7 +296,11 @@ export type Database = {
           created_at: string
           display_name: string | null
           favourite_ride: string | null
+          featured_bio: string | null
+          featured_photo_url: string | null
+          featured_since: string | null
           id: string
+          is_featured: boolean
           joined_at: string
           member_number: number
           membership_status: string
@@ -309,7 +313,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           favourite_ride?: string | null
+          featured_bio?: string | null
+          featured_photo_url?: string | null
+          featured_since?: string | null
           id: string
+          is_featured?: boolean
           joined_at?: string
           member_number?: number
           membership_status?: string
@@ -322,7 +330,11 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           favourite_ride?: string | null
+          featured_bio?: string | null
+          featured_photo_url?: string | null
+          featured_since?: string | null
           id?: string
+          is_featured?: boolean
           joined_at?: string
           member_number?: number
           membership_status?: string

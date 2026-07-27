@@ -24,15 +24,19 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClassifiedsIdRouteImport } from './routes/classifieds.$id'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
-import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin.sponsors'
-import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin.shop'
-import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
-import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin.gallery'
-import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin.events'
-import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin.classifieds'
+import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin/sponsors'
+import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin/shop'
+import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin/newsletter'
+import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
+import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
+import { Route as AuthenticatedAdminFeaturedRouteImport } from './routes/_authenticated/admin/featured'
+import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
+import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin/classifieds'
 import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
 const SponsorsRoute = SponsorsRouteImport.update({
@@ -109,6 +113,16 @@ const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedMembersCardRoute =
   AuthenticatedMembersCardRouteImport.update({
     id: '/card',
@@ -129,38 +143,50 @@ const AuthenticatedClassifiedsMineRoute =
   } as any)
 const AuthenticatedAdminSponsorsRoute =
   AuthenticatedAdminSponsorsRouteImport.update({
-    id: '/admin/sponsors',
-    path: '/admin/sponsors',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/sponsors',
+    path: '/sponsors',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminShopRoute = AuthenticatedAdminShopRouteImport.update({
-  id: '/admin/shop',
-  path: '/admin/shop',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
 const AuthenticatedAdminNewsletterRoute =
   AuthenticatedAdminNewsletterRouteImport.update({
-    id: '/admin/newsletter',
-    path: '/admin/newsletter',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/newsletter',
+    path: '/newsletter',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminMembersRoute =
+  AuthenticatedAdminMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminGalleryRoute =
   AuthenticatedAdminGalleryRouteImport.update({
-    id: '/admin/gallery',
-    path: '/admin/gallery',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/gallery',
+    path: '/gallery',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminFeaturedRoute =
+  AuthenticatedAdminFeaturedRouteImport.update({
+    id: '/featured',
+    path: '/featured',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminEventsRoute =
   AuthenticatedAdminEventsRouteImport.update({
-    id: '/admin/events',
-    path: '/admin/events',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const AuthenticatedAdminClassifiedsRoute =
   AuthenticatedAdminClassifiedsRouteImport.update({
-    id: '/admin/classifieds',
-    path: '/admin/classifieds',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/classifieds',
+    path: '/classifieds',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
 const ApiPublicNewsletterUnsubscribeRoute =
   ApiPublicNewsletterUnsubscribeRouteImport.update({
@@ -182,17 +208,21 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
+  '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
+  '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/shop': typeof AuthenticatedAdminShopRoute
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesByTo {
@@ -212,13 +242,16 @@ export interface FileRoutesByTo {
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
+  '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/admin/shop': typeof AuthenticatedAdminShopRoute
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesById {
@@ -236,17 +269,21 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
+  '/_authenticated/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
+  '/_authenticated/admin/members': typeof AuthenticatedAdminMembersRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/admin/shop': typeof AuthenticatedAdminShopRoute
   '/_authenticated/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRouteTypes {
@@ -264,17 +301,21 @@ export interface FileRouteTypes {
     | '/shop'
     | '/sitemap.xml'
     | '/sponsors'
+    | '/admin'
     | '/members'
     | '/classifieds/$id'
     | '/admin/classifieds'
     | '/admin/events'
+    | '/admin/featured'
     | '/admin/gallery'
+    | '/admin/members'
     | '/admin/newsletter'
     | '/admin/shop'
     | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/admin/'
     | '/api/public/newsletter/unsubscribe'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -294,13 +335,16 @@ export interface FileRouteTypes {
     | '/classifieds/$id'
     | '/admin/classifieds'
     | '/admin/events'
+    | '/admin/featured'
     | '/admin/gallery'
+    | '/admin/members'
     | '/admin/newsletter'
     | '/admin/shop'
     | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/admin'
     | '/api/public/newsletter/unsubscribe'
   id:
     | '__root__'
@@ -317,17 +361,21 @@ export interface FileRouteTypes {
     | '/shop'
     | '/sitemap.xml'
     | '/sponsors'
+    | '/_authenticated/admin'
     | '/_authenticated/members'
     | '/classifieds/$id'
     | '/_authenticated/admin/classifieds'
     | '/_authenticated/admin/events'
+    | '/_authenticated/admin/featured'
     | '/_authenticated/admin/gallery'
+    | '/_authenticated/admin/members'
     | '/_authenticated/admin/newsletter'
     | '/_authenticated/admin/shop'
     | '/_authenticated/admin/sponsors'
     | '/_authenticated/classifieds/mine'
     | '/_authenticated/classifieds/new'
     | '/_authenticated/members/card'
+    | '/_authenticated/admin/'
     | '/api/public/newsletter/unsubscribe'
   fileRoutesById: FileRoutesById
 }
@@ -455,6 +503,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMembersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/members/card': {
       id: '/_authenticated/members/card'
       path: '/card'
@@ -478,45 +540,59 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/admin/sponsors': {
       id: '/_authenticated/admin/sponsors'
-      path: '/admin/sponsors'
+      path: '/sponsors'
       fullPath: '/admin/sponsors'
       preLoaderRoute: typeof AuthenticatedAdminSponsorsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/shop': {
       id: '/_authenticated/admin/shop'
-      path: '/admin/shop'
+      path: '/shop'
       fullPath: '/admin/shop'
       preLoaderRoute: typeof AuthenticatedAdminShopRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/newsletter': {
       id: '/_authenticated/admin/newsletter'
-      path: '/admin/newsletter'
+      path: '/newsletter'
       fullPath: '/admin/newsletter'
       preLoaderRoute: typeof AuthenticatedAdminNewsletterRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/members': {
+      id: '/_authenticated/admin/members'
+      path: '/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof AuthenticatedAdminMembersRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/gallery': {
       id: '/_authenticated/admin/gallery'
-      path: '/admin/gallery'
+      path: '/gallery'
       fullPath: '/admin/gallery'
       preLoaderRoute: typeof AuthenticatedAdminGalleryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/featured': {
+      id: '/_authenticated/admin/featured'
+      path: '/featured'
+      fullPath: '/admin/featured'
+      preLoaderRoute: typeof AuthenticatedAdminFeaturedRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/events': {
       id: '/_authenticated/admin/events'
-      path: '/admin/events'
+      path: '/events'
       fullPath: '/admin/events'
       preLoaderRoute: typeof AuthenticatedAdminEventsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/classifieds': {
       id: '/_authenticated/admin/classifieds'
-      path: '/admin/classifieds'
+      path: '/classifieds'
       fullPath: '/admin/classifieds'
       preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/api/public/newsletter/unsubscribe': {
       id: '/api/public/newsletter/unsubscribe'
@@ -527,6 +603,36 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminRouteRouteChildren {
+  AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
+  AuthenticatedAdminEventsRoute: typeof AuthenticatedAdminEventsRoute
+  AuthenticatedAdminFeaturedRoute: typeof AuthenticatedAdminFeaturedRoute
+  AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
+  AuthenticatedAdminMembersRoute: typeof AuthenticatedAdminMembersRoute
+  AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
+  AuthenticatedAdminShopRoute: typeof AuthenticatedAdminShopRoute
+  AuthenticatedAdminSponsorsRoute: typeof AuthenticatedAdminSponsorsRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+}
+
+const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
+  {
+    AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
+    AuthenticatedAdminEventsRoute: AuthenticatedAdminEventsRoute,
+    AuthenticatedAdminFeaturedRoute: AuthenticatedAdminFeaturedRoute,
+    AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
+    AuthenticatedAdminMembersRoute: AuthenticatedAdminMembersRoute,
+    AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
+    AuthenticatedAdminShopRoute: AuthenticatedAdminShopRoute,
+    AuthenticatedAdminSponsorsRoute: AuthenticatedAdminSponsorsRoute,
+    AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  }
+
+const AuthenticatedAdminRouteRouteWithChildren =
+  AuthenticatedAdminRouteRoute._addFileChildren(
+    AuthenticatedAdminRouteRouteChildren,
+  )
 
 interface AuthenticatedMembersRouteChildren {
   AuthenticatedMembersCardRoute: typeof AuthenticatedMembersCardRoute
@@ -540,25 +646,15 @@ const AuthenticatedMembersRouteWithChildren =
   AuthenticatedMembersRoute._addFileChildren(AuthenticatedMembersRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRouteRoute: typeof AuthenticatedAdminRouteRouteWithChildren
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRouteWithChildren
-  AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
-  AuthenticatedAdminEventsRoute: typeof AuthenticatedAdminEventsRoute
-  AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
-  AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
-  AuthenticatedAdminShopRoute: typeof AuthenticatedAdminShopRoute
-  AuthenticatedAdminSponsorsRoute: typeof AuthenticatedAdminSponsorsRoute
   AuthenticatedClassifiedsMineRoute: typeof AuthenticatedClassifiedsMineRoute
   AuthenticatedClassifiedsNewRoute: typeof AuthenticatedClassifiedsNewRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRouteRoute: AuthenticatedAdminRouteRouteWithChildren,
   AuthenticatedMembersRoute: AuthenticatedMembersRouteWithChildren,
-  AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
-  AuthenticatedAdminEventsRoute: AuthenticatedAdminEventsRoute,
-  AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
-  AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
-  AuthenticatedAdminShopRoute: AuthenticatedAdminShopRoute,
-  AuthenticatedAdminSponsorsRoute: AuthenticatedAdminSponsorsRoute,
   AuthenticatedClassifiedsMineRoute: AuthenticatedClassifiedsMineRoute,
   AuthenticatedClassifiedsNewRoute: AuthenticatedClassifiedsNewRoute,
 }

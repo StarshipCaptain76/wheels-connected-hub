@@ -196,29 +196,21 @@ function MembersPage() {
           <div className="mt-8 rounded-2xl border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
-              <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN TOOLS</p>
+              <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
             </div>
-            <h2 className="mt-1 font-display text-2xl tracking-wide">Manage the club</h2>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { to: "/admin/events", label: "Events" },
-                { to: "/admin/gallery", label: "Gallery" },
-                { to: "/admin/classifieds", label: "Classifieds" },
-                { to: "/admin/shop", label: "Shop" },
-                { to: "/admin/sponsors", label: "Sponsors" },
-                { to: "/admin/newsletter", label: "Newsletter" },
-              ].map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className="rounded-md border-2 border-paper/40 px-4 py-3 text-sm font-bold uppercase tracking-wider text-paper hover:border-primary hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+            <h2 className="mt-1 font-display text-2xl tracking-wide">Club admin portal</h2>
+            <p className="mt-1 text-sm text-paper/70">
+              Manage events, gallery, members, featured member, classifieds, shop, sponsors and newsletter.
+            </p>
+            <Link
+              to="/admin"
+              className="mt-4 inline-flex items-center gap-2 rounded-md border-2 border-primary bg-primary px-5 py-2 text-sm font-bold uppercase tracking-wider text-paper hover:bg-paper hover:text-primary"
+            >
+              Open admin portal
+            </Link>
           </div>
         )}
+
       </section>
     </SiteLayout>
 

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { createPublicSupabase } from "./public-supabase.server";
 
@@ -9,6 +10,17 @@ export type Sponsor = {
   tagline_af: string | null;
   website_url: string | null;
   logo_url: string;
+};
+
+export type AdminSponsor = {
+  id: string;
+  name: string;
+  tagline: string | null;
+  tagline_af: string | null;
+  website_url: string | null;
+  logo_path: string;
+  is_active: boolean;
+  sort: number;
 };
 
 export const listSponsors = createServerFn({ method: "GET" }).handler(async (): Promise<Sponsor[]> => {
@@ -44,6 +56,62 @@ export const listSponsors = createServerFn({ method: "GET" }).handler(async (): 
   }
   return out;
 });
+
+export const listAllSponsors = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminSponsor[]> => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { data, error } = await supabase
+      .from("sponsors")
+      .select("id, name, tagline, tagline_af, website_url, logo_path, is_active, sort")
+      .order("sort", { ascending: true })
+      .order("name", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as AdminSponsor[];
+  });
+
+const upsertSchema = z.object({
+  id: z.string().uuid().optional().nullable(),
+  name: z.string().trim().min(1).max(120),
+  tagline: z.string().trim().max(200).nullable().optional(),
+  tagline_af: z.string().trim().max(200).nullable().optional(),
+  website_url: z.string().trim().max(500).nullable().optional(),
+  logo_path: z.string().trim().min(1).max(500),
+  is_active: z.boolean().default(true),
+  sort: z.number().int().min(0).max(9999).default(0),
+});
+
+export const upsertSponsor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => upsertSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { id, ...values } = data;
+    if (id) {
+      const { error } = await supabase.from("sponsors").update(values).eq("id", id);
+      if (error) throw error;
+      return { id };
+    }
+    const { data: row, error } = await supabase.from("sponsors").insert(values).select("id").single();
+    if (error) throw error;
+    return { id: row.id };
+  });
+
+export const deleteSponsor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await supabase.from("sponsors").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
 
 const applySchema = z.object({
   business: z.string().trim().min(1).max(120),

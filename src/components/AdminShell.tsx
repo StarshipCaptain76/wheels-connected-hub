@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import {
   LayoutGrid,
@@ -11,9 +11,15 @@ import {
   ShoppingBag,
   Handshake,
   Mail,
+  Menu,
+  X,
+  Shield,
 } from "lucide-react";
 
-const NAV: Array<{ group: string; items: Array<{ to: string; label: string; icon: typeof LayoutGrid; exact?: boolean }> }> = [
+const NAV: Array<{
+  group: string;
+  items: Array<{ to: string; label: string; icon: typeof LayoutGrid; exact?: boolean }>;
+}> = [
   {
     group: "",
     items: [{ to: "/admin", label: "Overview", icon: LayoutGrid, exact: true }],
@@ -46,71 +52,145 @@ const NAV: Array<{ group: string; items: Array<{ to: string; label: string; icon
   },
 ];
 
+function isActive(pathname: string, to: string, exact?: boolean) {
+  if (exact) return pathname === to || pathname === to + "/";
+  return pathname === to || pathname.startsWith(to + "/");
+}
+
+function NavList({
+  pathname,
+  onNavigate,
+  dense = false,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+  dense?: boolean;
+}) {
+  return (
+    <>
+      {NAV.map((section) => (
+        <div key={section.group || "root"} className={dense ? "mb-3" : "mb-5"}>
+          {section.group ? (
+            <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-ink/45">
+              {section.group}
+            </p>
+          ) : null}
+          <ul className="space-y-0.5">
+            {section.items.map((item) => {
+              const active = isActive(pathname, item.to, item.exact);
+              const Icon = item.icon;
+              return (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    onClick={onNavigate}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-ink text-paper shadow-[2px_2px_0_0_var(--color-primary)]"
+                        : "text-ink/80 hover:bg-ink/5 hover:text-ink"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close menu when route changes
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Close on desktop resize
+  useEffect(() => {
+    function onResize() {
+      if (window.innerWidth >= 768) setMenuOpen(false);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Lock body scroll while open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  const currentLabel =
+    NAV.flatMap((s) => s.items).find((i) => isActive(pathname, i.to, i.exact))?.label ?? "Admin";
 
   return (
     <SiteLayout>
-      <div className="mx-auto flex max-w-6xl gap-6 px-4 py-8">
+      {/* Mobile admin top bar */}
+      <div className="sticky top-[57px] z-30 border-b-2 border-ink bg-paper md:hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Admin</p>
+            <p className="truncate font-display text-lg leading-tight text-ink">{currentLabel}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-paper text-ink"
+            aria-label={menuOpen ? "Close admin menu" : "Open admin menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile slide-down menu */}
+      {menuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-ink/50 md:hidden"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
+          <div className="fixed inset-x-0 top-[calc(57px+52px)] z-50 max-h-[calc(100dvh-109px)] overflow-y-auto border-b-2 border-ink bg-paper shadow-[0_8px_24px_rgba(0,0,0,0.15)] md:hidden">
+            <div className="px-3 py-4">
+              <div className="mb-3 flex items-center gap-2 px-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="font-display text-sm tracking-wide text-ink">Admin portal</span>
+              </div>
+              <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} dense />
+            </div>
+          </div>
+        </>
+      )}
+
+      <div className="mx-auto flex max-w-6xl gap-6 px-3 py-4 sm:px-4 sm:py-8">
+        {/* Desktop sidebar */}
         <aside className="hidden w-56 flex-none md:block">
-          <div className="sticky top-24 space-y-5 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
-            <div>
+          <div className="sticky top-24 space-y-1 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
+            <div className="mb-4">
               <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
               <p className="font-display text-lg leading-tight text-ink">Portal</p>
             </div>
-            {NAV.map((section) => (
-              <div key={section.group || "root"}>
-                {section.group && (
-                  <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-ink/50">
-                    {section.group}
-                  </p>
-                )}
-                <ul className="space-y-0.5">
-                  {section.items.map((item) => {
-                    const active = item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + "/");
-                    const Icon = item.icon;
-                    return (
-                      <li key={item.to}>
-                        <Link
-                          to={item.to}
-                          className={`flex items-center gap-2 rounded px-2 py-1.5 text-sm font-semibold ${
-                            active
-                              ? "bg-ink text-paper"
-                              : "text-ink/80 hover:bg-ink/5 hover:text-ink"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4" /> {item.label}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
+            <NavList pathname={pathname} />
           </div>
         </aside>
 
-        {/* Mobile top tab bar */}
-        <div className="fixed inset-x-0 top-[64px] z-30 border-b-2 border-ink bg-paper/95 backdrop-blur md:hidden">
-          <nav className="flex gap-1 overflow-x-auto px-3 py-2">
-            {NAV.flatMap((s) => s.items).map((item) => {
-              const active = item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(item.to + "/");
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`shrink-0 rounded-full border-2 border-ink px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
-                    active ? "bg-ink text-paper" : "bg-paper text-ink/70"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <main className="min-w-0 flex-1 pt-12 md:pt-0">{children}</main>
+        {/* Main content */}
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
     </SiteLayout>
   );

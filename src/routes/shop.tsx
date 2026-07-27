@@ -89,7 +89,7 @@ function Shop() {
     <SiteLayout>
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="mb-10 flex items-start gap-4">
-          <div className="rounded-full border-2 border-ink bg-flag p-3 text-paper">
+          <div className="rounded-full border-2 border-ink bg-rust p-3 text-paper">
             <ShoppingBag className="h-6 w-6" />
           </div>
           <div>
@@ -113,13 +113,13 @@ function Shop() {
               <h3 className="font-display text-2xl tracking-wide text-ink">{item.name[lang]}</h3>
               <p className="mt-1 flex-1 text-sm text-ink/70">{item.desc[lang]}</p>
               <div className="mt-4 flex items-center justify-between">
-                <span className="font-display text-2xl text-flag">
+                <span className="font-display text-2xl text-rust">
                   <span className="text-xs uppercase tracking-widest text-ink/60">{t("shop.priceFrom")} </span>
                   {item.price}
                 </span>
                 <button
                   onClick={() => setOpenItem(item)}
-                  className="rounded-full border-2 border-ink bg-flag px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
+                  className="rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
                 >
                   {t("shop.enquire")}
                 </button>
@@ -193,7 +193,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
           <div>
             <p className="text-xs uppercase tracking-widest text-ink/60">{t("shop.enquireFor")}</p>
             <h2 className="font-display text-3xl tracking-wide text-ink">{item.name[lang]}</h2>
-            <p className="text-sm text-flag">{item.price}</p>
+            <p className="text-sm text-rust">{item.price}</p>
           </div>
           <button
             onClick={onClose}
@@ -204,7 +204,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
         </div>
 
         {status === "ok" ? (
-          <div className="rounded-xl border-2 border-ink bg-flag/10 p-6 text-center">
+          <div className="rounded-xl border-2 border-ink bg-rust/10 p-6 text-center">
             <p className="font-display text-2xl text-ink">{t("shop.sent")}</p>
             <button
               onClick={onClose}
@@ -260,7 +260,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
             </label>
 
             {status === "err" && (
-              <p className="rounded border border-flag bg-flag/10 p-2 text-sm text-flag">
+              <p className="rounded border border-rust bg-rust/10 p-2 text-sm text-rust">
                 {t("shop.error")}
               </p>
             )}
@@ -268,7 +268,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
             <button
               type="submit"
               disabled={status === "sending"}
-              className="w-full rounded-full border-2 border-ink bg-flag px-4 py-3 font-display text-lg uppercase tracking-widest text-paper disabled:opacity-60"
+              className="w-full rounded-full border-2 border-ink bg-rust px-4 py-3 font-display text-lg uppercase tracking-widest text-paper disabled:opacity-60"
             >
               {status === "sending" ? t("shop.sending") : t("shop.send")}
             </button>
@@ -304,7 +304,7 @@ function Field({
         defaultValue={defaultValue}
         className="mt-1 w-full rounded-lg border-2 border-ink bg-paper px-3 py-2"
       />
-      {error && <span className="mt-1 block text-xs text-flag">{error}</span>}
+      {error && <span className="mt-1 block text-xs text-rust">{error}</span>}
     </label>
   );
 }

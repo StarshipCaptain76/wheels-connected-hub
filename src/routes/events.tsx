@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listUpcomingEvents, type PublicEvent } from "@/lib/events.functions";
 import { listGoogleCalendarEvents } from "@/lib/gcal.functions";
 import { Calendar, MapPin } from "lucide-react";
+
 
 const eventsQuery = queryOptions({
   queryKey: ["events", "upcoming", "combined"],
@@ -156,9 +157,10 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
   const title = lang === "af" && event.title_af ? event.title_af : event.title;
   const description =
     lang === "af" && event.description_af ? event.description_af : event.description;
+  const isDbEvent = !event.id.startsWith("gcal:");
 
-  return (
-    <li className="group overflow-hidden rounded-lg border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-1">
+  const body = (
+    <>
       {event.cover_url ? (
         <img
           src={event.cover_url}
@@ -190,7 +192,27 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
         </div>
         <h2 className="mt-3 font-display text-2xl tracking-wide text-ink">{title}</h2>
         {description ? <p className="mt-2 text-ink/70">{description}</p> : null}
+        {isDbEvent && (
+          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-primary">
+            {lang === "af" ? "Sien meer →" : "See details →"}
+          </p>
+        )}
       </div>
+    </>
+  );
+
+  const cls =
+    "group block overflow-hidden rounded-lg border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-1";
+  return (
+    <li>
+      {isDbEvent ? (
+        <Link to="/events/$id" params={{ id: event.id }} className={cls}>
+          {body}
+        </Link>
+      ) : (
+        <div className={cls}>{body}</div>
+      )}
     </li>
   );
 }
+

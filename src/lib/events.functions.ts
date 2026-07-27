@@ -78,8 +78,16 @@ const upsertSchema = z.object({
   starts_at: z.string().min(1),
   ends_at: z.string().nullable().optional(),
   cover_url: z.string().trim().max(1000).nullable().optional(),
+  hero_image_url: z.string().trim().max(1000).nullable().optional(),
+  details_md: z.string().trim().max(6000).nullable().optional(),
+  details_af_md: z.string().trim().max(6000).nullable().optional(),
+  destination_address: z.string().trim().max(300).nullable().optional(),
+  destination_lat: z.number().nullable().optional(),
+  destination_lng: z.number().nullable().optional(),
+  destination_place_id: z.string().trim().max(200).nullable().optional(),
   is_published: z.boolean().default(true),
 });
+
 
 export const upsertEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

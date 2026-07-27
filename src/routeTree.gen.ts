@@ -22,11 +22,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as ClassifiedsIdRouteImport } from './routes/classifieds.$id'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
+import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
 import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin/sponsors'
@@ -103,6 +105,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EventsRoute,
+} as any)
 const ClassifiedsIdRoute = ClassifiedsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -127,6 +134,12 @@ const AuthenticatedMembersCardRoute =
   AuthenticatedMembersCardRouteImport.update({
     id: '/card',
     path: '/card',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const AuthenticatedMembersNumberRoute =
+  AuthenticatedMembersNumberRouteImport.update({
+    id: '/$number',
+    path: '/$number',
     getParentRoute: () => AuthenticatedMembersRoute,
   } as any)
 const AuthenticatedClassifiedsNewRoute =
@@ -201,7 +214,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -211,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/events/$id': typeof EventsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
@@ -221,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
+  '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -231,7 +246,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -240,6 +255,7 @@ export interface FileRoutesByTo {
   '/sponsors': typeof SponsorsRoute
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/events/$id': typeof EventsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
@@ -250,6 +266,7 @@ export interface FileRoutesByTo {
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
+  '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -262,7 +279,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
-  '/events': typeof EventsRoute
+  '/events': typeof EventsRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -272,6 +289,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteRouteWithChildren
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/events/$id': typeof EventsIdRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
   '/_authenticated/admin/featured': typeof AuthenticatedAdminFeaturedRoute
@@ -282,6 +300,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
+  '/_authenticated/members/$number': typeof AuthenticatedMembersNumberRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -304,6 +323,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/members'
     | '/classifieds/$id'
+    | '/events/$id'
     | '/admin/classifieds'
     | '/admin/events'
     | '/admin/featured'
@@ -314,6 +334,7 @@ export interface FileRouteTypes {
     | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
+    | '/members/$number'
     | '/members/card'
     | '/admin/'
     | '/api/public/newsletter/unsubscribe'
@@ -333,6 +354,7 @@ export interface FileRouteTypes {
     | '/sponsors'
     | '/members'
     | '/classifieds/$id'
+    | '/events/$id'
     | '/admin/classifieds'
     | '/admin/events'
     | '/admin/featured'
@@ -343,6 +365,7 @@ export interface FileRouteTypes {
     | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
+    | '/members/$number'
     | '/members/card'
     | '/admin'
     | '/api/public/newsletter/unsubscribe'
@@ -364,6 +387,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/members'
     | '/classifieds/$id'
+    | '/events/$id'
     | '/_authenticated/admin/classifieds'
     | '/_authenticated/admin/events'
     | '/_authenticated/admin/featured'
@@ -374,6 +398,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/sponsors'
     | '/_authenticated/classifieds/mine'
     | '/_authenticated/classifieds/new'
+    | '/_authenticated/members/$number'
     | '/_authenticated/members/card'
     | '/_authenticated/admin/'
     | '/api/public/newsletter/unsubscribe'
@@ -386,7 +411,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ClassifiedsRoute: typeof ClassifiedsRouteWithChildren
   ContactRoute: typeof ContactRoute
-  EventsRoute: typeof EventsRoute
+  EventsRoute: typeof EventsRouteWithChildren
   GalleryRoute: typeof GalleryRoute
   JoinRoute: typeof JoinRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -489,6 +514,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$id': {
+      id: '/events/$id'
+      path: '/$id'
+      fullPath: '/events/$id'
+      preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/classifieds/$id': {
       id: '/classifieds/$id'
       path: '/$id'
@@ -522,6 +554,13 @@ declare module '@tanstack/react-router' {
       path: '/card'
       fullPath: '/members/card'
       preLoaderRoute: typeof AuthenticatedMembersCardRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/members/$number': {
+      id: '/_authenticated/members/$number'
+      path: '/$number'
+      fullPath: '/members/$number'
+      preLoaderRoute: typeof AuthenticatedMembersNumberRouteImport
       parentRoute: typeof AuthenticatedMembersRoute
     }
     '/_authenticated/classifieds/new': {
@@ -635,10 +674,12 @@ const AuthenticatedAdminRouteRouteWithChildren =
   )
 
 interface AuthenticatedMembersRouteChildren {
+  AuthenticatedMembersNumberRoute: typeof AuthenticatedMembersNumberRoute
   AuthenticatedMembersCardRoute: typeof AuthenticatedMembersCardRoute
 }
 
 const AuthenticatedMembersRouteChildren: AuthenticatedMembersRouteChildren = {
+  AuthenticatedMembersNumberRoute: AuthenticatedMembersNumberRoute,
   AuthenticatedMembersCardRoute: AuthenticatedMembersCardRoute,
 }
 
@@ -674,6 +715,17 @@ const ClassifiedsRouteWithChildren = ClassifiedsRoute._addFileChildren(
   ClassifiedsRouteChildren,
 )
 
+interface EventsRouteChildren {
+  EventsIdRoute: typeof EventsIdRoute
+}
+
+const EventsRouteChildren: EventsRouteChildren = {
+  EventsIdRoute: EventsIdRoute,
+}
+
+const EventsRouteWithChildren =
+  EventsRoute._addFileChildren(EventsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -681,7 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ClassifiedsRoute: ClassifiedsRouteWithChildren,
   ContactRoute: ContactRoute,
-  EventsRoute: EventsRoute,
+  EventsRoute: EventsRouteWithChildren,
   GalleryRoute: GalleryRoute,
   JoinRoute: JoinRoute,
   ResetPasswordRoute: ResetPasswordRoute,

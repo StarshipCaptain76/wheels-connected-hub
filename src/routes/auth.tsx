@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -51,6 +51,12 @@ function AuthPage() {
         });
         if (error) throw error;
         setInfo(t("auth.checkEmail"));
+      } else if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setInfo(t("auth.resetSent"));
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -78,33 +84,46 @@ function AuthPage() {
     }
   }
 
+
   return (
     <SiteLayout>
       <section className="mx-auto max-w-md px-4 py-16">
         <div className="rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_var(--color-ink)]">
           <h1 className="font-display text-4xl tracking-wide text-ink">
-            {mode === "signin" ? t("auth.signInTitle") : t("auth.signUpTitle")}
+            {mode === "signin"
+              ? t("auth.signInTitle")
+              : mode === "signup"
+                ? t("auth.signUpTitle")
+                : t("auth.forgotTitle")}
           </h1>
           <p className="mt-1 text-sm text-ink/70">
-            {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
+            {mode === "signin"
+              ? t("auth.signInSubtitle")
+              : mode === "signup"
+                ? t("auth.signUpSubtitle")
+                : t("auth.forgotSubtitle")}
           </p>
 
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={loading}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
-          >
-            <GoogleIcon /> {t("auth.google")}
-          </button>
+          {mode !== "forgot" && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
+              >
+                <GoogleIcon /> {t("auth.google")}
+              </button>
 
-          <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/50">
-            <span className="h-px flex-1 bg-ink/20" />
-            <span>{t("auth.or")}</span>
-            <span className="h-px flex-1 bg-ink/20" />
-          </div>
+              <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/50">
+                <span className="h-px flex-1 bg-ink/20" />
+                <span>{t("auth.or")}</span>
+                <span className="h-px flex-1 bg-ink/20" />
+              </div>
+            </>
+          )}
 
-          <form onSubmit={handleEmail} className="space-y-3">
+          <form onSubmit={handleEmail} className="mt-6 space-y-3">
             {mode === "signup" && (
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
@@ -132,20 +151,37 @@ function AuthPage() {
                 autoComplete="email"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
-                {t("auth.password")}
-              </label>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
-                autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                    {t("auth.password")}
+                  </label>
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setInfo(null);
+                        setMode("forgot");
+                      }}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      {t("auth.forgotLink")}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                />
+              </div>
+            )}
 
             {error && (
               <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
@@ -167,24 +203,42 @@ function AuthPage() {
                 ? "…"
                 : mode === "signin"
                   ? t("auth.signIn")
-                  : t("auth.signUp")}
+                  : mode === "signup"
+                    ? t("auth.signUp")
+                    : t("auth.sendReset")}
             </button>
           </form>
 
-          <p className="mt-5 text-center text-sm text-ink/70">
-            {mode === "signin" ? t("auth.needAccount") : t("auth.haveAccount")}{" "}
-            <button
-              type="button"
-              className="font-bold text-primary underline underline-offset-2"
-              onClick={() => {
-                setError(null);
-                setInfo(null);
-                setMode(mode === "signin" ? "signup" : "signin");
-              }}
-            >
-              {mode === "signin" ? t("auth.signUp") : t("auth.signIn")}
-            </button>
-          </p>
+          {mode === "forgot" ? (
+            <p className="mt-5 text-center text-sm text-ink/70">
+              <button
+                type="button"
+                className="font-bold text-primary underline underline-offset-2"
+                onClick={() => {
+                  setError(null);
+                  setInfo(null);
+                  setMode("signin");
+                }}
+              >
+                {t("auth.backToSignIn")}
+              </button>
+            </p>
+          ) : (
+            <p className="mt-5 text-center text-sm text-ink/70">
+              {mode === "signin" ? t("auth.needAccount") : t("auth.haveAccount")}{" "}
+              <button
+                type="button"
+                className="font-bold text-primary underline underline-offset-2"
+                onClick={() => {
+                  setError(null);
+                  setInfo(null);
+                  setMode(mode === "signin" ? "signup" : "signin");
+                }}
+              >
+                {mode === "signin" ? t("auth.signUp") : t("auth.signIn")}
+              </button>
+            </p>
+          )}
 
           <p className="mt-2 text-center text-xs text-ink/50">
             <Link to="/join" className="hover:text-ink">
@@ -196,6 +250,7 @@ function AuthPage() {
     </SiteLayout>
   );
 }
+
 
 function GoogleIcon() {
   return (

@@ -35,6 +35,113 @@ async function cachePut(key: string, payload: unknown) {
 }
 
 // -----------------------------------------------------------------------------
+// Places Autocomplete (as-you-type)
+// -----------------------------------------------------------------------------
+
+const autocompleteInput = z.object({
+  query: z.string().trim().min(2).max(200),
+});
+
+export type PlaceSuggestion = {
+  placeId: string;
+  description: string;
+  mainText: string;
+  secondaryText: string;
+};
+
+export const placesAutocomplete = createServerFn({ method: "POST" })
+  .inputValidator((i: unknown) => autocompleteInput.parse(i))
+  .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
+    const key = `ac:${data.query.toLowerCase()}`;
+    const cached = (await cacheGet(key)) as PlaceSuggestion[] | null;
+    if (cached) return cached;
+
+    const params = new URLSearchParams({
+      input: data.query,
+      components: "country:za",
+      language: "en",
+    });
+    const url = `${GATEWAY}/maps/api/place/autocomplete/json?${params}`;
+    const res = await fetch(url, { headers: gwHeaders() });
+    if (!res.ok) throw new Error(`Autocomplete failed (${res.status})`);
+    const json = (await res.json()) as {
+      status: string;
+      predictions?: Array<{
+        place_id: string;
+        description: string;
+        structured_formatting?: {
+          main_text?: string;
+          secondary_text?: string;
+        };
+      }>;
+    };
+    if (json.status !== "OK" && json.status !== "ZERO_RESULTS") {
+      return [];
+    }
+    const payload: PlaceSuggestion[] = (json.predictions ?? []).slice(0, 6).map((p) => ({
+      placeId: p.place_id,
+      description: p.description,
+      mainText: p.structured_formatting?.main_text ?? p.description,
+      secondaryText: p.structured_formatting?.secondary_text ?? "",
+    }));
+    await cachePut(key, payload);
+    return payload;
+  });
+
+// -----------------------------------------------------------------------------
+// Place Details (resolve place_id → lat/lng + formatted address)
+// -----------------------------------------------------------------------------
+
+const placeDetailsInput = z.object({
+  placeId: z.string().trim().min(3).max(300),
+});
+
+export type PlaceDetails = {
+  formatted: string;
+  lat: number;
+  lng: number;
+  placeId: string;
+} | null;
+
+export const placeDetails = createServerFn({ method: "POST" })
+  .inputValidator((i: unknown) => placeDetailsInput.parse(i))
+  .handler(async ({ data }): Promise<PlaceDetails> => {
+    const key = `pd:${data.placeId}`;
+    const cached = (await cacheGet(key)) as PlaceDetails | null;
+    if (cached !== null) return cached;
+
+    const params = new URLSearchParams({
+      place_id: data.placeId,
+      fields: "formatted_address,geometry,place_id",
+      language: "en",
+    });
+    const url = `${GATEWAY}/maps/api/place/details/json?${params}`;
+    const res = await fetch(url, { headers: gwHeaders() });
+    if (!res.ok) throw new Error(`Place details failed (${res.status})`);
+    const json = (await res.json()) as {
+      status: string;
+      result?: {
+        formatted_address: string;
+        place_id: string;
+        geometry: { location: { lat: number; lng: number } };
+      };
+    };
+    if (json.status !== "OK" || !json.result) {
+      await cachePut(key, null);
+      return null;
+    }
+    const r = json.result;
+    const payload: PlaceDetails = {
+      formatted: r.formatted_address,
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+      placeId: r.place_id,
+    };
+    await cachePut(key, payload);
+    return payload;
+  });
+
+// -----------------------------------------------------------------------------
 // Geocoding
 // -----------------------------------------------------------------------------
 

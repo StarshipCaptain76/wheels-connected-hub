@@ -25,7 +25,9 @@ import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
+import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin.classifieds'
+import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
 const SponsorsRoute = SponsorsRouteImport.update({
   id: '/sponsors',
@@ -109,11 +111,23 @@ const AuthenticatedClassifiedsMineRoute =
     path: '/classifieds/mine',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminNewsletterRoute =
+  AuthenticatedAdminNewsletterRouteImport.update({
+    id: '/admin/newsletter',
+    path: '/admin/newsletter',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminClassifiedsRoute =
   AuthenticatedAdminClassifiedsRouteImport.update({
     id: '/admin/classifieds',
     path: '/admin/classifieds',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicNewsletterUnsubscribeRoute =
+  ApiPublicNewsletterUnsubscribeRouteImport.update({
+    id: '/api/public/newsletter/unsubscribe',
+    path: '/api/public/newsletter/unsubscribe',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -130,9 +144,11 @@ export interface FileRoutesByFullPath {
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -148,9 +164,11 @@ export interface FileRoutesByTo {
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -168,9 +186,11 @@ export interface FileRoutesById {
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -188,9 +208,11 @@ export interface FileRouteTypes {
     | '/members'
     | '/classifieds/$id'
     | '/admin/classifieds'
+    | '/admin/newsletter'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/api/public/newsletter/unsubscribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -206,9 +228,11 @@ export interface FileRouteTypes {
     | '/members'
     | '/classifieds/$id'
     | '/admin/classifieds'
+    | '/admin/newsletter'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/api/public/newsletter/unsubscribe'
   id:
     | '__root__'
     | '/'
@@ -225,9 +249,11 @@ export interface FileRouteTypes {
     | '/_authenticated/members'
     | '/classifieds/$id'
     | '/_authenticated/admin/classifieds'
+    | '/_authenticated/admin/newsletter'
     | '/_authenticated/classifieds/mine'
     | '/_authenticated/classifieds/new'
     | '/_authenticated/members/card'
+    | '/api/public/newsletter/unsubscribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +268,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   ShopRoute: typeof ShopRoute
   SponsorsRoute: typeof SponsorsRoute
+  ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -358,12 +385,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClassifiedsMineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/newsletter': {
+      id: '/_authenticated/admin/newsletter'
+      path: '/admin/newsletter'
+      fullPath: '/admin/newsletter'
+      preLoaderRoute: typeof AuthenticatedAdminNewsletterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/classifieds': {
       id: '/_authenticated/admin/classifieds'
       path: '/admin/classifieds'
       fullPath: '/admin/classifieds'
       preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/newsletter/unsubscribe': {
+      id: '/api/public/newsletter/unsubscribe'
+      path: '/api/public/newsletter/unsubscribe'
+      fullPath: '/api/public/newsletter/unsubscribe'
+      preLoaderRoute: typeof ApiPublicNewsletterUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -382,6 +423,7 @@ const AuthenticatedMembersRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRouteWithChildren
   AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
+  AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
   AuthenticatedClassifiedsMineRoute: typeof AuthenticatedClassifiedsMineRoute
   AuthenticatedClassifiedsNewRoute: typeof AuthenticatedClassifiedsNewRoute
 }
@@ -389,6 +431,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMembersRoute: AuthenticatedMembersRouteWithChildren,
   AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
+  AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
   AuthenticatedClassifiedsMineRoute: AuthenticatedClassifiedsMineRoute,
   AuthenticatedClassifiedsNewRoute: AuthenticatedClassifiedsNewRoute,
 }
@@ -420,6 +463,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   ShopRoute: ShopRoute,
   SponsorsRoute: SponsorsRoute,
+  ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

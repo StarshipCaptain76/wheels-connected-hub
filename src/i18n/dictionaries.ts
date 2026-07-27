@@ -139,7 +139,28 @@ export const dictionaries = {
     "shop.error": "Could not send. Please try again or WhatsApp us.",
     "shop.masked": "Emails go to admin (address hidden to keep bots away).",
     "shop.priceFrom": "From",
+
+    "nav.sponsors": "Sponsors",
+    "sponsors.kicker": "Powered by",
+    "sponsors.title": "Our sponsors",
+    "sponsors.becomeCta": "Become a sponsor",
+    "sponsors.pageTitle": "Club sponsors",
+    "sponsors.pageIntro": "The businesses that keep the wheels turning. Support the ones that support us — and get in touch if you'd like to join them.",
+    "sponsors.visit": "Visit site",
+    "sponsors.applyTitle": "Become a sponsor",
+    "sponsors.applyIntro": "Send us your details — we'll reply from admin with sponsorship tiers and next steps.",
+    "sponsors.business": "Business name",
+    "sponsors.contact": "Contact person",
+    "sponsors.email": "Email",
+    "sponsors.phone": "Phone",
+    "sponsors.website": "Website",
+    "sponsors.message": "Tell us about your business",
+    "sponsors.send": "Send application",
+    "sponsors.sending": "Sending…",
+    "sponsors.sent": "Thanks — we'll be in touch shortly.",
+    "sponsors.error": "Could not send. Please try again or WhatsApp us.",
   },
+
 
 
   af: {

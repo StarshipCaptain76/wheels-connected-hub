@@ -60,16 +60,14 @@ function isActive(pathname: string, to: string, exact?: boolean) {
 function NavList({
   pathname,
   onNavigate,
-  dense = false,
 }: {
   pathname: string;
   onNavigate?: () => void;
-  dense?: boolean;
 }) {
   return (
     <>
       {NAV.map((section) => (
-        <div key={section.group || "root"} className={dense ? "mb-3" : "mb-5"}>
+        <div key={section.group || "root"} className="mb-4">
           {section.group ? (
             <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-widest text-ink/45">
               {section.group}
@@ -107,12 +105,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Close menu when route changes
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
-  // Close on desktop resize
   useEffect(() => {
     function onResize() {
       if (window.innerWidth >= 768) setMenuOpen(false);
@@ -121,13 +117,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Lock body scroll while open
   useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (menuOpen) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -138,8 +130,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <SiteLayout>
-      {/* Mobile admin top bar */}
-      <div className="sticky top-[57px] z-30 border-b-2 border-ink bg-paper md:hidden">
+      {/* Mobile admin bar — sits in document flow under site header, not a second sticky stack */}
+      <div className="border-b-2 border-ink bg-paper md:hidden">
         <div className="flex items-center justify-between gap-3 px-4 py-2.5">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Admin</p>
@@ -148,37 +140,26 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-paper text-ink"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper"
             aria-label={menuOpen ? "Close admin menu" : "Open admin menu"}
             aria-expanded={menuOpen}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
+        {menuOpen && (
+          <div className="border-t-2 border-ink/10 bg-paper px-3 py-4">
+            <div className="mb-3 flex items-center gap-2 px-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <span className="font-display text-sm tracking-wide text-ink">Admin portal</span>
+            </div>
+            <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+          </div>
+        )}
       </div>
 
-      {/* Mobile slide-down menu */}
-      {menuOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-ink/50 md:hidden"
-            onClick={() => setMenuOpen(false)}
-            aria-hidden
-          />
-          <div className="fixed inset-x-0 top-[calc(57px+52px)] z-50 max-h-[calc(100dvh-109px)] overflow-y-auto border-b-2 border-ink bg-paper shadow-[0_8px_24px_rgba(0,0,0,0.15)] md:hidden">
-            <div className="px-3 py-4">
-              <div className="mb-3 flex items-center gap-2 px-2">
-                <Shield className="h-4 w-4 text-primary" />
-                <span className="font-display text-sm tracking-wide text-ink">Admin portal</span>
-              </div>
-              <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} dense />
-            </div>
-          </div>
-        </>
-      )}
-
       <div className="mx-auto flex max-w-6xl gap-6 px-3 py-4 sm:px-4 sm:py-8">
-        {/* Desktop sidebar */}
         <aside className="hidden w-56 flex-none md:block">
           <div className="sticky top-24 space-y-1 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
             <div className="mb-4">
@@ -189,7 +170,6 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* Main content */}
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </SiteLayout>

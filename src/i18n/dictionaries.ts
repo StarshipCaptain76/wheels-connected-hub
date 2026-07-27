@@ -301,7 +301,28 @@ export const dictionaries = {
     "shop.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
     "shop.masked": "E-posse gaan na admin (adres versteek teen bots).",
     "shop.priceFrom": "Vanaf",
+
+    "nav.sponsors": "Borge",
+    "sponsors.kicker": "Aangedryf deur",
+    "sponsors.title": "Ons borge",
+    "sponsors.becomeCta": "Word 'n borg",
+    "sponsors.pageTitle": "Klub borge",
+    "sponsors.pageIntro": "Die besighede wat die wiele laat draai. Ondersteun dié wat ons ondersteun — en kontak ons as jy wil aansluit.",
+    "sponsors.visit": "Besoek webwerf",
+    "sponsors.applyTitle": "Word 'n borg",
+    "sponsors.applyIntro": "Stuur jou besonderhede — ons antwoord vanaf admin met borgvlakke en volgende stappe.",
+    "sponsors.business": "Besigheidsnaam",
+    "sponsors.contact": "Kontakpersoon",
+    "sponsors.email": "E-pos",
+    "sponsors.phone": "Foon",
+    "sponsors.website": "Webwerf",
+    "sponsors.message": "Vertel ons van jou besigheid",
+    "sponsors.send": "Stuur aansoek",
+    "sponsors.sending": "Stuur tans…",
+    "sponsors.sent": "Dankie — ons kontak jou binnekort.",
+    "sponsors.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
   },
+
 
 
 } as const;

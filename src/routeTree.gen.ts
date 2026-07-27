@@ -13,12 +13,17 @@ import { Route as JoinRouteImport } from './routes/join'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ClassifiedsRouteImport } from './routes/classifieds'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClassifiedsIdRouteImport } from './routes/classifieds.$id'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
+import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
+import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
+import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin.classifieds'
 
 const JoinRoute = JoinRouteImport.update({
   id: '/join',
@@ -40,6 +45,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClassifiedsRoute = ClassifiedsRouteImport.update({
+  id: '/classifieds',
+  path: '/classifieds',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -59,6 +69,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClassifiedsIdRoute = ClassifiedsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ClassifiedsRoute,
+} as any)
 const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -70,27 +85,55 @@ const AuthenticatedMembersCardRoute =
     path: '/card',
     getParentRoute: () => AuthenticatedMembersRoute,
   } as any)
+const AuthenticatedClassifiedsNewRoute =
+  AuthenticatedClassifiedsNewRouteImport.update({
+    id: '/classifieds/new',
+    path: '/classifieds/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClassifiedsMineRoute =
+  AuthenticatedClassifiedsMineRouteImport.update({
+    id: '/classifieds/mine',
+    path: '/classifieds/mine',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminClassifiedsRoute =
+  AuthenticatedAdminClassifiedsRouteImport.update({
+    id: '/admin/classifieds',
+    path: '/admin/classifieds',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/members': typeof AuthenticatedMembersRouteWithChildren
+  '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
+  '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/members': typeof AuthenticatedMembersRouteWithChildren
+  '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
+  '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
 }
 export interface FileRoutesById {
@@ -99,11 +142,16 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
+  '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
+  '/classifieds/$id': typeof ClassifiedsIdRoute
+  '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
+  '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
 }
 export interface FileRouteTypes {
@@ -112,22 +160,32 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
+    | '/classifieds'
     | '/contact'
     | '/events'
     | '/gallery'
     | '/join'
     | '/members'
+    | '/classifieds/$id'
+    | '/admin/classifieds'
+    | '/classifieds/mine'
+    | '/classifieds/new'
     | '/members/card'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/auth'
+    | '/classifieds'
     | '/contact'
     | '/events'
     | '/gallery'
     | '/join'
     | '/members'
+    | '/classifieds/$id'
+    | '/admin/classifieds'
+    | '/classifieds/mine'
+    | '/classifieds/new'
     | '/members/card'
   id:
     | '__root__'
@@ -135,11 +193,16 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/about'
     | '/auth'
+    | '/classifieds'
     | '/contact'
     | '/events'
     | '/gallery'
     | '/join'
     | '/_authenticated/members'
+    | '/classifieds/$id'
+    | '/_authenticated/admin/classifieds'
+    | '/_authenticated/classifieds/mine'
+    | '/_authenticated/classifieds/new'
     | '/_authenticated/members/card'
   fileRoutesById: FileRoutesById
 }
@@ -148,6 +211,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   AuthRoute: typeof AuthRoute
+  ClassifiedsRoute: typeof ClassifiedsRouteWithChildren
   ContactRoute: typeof ContactRoute
   EventsRoute: typeof EventsRoute
   GalleryRoute: typeof GalleryRoute
@@ -184,6 +248,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/classifieds': {
+      id: '/classifieds'
+      path: '/classifieds'
+      fullPath: '/classifieds'
+      preLoaderRoute: typeof ClassifiedsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -212,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/classifieds/$id': {
+      id: '/classifieds/$id'
+      path: '/$id'
+      fullPath: '/classifieds/$id'
+      preLoaderRoute: typeof ClassifiedsIdRouteImport
+      parentRoute: typeof ClassifiedsRoute
+    }
     '/_authenticated/members': {
       id: '/_authenticated/members'
       path: '/members'
@@ -225,6 +303,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/members/card'
       preLoaderRoute: typeof AuthenticatedMembersCardRouteImport
       parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/classifieds/new': {
+      id: '/_authenticated/classifieds/new'
+      path: '/classifieds/new'
+      fullPath: '/classifieds/new'
+      preLoaderRoute: typeof AuthenticatedClassifiedsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/classifieds/mine': {
+      id: '/_authenticated/classifieds/mine'
+      path: '/classifieds/mine'
+      fullPath: '/classifieds/mine'
+      preLoaderRoute: typeof AuthenticatedClassifiedsMineRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/classifieds': {
+      id: '/_authenticated/admin/classifieds'
+      path: '/admin/classifieds'
+      fullPath: '/admin/classifieds'
+      preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
@@ -242,20 +341,39 @@ const AuthenticatedMembersRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRouteWithChildren
+  AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
+  AuthenticatedClassifiedsMineRoute: typeof AuthenticatedClassifiedsMineRoute
+  AuthenticatedClassifiedsNewRoute: typeof AuthenticatedClassifiedsNewRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMembersRoute: AuthenticatedMembersRouteWithChildren,
+  AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
+  AuthenticatedClassifiedsMineRoute: AuthenticatedClassifiedsMineRoute,
+  AuthenticatedClassifiedsNewRoute: AuthenticatedClassifiedsNewRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface ClassifiedsRouteChildren {
+  ClassifiedsIdRoute: typeof ClassifiedsIdRoute
+}
+
+const ClassifiedsRouteChildren: ClassifiedsRouteChildren = {
+  ClassifiedsIdRoute: ClassifiedsIdRoute,
+}
+
+const ClassifiedsRouteWithChildren = ClassifiedsRoute._addFileChildren(
+  ClassifiedsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   AuthRoute: AuthRoute,
+  ClassifiedsRoute: ClassifiedsRouteWithChildren,
   ContactRoute: ContactRoute,
   EventsRoute: EventsRoute,
   GalleryRoute: GalleryRoute,

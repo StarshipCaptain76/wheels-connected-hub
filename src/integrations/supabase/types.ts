@@ -14,7 +14,92 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          description_af: string | null
+          ends_at: string | null
+          id: string
+          is_published: boolean
+          location: string | null
+          starts_at: string
+          title: string
+          title_af: string | null
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          description_af?: string | null
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          starts_at: string
+          title: string
+          title_af?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          description_af?: string | null
+          ends_at?: string | null
+          id?: string
+          is_published?: boolean
+          location?: string | null
+          starts_at?: string
+          title?: string
+          title_af?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gallery_items: {
+        Row: {
+          caption: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          image_url: string
+          is_published: boolean
+          taken_at: string | null
+          title: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          image_url: string
+          is_published?: boolean
+          taken_at?: string | null
+          title?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          image_url?: string
+          is_published?: boolean
+          taken_at?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

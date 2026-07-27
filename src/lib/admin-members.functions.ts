@@ -21,8 +21,9 @@ export type AdminMember = {
 export const listAllMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminMember[]> => {
-    await ensureAdmin(context);
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
 
     const { data: profiles, error } = await supabase
       .from("profiles")
@@ -73,7 +74,9 @@ export const updateMemberStatus = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ context, data }) => {
-    await ensureAdmin(context);
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { error } = await context.supabase
       .from("profiles")
       .update({ membership_status: data.status })
@@ -88,7 +91,9 @@ export const setAdminRole = createServerFn({ method: "POST" })
     z.object({ userId: z.string().uuid(), isAdmin: z.boolean() }).parse(i),
   )
   .handler(async ({ context, data }) => {
-    await ensureAdmin(context);
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     if (data.userId === context.userId && !data.isAdmin) {
       throw new Error("You cannot remove your own admin role.");
     }
@@ -121,8 +126,9 @@ export const setFeaturedMember = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ context, data }) => {
-    await ensureAdmin(context);
-    const { supabase } = context;
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     // Clear existing featured first (unique partial index enforces one).
     const { error: clearErr } = await supabase
       .from("profiles")

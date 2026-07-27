@@ -97,7 +97,7 @@ export const setAdminRole = createServerFn({ method: "POST" })
     if (data.userId === context.userId && !data.isAdmin) {
       throw new Error("You cannot remove your own admin role.");
     }
-    const { supabase } = context;
+    
     if (data.isAdmin) {
       const { error } = await supabase
         .from("user_roles")

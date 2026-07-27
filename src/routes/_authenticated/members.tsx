@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/members")({
 });
 
 function MembersPage() {
-  const { t, lang } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
@@ -44,14 +44,19 @@ function MembersPage() {
       try {
         window.localStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(profile));
       } catch {}
+      // Apply member preferred language as app default
+      if (profile.preferred_lang === "en" || profile.preferred_lang === "af") {
+        setLang(profile.preferred_lang);
+      }
     }
-  }, [profile]);
+  }, [profile, setLang]);
 
   const [form, setForm] = useState({
     display_name: "",
     phone: "",
     town: "",
     favourite_ride: "",
+    preferred_lang: "en" as "en" | "af",
   });
 
   useEffect(() => {
@@ -61,6 +66,7 @@ function MembersPage() {
         phone: profile.phone ?? "",
         town: profile.town ?? "",
         favourite_ride: profile.favourite_ride ?? "",
+        preferred_lang: profile.preferred_lang === "af" ? "af" : "en",
       });
     }
   }, [profile]);
@@ -73,10 +79,14 @@ function MembersPage() {
           phone: data.phone || null,
           town: data.town || null,
           favourite_ride: data.favourite_ride || null,
+          preferred_lang: data.preferred_lang,
         },
       }),
     onSuccess: (updated) => {
       qc.setQueryData(["profile", "me"], updated);
+      if (updated.preferred_lang === "en" || updated.preferred_lang === "af") {
+        setLang(updated.preferred_lang);
+      }
     },
   });
 
@@ -155,6 +165,33 @@ function MembersPage() {
                   value={form.favourite_ride}
                   onChange={(v) => setForm((f) => ({ ...f, favourite_ride: v }))}
                 />
+
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
+                    {lang === "af" ? "Voorkeurtaal" : "Preferred language"}
+                  </label>
+                  <div className="inline-flex rounded-full border-2 border-ink bg-paper p-0.5 text-xs font-bold uppercase tracking-wider">
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, preferred_lang: "en" }))}
+                      className={`rounded-full px-3 py-1.5 ${form.preferred_lang === "en" ? "bg-ink text-paper" : "text-ink/60"}`}
+                    >
+                      English
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, preferred_lang: "af" }))}
+                      className={`rounded-full px-3 py-1.5 ${form.preferred_lang === "af" ? "bg-ink text-paper" : "text-ink/60"}`}
+                    >
+                      Afrikaans
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-ink/45">
+                    {lang === "af"
+                      ? "Die app oop en hardloop in hierdie taal vir jou."
+                      : "The app opens and runs in this language for you."}
+                  </p>
+                </div>
 
                 <button
                   type="submit"

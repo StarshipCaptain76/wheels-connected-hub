@@ -5,6 +5,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
 import { Calendar, IdCard, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
+import { SponsorCarousel } from "@/components/SponsorCarousel";
 
 const nextEventQuery = queryOptions({
   queryKey: ["events", "next"],
@@ -167,7 +168,10 @@ function Index() {
           </div>
         </div>
       </section>
+
+      <SponsorCarousel />
     </SiteLayout>
+
   );
 }
 

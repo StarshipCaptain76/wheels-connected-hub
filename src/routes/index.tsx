@@ -28,12 +28,26 @@ export const Route = createFileRoute("/")({
         content: "Monthly runs, show-and-shines and a members crew based in Hessequa.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/" },
       { name: "twitter:card", content: "summary" },
+    ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Just Wheels Hessequa",
+          url: "https://wheels-connected-hub.lovable.app",
+        }),
+      },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(nextEventQuery),
   component: Index,
 });
+
 
 function formatDate(iso: string, lang: "en" | "af") {
   return new Date(iso).toLocaleDateString(lang === "af" ? "af-ZA" : "en-ZA", {

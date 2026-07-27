@@ -1,24 +1,154 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { SiteLayout } from "@/components/SiteLayout";
+import { useI18n } from "@/i18n/I18nProvider";
+import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
+import { Calendar, IdCard, Users } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Just Wheels Hessequa — Southern Cape Car Club" },
+      {
+        name: "description",
+        content:
+          "The Just Wheels Hessequa car club: classics, hot rods, bakkies and bikes across Riversdale, Stilbaai and the Southern Cape. Monthly runs, show-and-shines and a members-only crew.",
+      },
+      { property: "og:title", content: "Just Wheels Hessequa — Southern Cape Car Club" },
+      {
+        property: "og:description",
+        content: "Monthly runs, show-and-shines and a members crew based in Hessequa.",
+      },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const { t } = useI18n();
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <SiteLayout>
+      {/* HERO */}
+      <section className="relative overflow-hidden border-b-2 border-ink bg-ink text-paper grain">
+        <div
+          className="absolute inset-0 opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, var(--color-primary) 0, transparent 40%), radial-gradient(circle at 80% 80%, var(--color-rust) 0, transparent 45%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
+          <div>
+            <div className="mb-4 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
+              {t("home.heroKicker")}
+            </div>
+            <h1 className="font-display text-6xl leading-[0.9] tracking-wide sm:text-7xl md:text-8xl">
+              JUST WHEELS
+              <br />
+              <span className="text-primary">HESSEQUA</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-paper/80">{t("home.heroSubtitle")}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/join"
+                className="inline-flex items-center rounded-md border-2 border-paper bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-paper)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+              >
+                {t("cta.becomeMember")}
+              </Link>
+              <Link
+                to="/about"
+                className="inline-flex items-center rounded-md border-2 border-paper/60 px-6 py-3 font-bold uppercase tracking-wider text-paper/80 hover:border-paper hover:text-paper"
+              >
+                {t("cta.viewEvents")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <div className="relative">
+              <div
+                className="absolute -inset-6 rounded-full bg-primary/30 blur-2xl"
+                aria-hidden
+              />
+              <img
+                src={logoAsset.url}
+                alt="Just Wheels Hessequa club badge"
+                className="relative h-64 w-64 -rotate-6 rounded-full border-4 border-paper object-cover shadow-2xl md:h-80 md:w-80"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* NEXT EVENT STRIP */}
+      <section className="border-b-2 border-ink bg-primary text-paper">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
+          <div>
+            <div className="font-display text-xs tracking-[0.3em] text-paper/80">
+              {t("home.nextEvent").toUpperCase()}
+            </div>
+            <div className="font-display text-2xl tracking-wide sm:text-3xl">
+              {t("home.tbaTitle")}
+            </div>
+          </div>
+          <p className="max-w-md text-sm text-paper/90">{t("home.tbaBody")}</p>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
+          {t("home.featuresTitle")}
+        </h2>
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <FeatureCard
+            icon={<Calendar className="h-6 w-6" />}
+            title={t("home.feature1Title")}
+            body={t("home.feature1Body")}
+          />
+          <FeatureCard
+            icon={<IdCard className="h-6 w-6" />}
+            title={t("home.feature2Title")}
+            body={t("home.feature2Body")}
+          />
+          <FeatureCard
+            icon={<Users className="h-6 w-6" />}
+            title={t("home.feature3Title")}
+            body={t("home.feature3Body")}
+          />
+        </div>
+      </section>
+
+      {/* ABOUT TEASER */}
+      <section className="border-t-2 border-ink bg-secondary">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
+          <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
+            {t("home.aboutTitle")}
+          </h2>
+          <div>
+            <p className="text-lg text-ink/80">{t("home.aboutBody")}</p>
+            <Link
+              to="/about"
+              className="mt-6 inline-flex items-center rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            >
+              {t("nav.about")} →
+            </Link>
+          </div>
+        </div>
+      </section>
+    </SiteLayout>
+  );
+}
+
+function FeatureCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div className="group rounded-lg border-2 border-ink bg-card p-6 shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-1">
+      <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full border-2 border-ink bg-primary text-paper">
+        {icon}
+      </div>
+      <h3 className="font-display text-2xl tracking-wide text-ink">{title}</h3>
+      <p className="mt-2 text-ink/70">{body}</p>
     </div>
   );
 }

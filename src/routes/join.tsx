@@ -1,25 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { Check } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+const WA_HUGO = "https://wa.me/27836869237";
 
 export const Route = createFileRoute("/join")({
   head: () => ({
     meta: [
-      { title: "Join Just Wheels Hessequa | Membership" },
+      { title: "Join Just Wheels Hessequa | Free Membership" },
       {
         name: "description",
         content:
-          "Become a Just Wheels Hessequa member. Get access to monthly runs, show-and-shines, a digital member card and the members-only crew.",
+          "Membership is free. Create an account, fill in your garage and WhatsApp Hugo to be added to the group.",
       },
-      { property: "og:title", content: "Join Just Wheels Hessequa | Membership" },
+      { property: "og:title", content: "Join Just Wheels Hessequa | Free Membership" },
       {
         property: "og:description",
-        content:
-          "Membership benefits and pricing for the Just Wheels Hessequa car club.",
+        content: "Free membership. Create your account and WhatsApp Hugo to join.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${SITE_ORIGIN}/join` },
@@ -32,15 +32,13 @@ export const Route = createFileRoute("/join")({
   component: Join,
 });
 
-
 function Join() {
   const { t } = useI18n();
-  const benefits = [
-    t("join.b1"),
-    t("join.b2"),
-    t("join.b3"),
-    t("join.b4"),
-    t("join.b5"),
+  const benefits = [t("join.b1"), t("join.b2"), t("join.b3"), t("join.b4"), t("join.b5")];
+  const steps = [
+    { title: t("join.step1Title"), body: t("join.step1Body") },
+    { title: t("join.step2Title"), body: t("join.step2Body") },
+    { title: t("join.step3Title"), body: t("join.step3Body") },
   ];
 
   return (
@@ -49,7 +47,49 @@ function Join() {
         <h1 className="font-display text-5xl tracking-wide text-ink sm:text-6xl">{t("join.title")}</h1>
         <p className="mt-3 text-lg text-ink/70">{t("join.subtitle")}</p>
 
-        <div className="mt-12 grid gap-8 md:grid-cols-[1.2fr_1fr]">
+        <div className="mt-8 rounded-lg border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
+          <div className="font-display text-xs tracking-[0.3em] text-primary">FREE</div>
+          <div className="mt-1 font-display text-4xl tracking-wide">{t("join.freeTitle")}</div>
+          <p className="mt-2 text-sm text-paper/70">{t("join.freeBody")}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              to="/auth"
+              className="rounded-md border-2 border-paper bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper transition-transform hover:-translate-y-0.5"
+            >
+              {t("join.signup")}
+            </Link>
+            <a
+              href={WA_HUGO}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md border-2 border-paper bg-transparent px-6 py-3 font-bold uppercase tracking-wider text-paper transition-transform hover:-translate-y-0.5"
+            >
+              <MessageCircle className="h-4 w-4" /> {t("join.whatsapp")}
+            </a>
+          </div>
+        </div>
+
+        <div className="mt-12 grid gap-8 md:grid-cols-2">
+          <div>
+            <h2 className="font-display text-2xl tracking-wide text-ink">{t("join.stepsTitle")}</h2>
+            <ol className="mt-4 space-y-4">
+              {steps.map((s, i) => (
+                <li
+                  key={s.title}
+                  className="flex items-start gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
+                >
+                  <span className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-primary font-display text-paper">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <div className="font-display text-lg text-ink">{s.title}</div>
+                    <p className="text-sm text-ink/70">{s.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           <ul className="space-y-4">
             {benefits.map((b) => (
               <li
@@ -63,20 +103,6 @@ function Join() {
               </li>
             ))}
           </ul>
-
-          <div className="rounded-lg border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
-            <div className="font-display text-xs tracking-[0.3em] text-primary">
-              {t("join.priceLabel").toUpperCase()}
-            </div>
-            <div className="mt-1 font-display text-5xl tracking-wide">{t("join.priceValue")}</div>
-            <p className="mt-3 text-sm text-paper/70">{t("join.priceNote")}</p>
-            <button
-              type="button"
-              className="mt-6 w-full rounded-md border-2 border-paper bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper transition-transform hover:-translate-y-0.5"
-            >
-              {t("join.signup")}
-            </button>
-          </div>
         </div>
       </section>
     </SiteLayout>

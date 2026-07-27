@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
-import { Facebook, Instagram, MessageCircle, UserRound } from "lucide-react";
+import { MessageCircle, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 
@@ -167,30 +167,16 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div>
-            <div className="mb-3 font-display text-sm tracking-widest text-primary">SOCIAL</div>
-            <div className="flex gap-3">
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-paper/40 hover:border-primary hover:text-primary"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                aria-label="Instagram"
-                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-paper/40 hover:border-primary hover:text-primary"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a
-                href="#"
-                aria-label="WhatsApp"
-                className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-paper/40 hover:border-primary hover:text-primary"
-              >
-                <MessageCircle className="h-4 w-4" />
-              </a>
-            </div>
+            <div className="mb-3 font-display text-sm tracking-widest text-primary">CONTACT</div>
+            <a
+              href="https://wa.me/27836869237"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp Hugo van Dyk"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-paper/40 px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper hover:border-primary hover:text-primary"
+            >
+              <MessageCircle className="h-4 w-4" /> WhatsApp Hugo
+            </a>
           </div>
 
           <div className="sm:col-span-2 lg:col-span-1">

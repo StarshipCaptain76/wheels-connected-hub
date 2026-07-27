@@ -42,9 +42,8 @@ const subscribeSchema = z.object({
 export const subscribeNewsletter = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => subscribeSchema.parse(input))
   .handler(async ({ data }) => {
-    const sb = createPublicSupabase();
-    // Upsert-ish: try insert; if conflict, reactivate.
-    const { data: existing } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existing } = await supabaseAdmin
       .from("newsletter_subscribers")
       .select("id, unsubscribe_token, unsubscribed_at")
       .eq("email", data.email)
@@ -54,12 +53,13 @@ export const subscribeNewsletter = createServerFn({ method: "POST" })
     if (existing) {
       token = existing.unsubscribe_token;
       if (existing.unsubscribed_at) {
-        // Reactivate via anon client — RLS only allows admin update.
-        // Use a fresh row instead: delete + insert would need service role.
-        // Simplest: send a "welcome back" mail anyway; keep the row.
+        await supabaseAdmin
+          .from("newsletter_subscribers")
+          .update({ unsubscribed_at: null, lang: data.lang })
+          .eq("id", existing.id);
       }
     } else {
-      const { data: row, error } = await sb
+      const { data: row, error } = await supabaseAdmin
         .from("newsletter_subscribers")
         .insert({ email: data.email, lang: data.lang, source: data.source })
         .select("unsubscribe_token")

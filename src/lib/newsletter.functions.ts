@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createPublicSupabase } from "./public-supabase.server";
+
 
 const ADMIN_EMAIL = "admin@justwheels.co.za";
 const FROM = "Just Wheels <news@notify.justwheels.co.za>";

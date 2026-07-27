@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
-import { Facebook, Instagram, MessageCircle } from "lucide-react";
+import { Facebook, Instagram, MessageCircle, UserRound } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 function LangToggle() {
   const { lang, setLang } = useI18n();
@@ -71,12 +72,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2">
             <LangToggle />
-            <Link
-              to="/join"
-              className="hidden rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:inline-flex"
-            >
-              {t("cta.join")}
-            </Link>
+            <AuthAffordance />
           </div>
         </div>
 

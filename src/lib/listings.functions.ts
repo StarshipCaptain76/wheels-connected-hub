@@ -51,7 +51,7 @@ type RawListing = {
   status: ListingStatus;
   created_at: string;
   listing_photos: RawPhoto[] | null;
-  listing_contacts?: { contact_name: string; contact_phone: string | null; contact_email: string }[] | null;
+  listing_contacts?: { contact_name: string; contact_phone: string | null; contact_email: string } | null;
 };
 
 async function signPhotos(

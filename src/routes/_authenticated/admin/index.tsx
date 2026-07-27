@@ -5,14 +5,12 @@ import { listAllMembers } from "@/lib/admin-members.functions";
 import { listPendingListings } from "@/lib/listings.functions";
 import { listAllEvents } from "@/lib/events.functions";
 import { listAllGalleryItems } from "@/lib/gallery.functions";
-import { listSubscribers } from "@/lib/newsletter.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import {
   Tag,
   Calendar,
   Image as ImageIcon,
   Users,
-  Mail,
   Star,
   ArrowRight,
 } from "lucide-react";
@@ -29,20 +27,17 @@ function AdminOverview() {
   const events = useServerFn(listAllEvents);
   const gallery = useServerFn(listAllGalleryItems);
   const members = useServerFn(listAllMembers);
-  const subs = useServerFn(listSubscribers);
   const featured = useServerFn(getCurrentFeaturedMember);
 
   const pendingQ = useQuery({ queryKey: ["listings", "moderation"], queryFn: () => pending() });
   const eventsQ = useQuery({ queryKey: ["events", "admin"], queryFn: () => events() });
   const galleryQ = useQuery({ queryKey: ["gallery", "admin"], queryFn: () => gallery() });
   const membersQ = useQuery({ queryKey: ["admin", "members"], queryFn: () => members() });
-  const subsQ = useQuery({ queryKey: ["newsletter", "subscribers"], queryFn: () => subs() });
   const featuredQ = useQuery({ queryKey: ["featured-member"], queryFn: () => featured() });
 
   const now = Date.now();
   const upcoming = (eventsQ.data ?? []).filter((e) => new Date(e.starts_at).getTime() > now).length;
   const unpublishedGallery = (galleryQ.data ?? []).filter((g) => !g.is_published).length;
-  const activeSubs = (subsQ.data ?? []).filter((s) => !s.unsubscribed_at).length;
   const pendingMembers = (membersQ.data ?? []).filter((m) => m.membership_status === "pending").length;
 
   const cards = [
@@ -50,7 +45,6 @@ function AdminOverview() {
     { to: "/admin/events", label: "Upcoming events", value: upcoming, icon: Calendar },
     { to: "/admin/gallery", label: "Unpublished photos", value: unpublishedGallery, icon: ImageIcon },
     { to: "/admin/members", label: `Members (${pendingMembers} pending)`, value: membersQ.data?.length ?? "—", icon: Users },
-    { to: "/admin/newsletter", label: "Active subscribers", value: activeSubs, icon: Mail },
     {
       to: "/admin/featured",
       label: featuredQ.data ? `Featured: ${featuredQ.data.display_name ?? "—"}` : "No featured member",

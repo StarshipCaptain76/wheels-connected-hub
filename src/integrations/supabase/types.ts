@@ -100,6 +100,41 @@ export type Database = {
           },
         ]
       }
+      listing_contacts: {
+        Row: {
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          listing_id: string
+        }
+        Insert: {
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+        }
+        Update: {
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_contacts_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_photos: {
         Row: {
           created_at: string
@@ -130,22 +165,12 @@ export type Database = {
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "listing_photos_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       listings: {
         Row: {
           category: Database["public"]["Enums"]["listing_category"]
           condition: Database["public"]["Enums"]["listing_condition"]
-          contact_email: string
-          contact_name: string
-          contact_phone: string | null
           created_at: string
           description: string
           description_af: string | null
@@ -161,9 +186,6 @@ export type Database = {
         Insert: {
           category?: Database["public"]["Enums"]["listing_category"]
           condition?: Database["public"]["Enums"]["listing_condition"]
-          contact_email: string
-          contact_name: string
-          contact_phone?: string | null
           created_at?: string
           description: string
           description_af?: string | null
@@ -179,9 +201,6 @@ export type Database = {
         Update: {
           category?: Database["public"]["Enums"]["listing_category"]
           condition?: Database["public"]["Enums"]["listing_condition"]
-          contact_email?: string
-          contact_name?: string
-          contact_phone?: string | null
           created_at?: string
           description?: string
           description_af?: string | null
@@ -330,51 +349,7 @@ export type Database = {
       }
     }
     Views: {
-      listings_public: {
-        Row: {
-          category: Database["public"]["Enums"]["listing_category"] | null
-          condition: Database["public"]["Enums"]["listing_condition"] | null
-          created_at: string | null
-          description: string | null
-          description_af: string | null
-          id: string | null
-          location: string | null
-          price_zar: number | null
-          status: Database["public"]["Enums"]["listing_status"] | null
-          title: string | null
-          title_af: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          category?: Database["public"]["Enums"]["listing_category"] | null
-          condition?: Database["public"]["Enums"]["listing_condition"] | null
-          created_at?: string | null
-          description?: string | null
-          description_af?: string | null
-          id?: string | null
-          location?: string | null
-          price_zar?: number | null
-          status?: Database["public"]["Enums"]["listing_status"] | null
-          title?: string | null
-          title_af?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: Database["public"]["Enums"]["listing_category"] | null
-          condition?: Database["public"]["Enums"]["listing_condition"] | null
-          created_at?: string | null
-          description?: string | null
-          description_af?: string | null
-          id?: string | null
-          location?: string | null
-          price_zar?: number | null
-          status?: Database["public"]["Enums"]["listing_status"] | null
-          title?: string | null
-          title_af?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       has_role: {

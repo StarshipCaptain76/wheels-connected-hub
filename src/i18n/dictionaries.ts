@@ -111,7 +111,14 @@ export const dictionaries = {
     "card.offline": "Offline",
     "card.noRide": "Ride to be added",
     "card.needSync": "Open this page online once to sync your card for offline use.",
+
+    "pwa.installTitle": "Install Just Wheels",
+    "pwa.installBody": "Add the club to your home screen. Your member card works offline.",
+    "pwa.install": "Install",
+    "pwa.later": "Later",
+    "pwa.offline": "You're offline — showing cached content",
   },
+
   af: {
     "nav.home": "Tuis",
     "nav.events": "Byeenkomste",
@@ -222,7 +229,14 @@ export const dictionaries = {
     "card.offline": "Aflyn",
     "card.noRide": "Ry word bygevoeg",
     "card.needSync": "Maak hierdie bladsy een keer aanlyn oop om jou kaart aflyn te sinchroniseer.",
+
+    "pwa.installTitle": "Installeer Just Wheels",
+    "pwa.installBody": "Voeg die klub by jou tuisskerm. Jou lidkaart werk aflyn.",
+    "pwa.install": "Installeer",
+    "pwa.later": "Later",
+    "pwa.offline": "Jy is aflyn — wys gekasde inhoud",
   },
+
 } as const;
 
 export type DictKey = keyof (typeof dictionaries)["en"];

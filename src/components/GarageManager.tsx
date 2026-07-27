@@ -15,6 +15,7 @@ import { TranslateButton } from "@/components/TranslateButton";
 import { Plus, Trash2, X, Upload, Star, Loader2, Car } from "lucide-react";
 
 const STORY_MAX = 4000;
+const MAX_PHOTO_MB = 6;
 
 export function GarageManager({
   avatarUrl,
@@ -50,18 +51,41 @@ export function GarageManager({
     setAvatarBusy(true);
     setError(null);
     try {
-      if (!file.type.startsWith("image/")) throw new Error("Choose an image");
-      if (file.size > 5 * 1024 * 1024) throw new Error("Max 5MB");
+      if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|gif|heic)$/i.test(file.name)) {
+        throw new Error(lang === "af" ? "Kies 'n beeldlêer" : "Choose an image file");
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error(lang === "af" ? "Maks 5MB" : "Max 5MB");
+      }
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
-      if (!userId) throw new Error("Not signed in");
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
+
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
       const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
+
       const { error: upErr } = await supabase.storage
         .from("garage")
-        .upload(path, file, { cacheControl: "3600", upsert: true, contentType: file.type });
-      if (upErr) throw upErr;
-      const { data: signed } = await supabase.storage.from("garage").createSignedUrl(path, 60 * 60 * 24 * 365);
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: true,
+          contentType: file.type || "image/jpeg",
+        });
+      if (upErr) {
+        console.error("garage avatar upload", upErr);
+        throw new Error(
+          upErr.message.includes("Bucket not found")
+            ? "Storage bucket 'garage' missing — run the SQL setup"
+            : upErr.message.includes("row-level security") || upErr.message.includes("policy")
+              ? "Upload blocked by storage policy — run the garage SQL policies"
+              : upErr.message,
+        );
+      }
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("garage")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signErr) console.error("sign avatar", signErr);
       const url = signed?.signedUrl ?? path;
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
@@ -120,19 +144,64 @@ export function GarageManager({
     try {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
-      if (!userId) throw new Error("Not signed in");
+      if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
+
+      let uploaded = 0;
+      const failures: string[] = [];
+
       for (const file of Array.from(files).slice(0, 8)) {
-        if (!file.type.startsWith("image/")) continue;
-        if (file.size > 6 * 1024 * 1024) continue;
-        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const isImage =
+          file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(file.name);
+        if (!isImage) {
+          failures.push(`${file.name}: not an image`);
+          continue;
+        }
+        if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+          failures.push(`${file.name}: max ${MAX_PHOTO_MB}MB`);
+          continue;
+        }
+
+        const ext =
+          (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
         const path = `vehicles/${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("garage")
-          .upload(path, file, { cacheControl: "3600", upsert: false, contentType: file.type });
-        if (upErr) throw upErr;
-        await addPhotoFn({ data: { vehicleId, storage_path: path, caption: null } });
+
+        const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type || "image/jpeg",
+        });
+        if (upErr) {
+          console.error("garage vehicle upload", upErr);
+          const msg = upErr.message.includes("Bucket not found")
+            ? "Bucket 'garage' missing — run SQL setup"
+            : upErr.message.includes("row-level security") || upErr.message.includes("policy")
+              ? "Blocked by storage policy — run garage SQL policies"
+              : upErr.message;
+          failures.push(`${file.name}: ${msg}`);
+          continue;
+        }
+
+        try {
+          await addPhotoFn({ data: { vehicleId, storage_path: path, caption: null } });
+          uploaded += 1;
+        } catch (e) {
+          failures.push(
+            `${file.name}: ${e instanceof Error ? e.message : "DB insert failed"}`,
+          );
+        }
       }
+
       await refresh();
+
+      if (failures.length && uploaded === 0) {
+        throw new Error(failures.join(" · "));
+      }
+      if (failures.length) {
+        setError(
+          (lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") +
+            failures.join(" · "),
+        );
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Photo upload failed");
     } finally {
@@ -274,10 +343,21 @@ export function GarageManager({
                     </div>
                   ))}
                   <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink">
-                    <Upload className="h-4 w-4" />
-                    <input type="file" accept="image/*" multiple className="hidden" disabled={busy} onChange={(e) => { void uploadPhotos(v.id, e.target.files); e.target.value = ""; }} />
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      disabled={busy}
+                      onChange={(e) => {
+                        void uploadPhotos(v.id, e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
                   </label>
                 </div>
+                <p className="text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB each</p>
               </div>
             </li>
           ))}
@@ -285,7 +365,15 @@ export function GarageManager({
       )}
 
       {editing && (
-        <VehicleModal state={editing} busy={busy} lang={lang} onClose={() => setEditing(null)} onSave={async (form) => { await saveVehicle(form); }} />
+        <VehicleModal
+          state={editing}
+          busy={busy}
+          lang={lang}
+          onClose={() => setEditing(null)}
+          onSave={async (form) => {
+            await saveVehicle(form);
+          }}
+        />
       )}
     </section>
   );
@@ -305,7 +393,8 @@ function VehicleModal({
   onSave: (s: Partial<GarageVehicle>) => Promise<void>;
 }) {
   const [form, setForm] = useState(state);
-  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
@@ -318,13 +407,28 @@ function VehicleModal({
         className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-2xl text-ink">{form.id ? (lang === "af" ? "Wysig voertuig" : "Edit vehicle") : (lang === "af" ? "Nuwe voertuig" : "New vehicle")}</h3>
-          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1"><X className="h-4 w-4" /></button>
+          <h3 className="font-display text-2xl text-ink">
+            {form.id
+              ? lang === "af"
+                ? "Wysig voertuig"
+                : "Edit vehicle"
+              : lang === "af"
+                ? "Nuwe voertuig"
+                : "New vehicle"}
+          </h3>
+          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1">
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={lang === "af" ? "Jaar" : "Year"}>
-            <input type="number" value={form.year ?? ""} onChange={(e) => set("year", e.target.value ? Number(e.target.value) : null)} className={inp} />
+            <input
+              type="number"
+              value={form.year ?? ""}
+              onChange={(e) => set("year", e.target.value ? Number(e.target.value) : null)}
+              className={inp}
+            />
           </Field>
           <Field label={lang === "af" ? "Maak" : "Make"}>
             <input value={form.make ?? ""} onChange={(e) => set("make", e.target.value)} className={inp} />
@@ -343,7 +447,13 @@ function VehicleModal({
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Story (EN)</span>
             <TranslateButton source={form.story_af ?? ""} from="af" to="en" onResult={(t) => set("story", t)} />
           </div>
-          <textarea value={form.story ?? ""} maxLength={STORY_MAX} onChange={(e) => set("story", e.target.value)} className={inp} rows={5} />
+          <textarea
+            value={form.story ?? ""}
+            maxLength={STORY_MAX}
+            onChange={(e) => set("story", e.target.value)}
+            className={inp}
+            rows={5}
+          />
         </div>
 
         <div>
@@ -351,15 +461,29 @@ function VehicleModal({
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Story (AF)</span>
             <TranslateButton source={form.story ?? ""} from="en" to="af" onResult={(t) => set("story_af", t)} />
           </div>
-          <textarea value={form.story_af ?? ""} maxLength={STORY_MAX} onChange={(e) => set("story_af", e.target.value)} className={inp} rows={4} />
+          <textarea
+            value={form.story_af ?? ""}
+            maxLength={STORY_MAX}
+            onChange={(e) => set("story_af", e.target.value)}
+            className={inp}
+            rows={4}
+          />
         </div>
 
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={form.is_primary ?? false} onChange={(e) => set("is_primary", e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={form.is_primary ?? false}
+            onChange={(e) => set("is_primary", e.target.checked)}
+          />
           <span className="text-sm">{lang === "af" ? "Primêre ry" : "Primary ride"}</span>
         </label>
 
-        <button type="submit" disabled={busy} className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60">
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60"
+        >
           {busy ? "…" : lang === "af" ? "Stoor" : "Save"}
         </button>
       </form>

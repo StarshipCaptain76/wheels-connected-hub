@@ -84,7 +84,7 @@ async function signPhotos(
 }
 
 function mapListing(raw: RawListing): PublicListing {
-  const contact = raw.listing_contacts?.[0];
+  const contact = raw.listing_contacts;
   return {
     id: raw.id,
     user_id: raw.user_id,

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
-import { MessageCircle, UserRound } from "lucide-react";
+import { MessageCircle, UserRound, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 
@@ -30,7 +30,7 @@ function LangToggle() {
   );
 }
 
-function AuthAffordance() {
+function AuthAffordance({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useEffect(() => {
@@ -51,6 +51,7 @@ function AuthAffordance() {
     return (
       <Link
         to="/members"
+        onClick={onNavigate}
         className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-ink px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:text-sm"
       >
         <UserRound className="h-4 w-4" /> {t("nav.members")}
@@ -60,6 +61,7 @@ function AuthAffordance() {
   return (
     <Link
       to="/auth"
+      onClick={onNavigate}
       className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none sm:text-sm"
     >
       {t("nav.signIn")}
@@ -69,6 +71,31 @@ function AuthAffordance() {
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close menu on resize to desktop
+  useEffect(() => {
+    function onResize() {
+      if (window.innerWidth >= 768) setMenuOpen(false);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Prevent body scroll while menu is open
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [menuOpen]);
+
+  const closeMenu = () => setMenuOpen(false);
+
   const navItems = [
     { to: "/", label: t("nav.home") },
     { to: "/events", label: t("nav.events") },
@@ -81,16 +108,15 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     { to: "/contact", label: t("nav.contact") },
   ] as const;
 
-
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link to="/" className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+          <Link to="/" className="flex min-w-0 items-center gap-3" onClick={closeMenu}>
             <img
               src={logoAsset.url}
               alt="Just Wheels Hessequa logo"
-              className="h-11 w-11 rounded-full border-2 border-ink object-cover"
+              className="h-11 w-11 shrink-0 rounded-full border-2 border-ink object-cover"
             />
             <div className="hidden leading-tight sm:block">
               <div className="font-display text-xl tracking-wide text-ink">JUST WHEELS</div>
@@ -98,6 +124,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             </div>
           </Link>
 
+          {/* Desktop nav */}
           <nav className="hidden items-center gap-1 md:flex">
             {navItems.map((item) => (
               <Link
@@ -113,30 +140,52 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="flex items-center gap-2">
-            <LangToggle />
-            <AuthAffordance />
+            <div className="hidden sm:block">
+              <LangToggle />
+            </div>
+            <div className="hidden sm:block">
+              <AuthAffordance />
+            </div>
+
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border-2 border-ink bg-paper text-ink md:hidden"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((o) => !o)}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
-        {/* Mobile nav — horizontal scroll strip */}
-        <nav
-          aria-label="Primary"
-          className="scrollbar-none flex snap-x snap-mandatory items-center gap-1 overflow-x-auto border-t-2 border-ink/10 px-3 py-1.5 md:hidden"
-          style={{ WebkitOverflowScrolling: "touch" as unknown as undefined }}
-        >
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="shrink-0 snap-start whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70"
-              activeProps={{ className: "bg-primary text-paper" }}
-              activeOptions={{ exact: item.to === "/" }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
+        {/* Mobile menu panel */}
+        {menuOpen && (
+          <div className="border-t-2 border-ink bg-paper md:hidden">
+            <nav aria-label="Primary" className="mx-auto max-w-6xl px-4 py-3">
+              <ul className="flex flex-col gap-1">
+                {navItems.map((item) => (
+                  <li key={item.to}>
+                    <Link
+                      to={item.to}
+                      onClick={closeMenu}
+                      className="block rounded-md px-3 py-3 text-sm font-bold uppercase tracking-wider text-ink/80 hover:bg-ink/5 hover:text-ink"
+                      activeProps={{ className: "bg-primary/10 text-primary" }}
+                      activeOptions={{ exact: item.to === "/" }}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3">
+                <LangToggle />
+                <AuthAffordance onNavigate={closeMenu} />
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">{children}</main>

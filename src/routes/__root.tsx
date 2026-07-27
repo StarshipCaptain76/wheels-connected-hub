@@ -155,6 +155,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { registerPwa } from "../lib/pwa-register";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { OfflineBanner } from "../components/OfflineBanner";
+import { Toaster } from "../components/ui/sonner";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -177,8 +178,8 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <InstallPrompt />
+        <Toaster position="top-center" richColors closeButton />
       </I18nProvider>
     </QueryClientProvider>
   );
 }
-

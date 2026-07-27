@@ -1,103 +1,98 @@
+## Events v2 — Maps, Waypoints, RSVPs, Richer Content
 
-# Admin Portal — consolidated gated actions
+Everything below is additive to the existing `events` table and admin flow. Existing events keep working; new fields are optional.
 
-Today the admin tools are scattered as sibling routes under `/admin/*` reached from a card on `/members`. This plan gives them a proper home: one gated `/admin` layout with a persistent sidebar, an overview dashboard, and two new sections (Members Management, Featured Member). Sponsors, Classifieds moderation, Shop, Newsletter, Events, and Gallery are folded into the same shell.
+### 1. Data model (one migration)
 
-## Structure
+Extend `public.events`:
+- `destination_lat numeric`, `destination_lng numeric` — resolved once via Google Geocoding when admin picks a place.
+- `destination_place_id text`, `destination_address text` — full formatted address for display.
+- `hero_image_url text` — optional destination photo (separate from existing `cover_url` used for cards).
+- `details_md text` / `details_af_md text` — long-form "more about this destination" (markdown, rendered safely).
 
-```text
-src/routes/_authenticated/admin/
-  route.tsx          ← layout: verify admin server-side, render <AdminShell><Outlet/></AdminShell>
-  index.tsx          ← overview: counts + quick actions
-  members.tsx        ← NEW: list all members, edit status/role, set featured
-  featured.tsx       ← NEW: pick current featured member + rotation
-  classifieds.tsx    ← moved from admin.classifieds.tsx
-  events.tsx         ← moved from admin.events.tsx
-  gallery.tsx        ← moved from admin.gallery.tsx
-  sponsors.tsx       ← moved from admin.sponsors.tsx
-  shop.tsx           ← moved from admin.shop.tsx
-  newsletter.tsx     ← moved from admin.newsletter.tsx
-```
+New table `public.event_waypoints` (admin-defined meetup stops along the route):
+- `event_id`, `label`, `label_af`, `address`, `lat`, `lng`, `place_id`, `meet_time timestamptz`, `sort int`.
+- Public read when parent event is published; admin manage.
 
-The `_authenticated` gate already blocks anonymous users. The new `admin/route.tsx` adds an admin check via a new `requireAdmin` server fn (calls `has_role` under `requireSupabaseAuth`) in `beforeLoad`, redirecting non-admins to `/members`. Every admin server fn keeps its own `has_role` check — the layout gate is UX, not the security boundary.
+New table `public.event_rsvps`:
+- `event_id`, `user_id` (unique together), `status` enum `going | maybe | not_going`, `party_size int` (only meaningful when going, 1–10), `note text`, timestamps.
+- RLS: members read all RSVPs for published events (attendee list is members-only); members can insert/update/delete their own; admins can manage all.
 
-The existing `/members` "Admin tools" card becomes a single "Open admin portal" button linking to `/admin`.
+Origin towns for distance display are hardcoded (Albertinia, Riversdale, Stilbaai, Heidelberg) with fixed lat/lng in a shared constants file — no need to store them.
 
-## AdminShell (new component)
+### 2. Server functions
 
-`src/components/AdminShell.tsx` — wraps children in `SiteLayout` and adds a left sidebar (collapses to a top tab bar on mobile) with grouped links:
+`src/lib/events.functions.ts` gains:
+- `getEventDetail({ id })` — public: event + waypoints + counts (going/maybe/not_going). Uses publishable client.
+- `listEventAttendees({ id })` — auth-required: returns going/maybe members with display name, member number, town, avatar.
+- `upsertMyRsvp({ eventId, status, partySize, note })` — auth-required, validated with Zod.
+- `deleteMyRsvp({ eventId })`.
+- Admin: `saveEventWaypoints({ eventId, waypoints[] })`, extend existing `upsertEvent` to accept the new fields.
 
-- Overview
-- Content: Events · Gallery · Featured Member
-- Community: Members · Classifieds
-- Commerce: Shop · Sponsors
-- Comms: Newsletter
+`src/lib/maps.functions.ts` (new, server-only):
+- `geocodeAddress({ query })` — Google Geocoding via the connector gateway (server key).
+- `computeRoute({ origin, waypoints[], destination })` — Routes API `computeRoutes`, returns overview polyline + total distance/duration.
+- `distancesFromOrigins({ destination })` — Routes API `computeRouteMatrix` for the four fixed towns → destination, returns km + duration each.
+- Results are cached in a lightweight `public.route_cache` keyed by a hash so we don't burn quota on every page view.
 
-Active link uses `activeProps`. Each section renders inside a max-w-6xl content column.
+### 3. Browser map component
 
-## Overview dashboard (`/admin`)
+`src/components/EventMap.tsx`:
+- Loads Maps JS via `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` with `loading=async` + `callback`.
+- Renders destination pin, waypoint pins (numbered by sort), and the overview polyline from the server-side route response.
+- Uses plain `google.maps.Marker` (no `mapId`, no AdvancedMarker).
+- Skeleton fallback when key is missing; never crashes the page.
 
-Small server fn `getAdminOverview` returns counts:
-- pending classifieds
-- unpublished events (future)
-- unpublished gallery items
-- newsletter subscribers (active)
-- members (total, pending status)
-- current featured member (name)
+### 4. Admin portal — `/admin/events`
 
-Cards link to their section. Zero DB writes; read-only summary.
+`src/routes/_authenticated/admin/events.tsx` (already migrated into the admin shell) grows an "Edit event" drawer:
+- **Basics**: title/description EN + AF, dates, cover, published toggle (existing).
+- **Destination**: place autocomplete input (Places API New browser autocomplete, then server geocode to persist lat/lng/place_id/address). Optional destination hero image upload → `gallery` bucket subfolder `events/<id>/`.
+- **More info**: rich markdown editor for `details_md` (EN + AF tabs). Rendered client-side with `react-markdown` + `rehype-sanitize`.
+- **Waypoints**: repeatable rows — label EN/AF, address (autocomplete), optional meet time, drag-sort. Save button calls `saveEventWaypoints`.
+- **Live preview**: right-hand panel embeds `EventMap` + the origin distance table so the admin sees exactly what members will see.
+- **RSVPs tab**: current going/maybe/no counts, table of attendees (name → members-only garage link), CSV export.
 
-## NEW: Members Management (`/admin/members`)
+### 5. Public event page
 
-Server fns (in `src/lib/admin-members.functions.ts`, all `requireSupabaseAuth` + inline admin check):
-- `listAllMembers()` — join `profiles` + `auth.users` email via `supabaseAdmin` (loaded inside handler) to include email; return member_number, display_name, email, phone, town, membership_status, is_admin, joined_at.
-- `updateMemberStatus({ userId, status })` — writes `profiles.membership_status` (`pending`/`active`/`suspended`).
-- `setAdminRole({ userId, isAdmin })` — inserts/deletes `user_roles` row for `admin`. Guarded so an admin cannot remove their own admin role (avoid lockout).
-- `setFeaturedMember({ userId | null })` — sets `is_featured` on profiles (new column, see migration).
+New route `src/routes/events.$id.tsx` (list page keeps `/events`):
+- Header: cover, title, when, where, published badge.
+- **Map card**: `EventMap` with route polyline + waypoints.
+- **Distances card**: table of Albertinia / Riversdale / Stilbaai / Heidelberg → destination (km + drive time), pulled from `distancesFromOrigins`.
+- **Meetup stops card**: ordered list of waypoints with label, address, meet time (localised).
+- **About this destination**: sanitized markdown render of `details_md` in current language.
+- **RSVP card**:
+  - Signed-out: "Sign in to RSVP" CTA.
+  - Signed-in: three buttons (Going / Maybe / Not going). Choosing Going reveals a "How many in your group?" input (1–10). Optimistic update, saved via `upsertMyRsvp`.
+- **Who's going** (signed-in only): grid of attendee cards → link to `/members/$member_number`. Public users see just totals ("24 going, 6 maybe").
 
-UI: searchable table with inline status dropdown, admin toggle, "Set as featured" button, and a link to the member's classifieds count. Confirmation dialogs on destructive changes.
+### 6. Members-only "garage" page
 
-## NEW: Featured Member (`/admin/featured`)
+New route `src/routes/_authenticated/members.$number.tsx`:
+- Shows display name, town, favourite ride, avatar, member since, current RSVPs to upcoming events they're going to.
+- Gated by `_authenticated` layout (already redirects to `/auth`).
+- Attendee list links point here.
 
-Currently no rotating "Featured Member" widget exists on the site. This plan adds both the data + admin surface; the public widget is stubbed as a home-page card (opt-in — see "Out of scope" if not wanted).
+Backend: add `getMemberByNumber({ number })` server fn (auth-required) that returns only public-safe profile columns.
 
-- Migration adds `profiles.is_featured boolean not null default false` and `profiles.featured_bio text`, `profiles.featured_photo_url text`, `profiles.featured_since timestamptz`.
-- Partial unique index ensures at most one featured member at a time.
-- `/admin/featured` shows the current featured member's card preview + fields (bio EN, featured photo URL) and a "Choose different member" picker that reuses `listAllMembers`.
-- `getCurrentFeaturedMember` public server fn drives a small `<FeaturedMemberCard>` on `/` (home) and `/members` sidebar.
+### 7. i18n & polish
 
-## Migration (single call)
+- New keys in `src/i18n/dictionaries.ts` for RSVP, map, waypoints, distances, "more info" sections in EN + AF.
+- Distance strings formatted with `Intl.NumberFormat` (km) and duration humanised ("1 h 42 min").
+- All markdown rendering goes through `rehype-sanitize` — never `dangerouslySetInnerHTML` with raw input.
 
-```sql
-alter table public.profiles
-  add column if not exists is_featured boolean not null default false,
-  add column if not exists featured_bio text,
-  add column if not exists featured_photo_url text,
-  add column if not exists featured_since timestamptz;
+### 8. Ordering of work
 
-create unique index if not exists profiles_only_one_featured
-  on public.profiles ((true)) where is_featured;
+1. Connect `google_maps` connector, add migration (events columns, waypoints, rsvps, route_cache) + RLS + GRANTs.
+2. Server: `maps.functions.ts`, extend `events.functions.ts`, `getMemberByNumber`.
+3. `EventMap` component + admin edit drawer with waypoints & destination picker.
+4. Public `/events/$id` page with map, distances, RSVP, attendee list.
+5. Members `/members/$number` garage page + attendee link wiring.
+6. Admin RSVP tab + CSV export.
+7. i18n sweep, empty states, error boundaries.
 
--- Allow public read of ONLY the featured member's safe fields.
-create policy profiles_public_read_featured
-  on public.profiles for select to anon, authenticated
-  using (is_featured = true);
-```
+### Notes on scope kept out on purpose
 
-Existing `profiles_read_own` and admin policies remain. The new `TO anon` policy is narrowed to `is_featured = true` rows only; the public server fn projects only `display_name`, `member_number`, `town`, `favourite_ride`, `featured_bio`, `featured_photo_url`, `featured_since`.
-
-## Moved files
-
-Rename admin routes into the folder (URLs stay the same: `/admin/events`, etc.). Update imports where nothing else depends on the old file paths. `src/routes/_authenticated/members.tsx` swaps its 6-link grid for one "Open Admin Portal" CTA (admin-only).
-
-## Verification
-
-- `bun run build` + `tsgo`.
-- Playwright: sign in as admin → visit `/admin` → each sidebar link renders inside the shell → change one member's status, toggle admin role on a second test account, set featured member, confirm home page shows the featured card. Repeat as non-admin: `/admin` redirects to `/members`.
-
-## Out of scope (ask if wanted)
-
-- Public "Featured Member" home-page widget styling — a minimal card is included; a full rotating carousel can be a follow-up.
-- Bulk actions on classifieds or subscribers.
-- Audit log of admin actions.
-- Impersonation / view-as-member.
+- Members can't propose their own pickup points (per your answer). Waypoints are admin-only.
+- Google Calendar events (read-only feed) stay list-only — no map/RSVP layer, since we don't own that data.
+- No email/push notifications for RSVP changes yet; can be added later off the same tables.

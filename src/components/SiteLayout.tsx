@@ -32,6 +32,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const navItems = [
     { to: "/", label: t("nav.home") },
+    { to: "/events", label: t("nav.events") },
+    { to: "/gallery", label: t("nav.gallery") },
     { to: "/about", label: t("nav.about") },
     { to: "/join", label: t("nav.join") },
     { to: "/contact", label: t("nav.contact") },

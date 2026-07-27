@@ -1,8 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
 import { Calendar, IdCard, Users } from "lucide-react";
+import { getNextEvent } from "@/lib/events.functions";
+
+const nextEventQuery = queryOptions({
+  queryKey: ["events", "next"],
+  queryFn: () => getNextEvent(),
+  staleTime: 60_000,
+});
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,13 +26,34 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Monthly runs, show-and-shines and a members crew based in Hessequa.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(nextEventQuery),
   component: Index,
 });
 
+function formatDate(iso: string, lang: "en" | "af") {
+  return new Date(iso).toLocaleDateString(lang === "af" ? "af-ZA" : "en-ZA", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 function Index() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
+
+  const nextTitle = nextEvent
+    ? lang === "af" && nextEvent.title_af
+      ? nextEvent.title_af
+      : nextEvent.title
+    : t("home.tbaTitle");
+  const nextBody = nextEvent
+    ? `${formatDate(nextEvent.starts_at, lang)}${nextEvent.location ? ` · ${nextEvent.location}` : ""}`
+    : t("home.tbaBody");
 
   return (
     <SiteLayout>
@@ -57,7 +86,7 @@ function Index() {
                 {t("cta.becomeMember")}
               </Link>
               <Link
-                to="/about"
+                to="/events"
                 className="inline-flex items-center rounded-md border-2 border-paper/60 px-6 py-3 font-bold uppercase tracking-wider text-paper/80 hover:border-paper hover:text-paper"
               >
                 {t("cta.viewEvents")}
@@ -82,19 +111,20 @@ function Index() {
       </section>
 
       {/* NEXT EVENT STRIP */}
-      <section className="border-b-2 border-ink bg-primary text-paper">
+      <Link
+        to="/events"
+        className="block border-b-2 border-ink bg-primary text-paper transition-colors hover:bg-primary/90"
+      >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
           <div>
             <div className="font-display text-xs tracking-[0.3em] text-paper/80">
               {t("home.nextEvent").toUpperCase()}
             </div>
-            <div className="font-display text-2xl tracking-wide sm:text-3xl">
-              {t("home.tbaTitle")}
-            </div>
+            <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
           </div>
-          <p className="max-w-md text-sm text-paper/90">{t("home.tbaBody")}</p>
+          <p className="max-w-md text-sm text-paper/90">{nextBody}</p>
         </div>
-      </section>
+      </Link>
 
       {/* FEATURES */}
       <section className="mx-auto max-w-6xl px-4 py-16">

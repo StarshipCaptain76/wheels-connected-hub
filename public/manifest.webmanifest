@@ -1,0 +1,23 @@
+{
+  "name": "Just Wheels Hessequa",
+  "short_name": "Just Wheels",
+  "description": "Just Wheels Hessequa — a bilingual car club community in the Hessequa region.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f10",
+  "theme_color": "#c22222",
+  "lang": "en",
+  "categories": ["lifestyle", "social", "automotive"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Members Card", "short_name": "Card", "url": "/members/card", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Events", "url": "/events", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -411,7 +411,7 @@ function AttendeeList({
           {rows.map((r) => (
             <li key={r.user_id} className="text-sm">
               <Link
-                to="/_authenticated/members/$number" as any
+                to="/members/$number"
                 params={{ number: String(r.member_number) } as any}
                 className="text-ink hover:text-primary hover:underline"
               >

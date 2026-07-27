@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/members/$number")({
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl">Member not found</h1>
-        <Link to="/_authenticated/members" as any className="mt-4 inline-block text-primary underline">
+        <Link to="/members" className="mt-4 inline-block text-primary underline">
           Back to The Garage
         </Link>
       </div>
@@ -44,7 +44,7 @@ function MemberPage() {
   return (
     <SiteLayout>
       <div className="mx-auto max-w-3xl px-4 py-10">
-        <Link to="/_authenticated/members" as any className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary">
+        <Link to="/members" className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary">
           <ArrowLeft className="h-4 w-4" /> {lang === "af" ? "Terug na Die Garage" : "Back to The Garage"}
         </Link>
 

@@ -173,21 +173,30 @@ export const getListing = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }): Promise<PublicListing | null> => {
     const { supabase } = context;
+    // Non-inner join: contact row is only returned when the caller's RLS
+    // grants access (owner or admin). Others get the listing without contacts.
+    const SELECT_WITH_OPTIONAL_CONTACT = `${LISTING_SELECT}, listing_contacts(contact_name, contact_phone, contact_email)`;
     const { data: row, error } = await supabase
       .from("listings")
-      .select(LISTING_WITH_CONTACT_SELECT)
+      .select(SELECT_WITH_OPTIONAL_CONTACT)
       .eq("id", data.id)
       .eq("status", "approved")
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return null;
-    const l = mapListing(row as RawListing);
+    const raw = row as RawListing & { listing_contacts?: RawListing["listing_contacts"] | RawListing["listing_contacts"][] };
+    // PostgREST returns an array for non-inner embedded relations; normalize.
+    if (Array.isArray(raw.listing_contacts)) {
+      raw.listing_contacts = raw.listing_contacts[0] ?? null;
+    }
+    const l = mapListing(raw as RawListing);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     l.photos = await signPhotos(supabase as any, (l as any)._raw_photos);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (l as any)._raw_photos;
     return l as PublicListing;
   });
+
 
 export const listMyListings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

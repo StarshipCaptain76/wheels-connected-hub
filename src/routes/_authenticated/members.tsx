@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { GarageManager } from "@/components/GarageManager";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyProfile, type MemberProfile } from "@/lib/profile.functions";
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/members")({
 });
 
 function MembersPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
@@ -38,7 +39,6 @@ function MembersPage() {
   });
   const isAdmin = Boolean(roles?.isAdmin);
 
-  // Cache profile locally so /members/card works offline.
   useEffect(() => {
     if (profile && typeof window !== "undefined") {
       try {
@@ -122,74 +122,82 @@ function MembersPage() {
         {isLoading || !profile ? (
           <p className="mt-8 text-ink/60">{t("members.loading")}</p>
         ) : (
-          <div className="mt-8 grid gap-6 md:grid-cols-[1fr_320px]">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                mutation.mutate(form);
-              }}
-              className="space-y-4 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[4px_4px_0_0_var(--color-ink)]"
-            >
-              <h2 className="font-display text-2xl tracking-wide text-ink">
-                {t("members.profile")}
-              </h2>
-
-              <ProfileField
-                label={t("members.displayName")}
-                value={form.display_name}
-                onChange={(v) => setForm((f) => ({ ...f, display_name: v }))}
-              />
-              <ProfileField
-                label={t("members.phone")}
-                value={form.phone}
-                onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
-              />
-              <ProfileField
-                label={t("members.town")}
-                value={form.town}
-                onChange={(v) => setForm((f) => ({ ...f, town: v }))}
-              />
-              <ProfileField
-                label={t("members.favouriteRide")}
-                value={form.favourite_ride}
-                onChange={(v) => setForm((f) => ({ ...f, favourite_ride: v }))}
-              />
-
-              <button
-                type="submit"
-                disabled={mutation.isPending}
-                className="rounded-md border-2 border-ink bg-ink px-5 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
+          <>
+            <div className="mt-8 grid gap-6 md:grid-cols-[1fr_320px]">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  mutation.mutate(form);
+                }}
+                className="space-y-4 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[4px_4px_0_0_var(--color-ink)]"
               >
-                {mutation.isPending ? "…" : t("members.save")}
-              </button>
-              {mutation.isSuccess && (
-                <p className="text-sm text-primary">{t("members.saved")}</p>
-              )}
-              {mutation.isError && (
-                <p className="text-sm text-primary">{t("members.saveError")}</p>
-              )}
-            </form>
+                <h2 className="font-display text-2xl tracking-wide text-ink">
+                  {t("members.profile")}
+                </h2>
 
-            <aside className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
-              <p className="font-display text-xs tracking-[0.3em] text-primary">
-                {t("members.summary")}
-              </p>
-              <div className="mt-2 font-display text-3xl leading-none">
-                #{String(profile.member_number).padStart(4, "0")}
-              </div>
-              <dl className="mt-4 space-y-2 text-sm">
-                <SummaryRow label={t("members.status")} value={profile.membership_status} />
-                <SummaryRow
-                  label={t("members.email")}
-                  value={profile.email ?? "—"}
+                <ProfileField
+                  label={t("members.displayName")}
+                  value={form.display_name}
+                  onChange={(v) => setForm((f) => ({ ...f, display_name: v }))}
                 />
-                <SummaryRow
-                  label={t("members.joined")}
-                  value={new Date(profile.joined_at).toLocaleDateString()}
+                <ProfileField
+                  label={t("members.phone")}
+                  value={form.phone}
+                  onChange={(v) => setForm((f) => ({ ...f, phone: v }))}
                 />
-              </dl>
-            </aside>
-          </div>
+                <ProfileField
+                  label={t("members.town")}
+                  value={form.town}
+                  onChange={(v) => setForm((f) => ({ ...f, town: v }))}
+                />
+                <ProfileField
+                  label={t("members.favouriteRide")}
+                  value={form.favourite_ride}
+                  onChange={(v) => setForm((f) => ({ ...f, favourite_ride: v }))}
+                />
+
+                <button
+                  type="submit"
+                  disabled={mutation.isPending}
+                  className="rounded-md border-2 border-ink bg-ink px-5 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
+                >
+                  {mutation.isPending ? "…" : t("members.save")}
+                </button>
+                {mutation.isSuccess && (
+                  <p className="text-sm text-primary">{t("members.saved")}</p>
+                )}
+                {mutation.isError && (
+                  <p className="text-sm text-primary">{t("members.saveError")}</p>
+                )}
+              </form>
+
+              <aside className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
+                {profile.avatar_url && (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="mb-4 h-20 w-20 rounded-full border-2 border-paper object-cover"
+                  />
+                )}
+                <p className="font-display text-xs tracking-[0.3em] text-primary">
+                  {t("members.summary")}
+                </p>
+                <div className="mt-2 font-display text-3xl leading-none">
+                  #{String(profile.member_number).padStart(4, "0")}
+                </div>
+                <dl className="mt-4 space-y-2 text-sm">
+                  <SummaryRow label={t("members.status")} value={profile.membership_status} />
+                  <SummaryRow label={t("members.email")} value={profile.email ?? "—"} />
+                  <SummaryRow
+                    label={t("members.joined")}
+                    value={new Date(profile.joined_at).toLocaleDateString()}
+                  />
+                </dl>
+              </aside>
+            </div>
+
+            <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
+          </>
         )}
 
         {isAdmin && (
@@ -210,10 +218,8 @@ function MembersPage() {
             </Link>
           </div>
         )}
-
       </section>
     </SiteLayout>
-
   );
 }
 

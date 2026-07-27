@@ -3,10 +3,11 @@ import { useState } from "react";
 import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { Facebook, Instagram, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+const WA_HUGO = "https://wa.me/27836869237";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -15,12 +16,12 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Get in touch with Just Wheels Hessequa. Message the committee, join the WhatsApp group or find us on Facebook and Instagram.",
+          "Get in touch with Just Wheels Hessequa. Message the committee or WhatsApp Hugo van Dyk directly.",
       },
       { property: "og:title", content: "Contact Just Wheels Hessequa" },
       {
         property: "og:description",
-        content: "Message the club, join our WhatsApp group or find us on socials.",
+        content: "Message the club or WhatsApp Hugo van Dyk directly.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${SITE_ORIGIN}/contact` },
@@ -32,7 +33,6 @@ export const Route = createFileRoute("/contact")({
   }),
   component: Contact,
 });
-
 
 const contactSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -59,7 +59,6 @@ function Contact() {
       return;
     }
     setErrors({});
-    // Phase 1: mock local success; email delivery wired in a later phase.
     setStatus("ok");
     e.currentTarget.reset();
   };
@@ -88,9 +87,20 @@ function Contact() {
           </form>
 
           <div className="space-y-4">
-            <SocialTile icon={<MessageCircle className="h-5 w-5" />} label="WhatsApp group" href="#" />
-            <SocialTile icon={<Facebook className="h-5 w-5" />} label="Facebook" href="#" />
-            <SocialTile icon={<Instagram className="h-5 w-5" />} label="Instagram" href="#" />
+            <a
+              href={WA_HUGO}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-ink bg-primary text-paper">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-bold uppercase tracking-wider text-ink">{t("contact.whatsapp")}</span>
+                <span className="block text-sm text-ink/60">{t("contact.whatsappSub")}</span>
+              </span>
+            </a>
           </div>
         </div>
       </section>
@@ -123,19 +133,5 @@ function Field({
       )}
       {error && <span className="mt-1 block text-xs text-primary">{error}</span>}
     </label>
-  );
-}
-
-function SocialTile({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      className="flex items-center gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
-    >
-      <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-ink bg-primary text-paper">
-        {icon}
-      </span>
-      <span className="font-bold uppercase tracking-wider text-ink">{label}</span>
-    </a>
   );
 }

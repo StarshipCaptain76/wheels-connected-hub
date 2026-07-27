@@ -1,10 +1,103 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 const ADMIN_EMAIL = "admin@justwheels.co.za";
 const FROM = "Just Wheels Shop <shop@notify.justwheels.co.za>";
 
-const schema = z.object({
+export type MerchItem = {
+  id: string;
+  name: string;
+  name_af: string | null;
+  description: string | null;
+  description_af: string | null;
+  price_zar: number | null;
+  sizes: string[];
+  image_url: string | null;
+  is_active: boolean;
+  sort: number;
+};
+
+export const listMerchItems = createServerFn({ method: "GET" }).handler(
+  async (): Promise<MerchItem[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const sb = createPublicSupabase();
+    const { data, error } = await sb
+      .from("merch_items")
+      .select("id, name, name_af, description, description_af, price_zar, sizes, image_url, is_active, sort")
+      .eq("is_active", true)
+      .order("sort", { ascending: true })
+      .order("name", { ascending: true });
+    if (error) {
+      console.error("listMerchItems failed", error);
+      return [];
+    }
+    return (data ?? []) as MerchItem[];
+  },
+);
+
+export const listAllMerchItems = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MerchItem[]> => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { data, error } = await supabase
+      .from("merch_items")
+      .select("id, name, name_af, description, description_af, price_zar, sizes, image_url, is_active, sort")
+      .order("sort", { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as MerchItem[];
+  });
+
+const upsertSchema = z.object({
+  id: z.string().uuid().optional().nullable(),
+  name: z.string().trim().min(1).max(120),
+  name_af: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().max(1000).nullable().optional(),
+  description_af: z.string().trim().max(1000).nullable().optional(),
+  price_zar: z.number().nonnegative().max(999999).nullable().optional(),
+  sizes: z.array(z.string().trim().min(1).max(10)).max(20).default([]),
+  image_url: z.string().trim().max(500).nullable().optional(),
+  is_active: z.boolean().default(true),
+  sort: z.number().int().min(0).max(9999).default(0),
+});
+
+export const upsertMerchItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => upsertSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { id, ...values } = data;
+    if (id) {
+      const { error } = await supabase.from("merch_items").update(values).eq("id", id);
+      if (error) throw error;
+      return { id };
+    }
+    const { data: row, error } = await supabase
+      .from("merch_items")
+      .insert(values)
+      .select("id")
+      .single();
+    if (error) throw error;
+    return { id: row.id };
+  });
+
+export const deleteMerchItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await supabase.from("merch_items").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+const enquirySchema = z.object({
   itemId: z.string().min(1).max(64),
   itemName: z.string().min(1).max(120),
   name: z.string().trim().min(1).max(100),
@@ -22,7 +115,7 @@ function esc(v: string) {
 }
 
 export const sendMerchEnquiry = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => schema.parse(input))
+  .inputValidator((input: unknown) => enquirySchema.parse(input))
   .handler(async ({ data }) => {
     const key = process.env.RESEND_API_KEY;
     if (!key) throw new Error("RESEND_API_KEY not configured");
@@ -48,10 +141,7 @@ export const sendMerchEnquiry = createServerFn({ method: "POST" })
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         from: FROM,
         to: [ADMIN_EMAIL],

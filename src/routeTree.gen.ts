@@ -26,6 +26,8 @@ import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
+import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin.sponsors'
+import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin.shop'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin.newsletter'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin.classifieds'
 import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
@@ -117,6 +119,17 @@ const AuthenticatedClassifiedsMineRoute =
     path: '/classifieds/mine',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSponsorsRoute =
+  AuthenticatedAdminSponsorsRouteImport.update({
+    id: '/admin/sponsors',
+    path: '/admin/sponsors',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminShopRoute = AuthenticatedAdminShopRouteImport.update({
+  id: '/admin/shop',
+  path: '/admin/shop',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminNewsletterRoute =
   AuthenticatedAdminNewsletterRouteImport.update({
     id: '/admin/newsletter',
@@ -152,6 +165,8 @@ export interface FileRoutesByFullPath {
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/shop': typeof AuthenticatedAdminShopRoute
+  '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
@@ -173,6 +188,8 @@ export interface FileRoutesByTo {
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/shop': typeof AuthenticatedAdminShopRoute
+  '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
@@ -196,6 +213,8 @@ export interface FileRoutesById {
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/_authenticated/admin/shop': typeof AuthenticatedAdminShopRoute
+  '/_authenticated/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
@@ -219,6 +238,8 @@ export interface FileRouteTypes {
     | '/classifieds/$id'
     | '/admin/classifieds'
     | '/admin/newsletter'
+    | '/admin/shop'
+    | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
@@ -240,6 +261,8 @@ export interface FileRouteTypes {
     | '/classifieds/$id'
     | '/admin/classifieds'
     | '/admin/newsletter'
+    | '/admin/shop'
+    | '/admin/sponsors'
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
@@ -262,6 +285,8 @@ export interface FileRouteTypes {
     | '/classifieds/$id'
     | '/_authenticated/admin/classifieds'
     | '/_authenticated/admin/newsletter'
+    | '/_authenticated/admin/shop'
+    | '/_authenticated/admin/sponsors'
     | '/_authenticated/classifieds/mine'
     | '/_authenticated/classifieds/new'
     | '/_authenticated/members/card'
@@ -405,6 +430,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClassifiedsMineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/sponsors': {
+      id: '/_authenticated/admin/sponsors'
+      path: '/admin/sponsors'
+      fullPath: '/admin/sponsors'
+      preLoaderRoute: typeof AuthenticatedAdminSponsorsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/shop': {
+      id: '/_authenticated/admin/shop'
+      path: '/admin/shop'
+      fullPath: '/admin/shop'
+      preLoaderRoute: typeof AuthenticatedAdminShopRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/newsletter': {
       id: '/_authenticated/admin/newsletter'
       path: '/admin/newsletter'
@@ -444,6 +483,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRouteWithChildren
   AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
+  AuthenticatedAdminShopRoute: typeof AuthenticatedAdminShopRoute
+  AuthenticatedAdminSponsorsRoute: typeof AuthenticatedAdminSponsorsRoute
   AuthenticatedClassifiedsMineRoute: typeof AuthenticatedClassifiedsMineRoute
   AuthenticatedClassifiedsNewRoute: typeof AuthenticatedClassifiedsNewRoute
 }
@@ -452,6 +493,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMembersRoute: AuthenticatedMembersRouteWithChildren,
   AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
   AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
+  AuthenticatedAdminShopRoute: AuthenticatedAdminShopRoute,
+  AuthenticatedAdminSponsorsRoute: AuthenticatedAdminSponsorsRoute,
   AuthenticatedClassifiedsMineRoute: AuthenticatedClassifiedsMineRoute,
   AuthenticatedClassifiedsNewRoute: AuthenticatedClassifiedsNewRoute,
 }

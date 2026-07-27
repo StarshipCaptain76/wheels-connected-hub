@@ -215,6 +215,51 @@ export type Database = {
         }
         Relationships: []
       }
+      merch_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          description_af: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          name_af: string | null
+          price_zar: number | null
+          sizes: string[]
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          description_af?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          name_af?: string | null
+          price_zar?: number | null
+          sizes?: string[]
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          description_af?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          name_af?: string | null
+          price_zar?: number | null
+          sizes?: string[]
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string

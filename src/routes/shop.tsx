@@ -1,14 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { sendMerchEnquiry } from "@/lib/merch.functions";
-import { ShoppingBag, Mail } from "lucide-react";
+import { listMerchItems, sendMerchEnquiry, type MerchItem } from "@/lib/merch.functions";
+import { ShoppingBag, Mail, Package } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
+const shopQuery = queryOptions({
+  queryKey: ["merch", "public"],
+  queryFn: () => listMerchItems(),
+  staleTime: 60_000,
+});
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -29,69 +36,14 @@ export const Route = createFileRoute("/shop")({
     ],
     links: [{ rel: "canonical", href: `${SITE_ORIGIN}/shop` }],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(shopQuery),
   component: Shop,
 });
 
-
-type Item = {
-  id: string;
-  name: { en: string; af: string };
-  desc: { en: string; af: string };
-  price: string;
-  sizes?: string[];
-  emoji: string;
-};
-
-const CATALOG: Item[] = [
-  {
-    id: "cap-classic",
-    name: { en: "Classic Club Cap", af: "Klassieke Klub Pet" },
-    desc: { en: "Embroidered caveman logo. Adjustable.", af: "Geborduurde logo. Verstelbaar." },
-    price: "R220",
-    emoji: "🧢",
-  },
-  {
-    id: "tee-logo",
-    name: { en: "Logo Tee", af: "Logo T-Hemp" },
-    desc: { en: "Heavy cotton, screen-printed front & back.", af: "Swaar katoen, voor & agter gedruk." },
-    price: "R320",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    emoji: "👕",
-  },
-  {
-    id: "hoodie",
-    name: { en: "Workshop Hoodie", af: "Werkswinkel Hoodie" },
-    desc: { en: "Fleece-lined, oil-resistant not guaranteed.", af: "Wolgevoerd, olie-bestand nie gewaarborg nie." },
-    price: "R650",
-    sizes: ["S", "M", "L", "XL", "XXL"],
-    emoji: "🧥",
-  },
-  {
-    id: "patch",
-    name: { en: "Iron-on Patch", af: "Stryklap" },
-    desc: { en: "80mm circular, full-colour.", af: "80mm rond, volkleur." },
-    price: "R80",
-    emoji: "🏁",
-  },
-  {
-    id: "sticker-pack",
-    name: { en: "Sticker Pack (3)", af: "Plakkerpak (3)" },
-    desc: { en: "Weatherproof, for helmets, laptops and toolboxes.", af: "Weerbestand, vir helmets, skootrekenaars en gereedskapkiste." },
-    price: "R60",
-    emoji: "🔧",
-  },
-  {
-    id: "mug",
-    name: { en: "Enamel Camp Mug", af: "Emalje Kampbeker" },
-    desc: { en: "For breakfast run coffee. 350ml.", af: "Vir ontbytry-koffie. 350ml." },
-    price: "R140",
-    emoji: "☕",
-  },
-];
-
 function Shop() {
   const { t, lang } = useI18n();
-  const [openItem, setOpenItem] = useState<Item | null>(null);
+  const { data: items } = useSuspenseQuery(shopQuery);
+  const [openItem, setOpenItem] = useState<MerchItem | null>(null);
 
   return (
     <SiteLayout>
@@ -109,32 +61,59 @@ function Shop() {
           </div>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {CATALOG.map((item) => (
-            <article
-              key={item.id}
-              className="flex flex-col rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_hsl(var(--ink))]"
-            >
-              <div className="mb-4 flex h-32 items-center justify-center rounded-xl bg-steel/20 text-6xl">
-                {item.emoji}
-              </div>
-              <h3 className="font-display text-2xl tracking-wide text-ink">{item.name[lang]}</h3>
-              <p className="mt-1 flex-1 text-sm text-ink/70">{item.desc[lang]}</p>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="font-display text-2xl text-rust">
-                  <span className="text-xs uppercase tracking-widest text-ink/60">{t("shop.priceFrom")} </span>
-                  {item.price}
-                </span>
-                <button
-                  onClick={() => setOpenItem(item)}
-                  className="rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
+        {items.length === 0 ? (
+          <div className="rounded-lg border-2 border-dashed border-ink/30 bg-card p-12 text-center">
+            <Package className="mx-auto h-10 w-10 text-ink/40" />
+            <p className="mt-4 font-display text-2xl text-ink">
+              {lang === "af" ? "Winkel is binnekort oop." : "The shop is opening soon."}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item) => {
+              const name = lang === "af" && item.name_af ? item.name_af : item.name;
+              const desc = lang === "af" && item.description_af ? item.description_af : item.description;
+              return (
+                <article
+                  key={item.id}
+                  className="flex flex-col rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_hsl(var(--ink))]"
                 >
-                  {t("shop.enquire")}
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
+                  <div className="mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-steel/20">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                    ) : (
+                      <Package className="h-14 w-14 text-ink/40" />
+                    )}
+                  </div>
+                  <h3 className="font-display text-2xl tracking-wide text-ink">{name}</h3>
+                  {desc && <p className="mt-1 flex-1 text-sm text-ink/70">{desc}</p>}
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="font-display text-2xl text-rust">
+                      {item.price_zar != null ? (
+                        <>
+                          <span className="text-xs uppercase tracking-widest text-ink/60">
+                            {t("shop.priceFrom")}{" "}
+                          </span>
+                          R{item.price_zar.toLocaleString("en-ZA")}
+                        </>
+                      ) : (
+                        <span className="text-sm italic text-ink/60">
+                          {lang === "af" ? "Prys op aanvraag" : "Price on request"}
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      onClick={() => setOpenItem(item)}
+                      className="rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
+                    >
+                      {t("shop.enquire")}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {openItem && <EnquiryModal item={openItem} onClose={() => setOpenItem(null)} />}
@@ -151,11 +130,12 @@ const enquirySchema = z.object({
   notes: z.string().trim().max(1000).optional(),
 });
 
-function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
+function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void }) {
   const { t, lang } = useI18n();
   const send = useServerFn(sendMerchEnquiry);
   const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const displayName = lang === "af" && item.name_af ? item.name_af : item.name;
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -173,7 +153,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
       await send({
         data: {
           itemId: item.id,
-          itemName: item.name.en,
+          itemName: item.name,
           name: parsed.data.name,
           email: parsed.data.email,
           phone: parsed.data.phone ?? "",
@@ -189,10 +169,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
       <div
         className="w-full max-w-lg rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]"
         onClick={(e) => e.stopPropagation()}
@@ -200,8 +177,10 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-ink/60">{t("shop.enquireFor")}</p>
-            <h2 className="font-display text-3xl tracking-wide text-ink">{item.name[lang]}</h2>
-            <p className="text-sm text-rust">{item.price}</p>
+            <h2 className="font-display text-3xl tracking-wide text-ink">{displayName}</h2>
+            {item.price_zar != null && (
+              <p className="text-sm text-rust">R{item.price_zar.toLocaleString("en-ZA")}</p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -227,7 +206,7 @@ function EnquiryModal({ item, onClose }: { item: Item; onClose: () => void }) {
             <Field label={t("shop.email")} name="email" type="email" required error={errors.email} />
             <Field label={t("shop.phone")} name="phone" error={errors.phone} />
             <div className="grid grid-cols-2 gap-3">
-              {item.sizes ? (
+              {item.sizes.length > 0 ? (
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
                     {t("shop.size")}

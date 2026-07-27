@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
+import { supabase } from "@/integrations/supabase/client";
 import {
   listApprovedListings,
   type ListingCategory,
@@ -64,6 +65,21 @@ function ClassifiedsPage() {
   const { data: listings } = useSuspenseQuery(listingsQuery);
   const [cat, setCat] = useState<ListingCategory | "all">("all");
   const [q, setQ] = useState("");
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const filtered = listings.filter((l) => {
     if (cat !== "all" && l.category !== cat) return false;
@@ -90,12 +106,21 @@ function ClassifiedsPage() {
               : "Cars, parts and gear for sale by club members. Contact the seller directly — no payments run through the club."}
           </p>
           <div className="mt-6">
-            <Link
-              to="/classifieds/new"
-              className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-            >
-              {t("classifieds.postCta")}
-            </Link>
+            {signedIn ? (
+              <Link
+                to="/classifieds/new"
+                className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              >
+                {t("classifieds.postCta")}
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                className="inline-flex rounded-md border-2 border-primary bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-paper"
+              >
+                {lang === "af" ? "Teken in om te plaas" : "Sign in to post"}
+              </Link>
+            )}
           </div>
         </div>
       </section>

@@ -9,14 +9,23 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-const STORAGE_KEY = "jw-lang";
+export const LANG_STORAGE_KEY = "jw-lang";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("en");
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
+    try {
+      const stored = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
+      if (stored === "en" || stored === "af") return stored;
+    } catch {
+      /* noop */
+    }
+    return "en";
+  });
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Lang | null;
+      const stored = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
       if (stored === "en" || stored === "af") setLangState(stored);
     } catch {
       /* noop */
@@ -26,7 +35,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const setLang = (l: Lang) => {
     setLangState(l);
     try {
-      localStorage.setItem(STORAGE_KEY, l);
+      localStorage.setItem(LANG_STORAGE_KEY, l);
     } catch {
       /* noop */
     }

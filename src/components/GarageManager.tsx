@@ -11,6 +11,7 @@ import {
   updateMyAvatar,
   type GarageVehicle,
 } from "@/lib/garage.functions";
+import { TranslateButton } from "@/components/TranslateButton";
 import { Plus, Trash2, X, Upload, Star, Loader2, Car } from "lucide-react";
 
 const STORY_MAX = 4000;
@@ -155,9 +156,7 @@ export function GarageManager({
     <section className="mt-8 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-3xl tracking-wide text-ink">
-            {lang === "af" ? "My garage" : "My garage"}
-          </h2>
+          <h2 className="font-display text-3xl tracking-wide text-ink">My garage</h2>
           <p className="mt-1 text-sm text-ink/60">
             {lang === "af"
               ? "Jou foto, jou wiele, jou stories. As jy featured word, verskyn dit hier."
@@ -187,7 +186,6 @@ export function GarageManager({
         <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>
       )}
 
-      {/* Avatar */}
       <div className="flex items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
         <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-ink bg-ink/10">
           {avatarUrl ? (
@@ -225,7 +223,6 @@ export function GarageManager({
         </div>
       </div>
 
-      {/* Vehicle list */}
       {isLoading ? (
         <p className="text-ink/50">{lang === "af" ? "Laai…" : "Loading…"}</p>
       ) : vehicles.length === 0 ? (
@@ -234,19 +231,11 @@ export function GarageManager({
           <p className="mt-2 font-display text-xl text-ink/50">
             {lang === "af" ? "Nog niks in die garage nie" : "Nothing in the garage yet"}
           </p>
-          <p className="mt-1 text-sm text-ink/40">
-            {lang === "af"
-              ? "Voeg jou eerste ry by en begin die storie."
-              : "Add your first ride and start the story."}
-          </p>
         </div>
       ) : (
         <ul className="space-y-4">
           {vehicles.map((v) => (
-            <li
-              key={v.id}
-              className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]"
-            >
+            <li key={v.id} className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
               <div className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -256,80 +245,39 @@ export function GarageManager({
                       </span>
                     )}
                     <h3 className="font-display text-xl text-ink">
-                      {v.nickname ||
-                        [v.year, v.make, v.model].filter(Boolean).join(" ") ||
-                        (lang === "af" ? "Voertuig" : "Vehicle")}
+                      {v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
                     </h3>
                   </div>
-                  {(v.make || v.model || v.year) && v.nickname && (
-                    <p className="text-sm text-ink/60">
-                      {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-                    </p>
-                  )}
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(v)}
-                    className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
-                  >
+                  <button type="button" onClick={() => setEditing(v)} className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase">
                     {lang === "af" ? "Wysig" : "Edit"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => removeVehicle(v.id)}
-                    className="rounded border-2 border-primary bg-primary p-1.5 text-paper"
-                  >
+                  <button type="button" onClick={() => removeVehicle(v.id)} className="rounded border-2 border-primary bg-primary p-1.5 text-paper">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
-
               {(lang === "af" ? v.story_af || v.story : v.story) && (
                 <p className="border-t border-ink/10 px-4 py-3 text-sm whitespace-pre-wrap text-ink/80">
                   {lang === "af" ? v.story_af || v.story : v.story}
                 </p>
               )}
-
               <div className="border-t border-ink/10 px-4 py-3">
                 <div className="mb-2 flex flex-wrap gap-2">
                   {v.photos.map((p) => (
                     <div key={p.id} className="relative">
-                      <img
-                        src={p.url}
-                        alt={p.caption ?? ""}
-                        className="h-20 w-20 rounded border-2 border-ink object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(p.id)}
-                        className="absolute -right-1.5 -top-1.5 rounded-full border border-ink bg-primary p-0.5 text-paper"
-                      >
+                      <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
+                      <button type="button" onClick={() => removePhoto(p.id)} className="absolute -right-1.5 -top-1.5 rounded-full border border-ink bg-primary p-0.5 text-paper">
                         <X className="h-3 w-3" />
                       </button>
                     </div>
                   ))}
                   <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink">
                     <Upload className="h-4 w-4" />
-                    <span className="text-[9px] font-bold uppercase">Add</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      disabled={busy}
-                      onChange={(e) => {
-                        void uploadPhotos(v.id, e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
+                    <input type="file" accept="image/*" multiple className="hidden" disabled={busy} onChange={(e) => { void uploadPhotos(v.id, e.target.files); e.target.value = ""; }} />
                   </label>
                 </div>
-                <p className="text-[10px] text-ink/40">
-                  {lang === "af"
-                    ? "Voeg foto's by om die storie te bou — tot 8 op 'n slag."
-                    : "Add photos to build the story — up to 8 at a time."}
-                </p>
               </div>
             </li>
           ))}
@@ -337,15 +285,7 @@ export function GarageManager({
       )}
 
       {editing && (
-        <VehicleModal
-          state={editing}
-          busy={busy}
-          lang={lang}
-          onClose={() => setEditing(null)}
-          onSave={async (form) => {
-            await saveVehicle(form);
-          }}
-        />
+        <VehicleModal state={editing} busy={busy} lang={lang} onClose={() => setEditing(null)} onSave={async (form) => { await saveVehicle(form); }} />
       )}
     </section>
   );
@@ -365,8 +305,7 @@ function VehicleModal({
   onSave: (s: Partial<GarageVehicle>) => Promise<void>;
 }) {
   const [form, setForm] = useState(state);
-  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
@@ -379,89 +318,48 @@ function VehicleModal({
         className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 max-h-[90vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-2xl text-ink">
-            {form.id
-              ? lang === "af"
-                ? "Wysig voertuig"
-                : "Edit vehicle"
-              : lang === "af"
-                ? "Nuwe voertuig"
-                : "New vehicle"}
-          </h3>
-          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1">
-            <X className="h-4 w-4" />
-          </button>
+          <h3 className="font-display text-2xl text-ink">{form.id ? (lang === "af" ? "Wysig voertuig" : "Edit vehicle") : (lang === "af" ? "Nuwe voertuig" : "New vehicle")}</h3>
+          <button type="button" onClick={onClose} className="rounded-full border-2 border-ink p-1"><X className="h-4 w-4" /></button>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label={lang === "af" ? "Jaar" : "Year"}>
-            <input
-              type="number"
-              value={form.year ?? ""}
-              onChange={(e) => set("year", e.target.value ? Number(e.target.value) : null)}
-              className={inp}
-              placeholder="1967"
-            />
+            <input type="number" value={form.year ?? ""} onChange={(e) => set("year", e.target.value ? Number(e.target.value) : null)} className={inp} />
           </Field>
           <Field label={lang === "af" ? "Maak" : "Make"}>
-            <input value={form.make ?? ""} onChange={(e) => set("make", e.target.value)} className={inp} placeholder="Ford" />
+            <input value={form.make ?? ""} onChange={(e) => set("make", e.target.value)} className={inp} />
           </Field>
-          <Field label={lang === "af" ? "Model" : "Model"}>
-            <input value={form.model ?? ""} onChange={(e) => set("model", e.target.value)} className={inp} placeholder="Mustang" />
+          <Field label="Model">
+            <input value={form.model ?? ""} onChange={(e) => set("model", e.target.value)} className={inp} />
           </Field>
         </div>
 
         <Field label={lang === "af" ? "Bynaam" : "Nickname"}>
-          <input
-            value={form.nickname ?? ""}
-            onChange={(e) => set("nickname", e.target.value)}
-            className={inp}
-            placeholder={lang === "af" ? "bv. Rooi Duivel" : "e.g. The Red Devil"}
-          />
+          <input value={form.nickname ?? ""} onChange={(e) => set("nickname", e.target.value)} className={inp} />
         </Field>
 
-        <Field label={lang === "af" ? "Storie (EN)" : "Story (EN)"}>
-          <textarea
-            value={form.story ?? ""}
-            maxLength={STORY_MAX}
-            onChange={(e) => set("story", e.target.value)}
-            className={inp}
-            rows={5}
-            placeholder={
-              lang === "af"
-                ? "Hoe jy dit gekry het, restorasie, rit-herinneringe…"
-                : "How you got it, restoration, favourite runs…"
-            }
-          />
-          <span className="text-[11px] text-ink/40">{STORY_MAX - (form.story?.length ?? 0)} left</span>
-        </Field>
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Story (EN)</span>
+            <TranslateButton source={form.story_af ?? ""} from="af" to="en" onResult={(t) => set("story", t)} />
+          </div>
+          <textarea value={form.story ?? ""} maxLength={STORY_MAX} onChange={(e) => set("story", e.target.value)} className={inp} rows={5} />
+        </div>
 
-        <Field label="Story (AF)">
-          <textarea
-            value={form.story_af ?? ""}
-            maxLength={STORY_MAX}
-            onChange={(e) => set("story_af", e.target.value)}
-            className={inp}
-            rows={4}
-          />
-        </Field>
+        <div>
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Story (AF)</span>
+            <TranslateButton source={form.story ?? ""} from="en" to="af" onResult={(t) => set("story_af", t)} />
+          </div>
+          <textarea value={form.story_af ?? ""} maxLength={STORY_MAX} onChange={(e) => set("story_af", e.target.value)} className={inp} rows={4} />
+        </div>
 
         <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.is_primary ?? false}
-            onChange={(e) => set("is_primary", e.target.checked)}
-          />
-          <span className="text-sm">
-            {lang === "af" ? "Primêre ry (gunsteling)" : "Primary ride (favourite)"}
-          </span>
+          <input type="checkbox" checked={form.is_primary ?? false} onChange={(e) => set("is_primary", e.target.checked)} />
+          <span className="text-sm">{lang === "af" ? "Primêre ry" : "Primary ride"}</span>
         </label>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60"
-        >
+        <button type="submit" disabled={busy} className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3 font-bold uppercase tracking-wider text-paper disabled:opacity-60">
           {busy ? "…" : lang === "af" ? "Stoor" : "Save"}
         </button>
       </form>

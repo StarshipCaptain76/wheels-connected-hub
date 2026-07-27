@@ -329,6 +329,14 @@ export const dictionaries = {
     "sponsors.sending": "Stuur tans…",
     "sponsors.sent": "Dankie — ons kontak jou binnekort.",
     "sponsors.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
+
+    "newsletter.title": "Bly ingelig",
+    "newsletter.blurb": "Maandelikse opdaterings oor ritte, skoue en klubnuus. Geen spam.",
+    "newsletter.placeholder": "jy@epos.com",
+    "newsletter.subscribe": "Teken in",
+    "newsletter.sending": "…",
+    "newsletter.sent": "Klaar — kyk jou inkassie vir 'n welkom-e-pos.",
+    "newsletter.error": "Kon nie inteken nie. Probeer weer.",
   },
 
 

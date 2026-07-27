@@ -17,9 +17,16 @@ const contactSchema = z.object({
 });
 
 function esc(v: string) {
-  return v.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[c]!),
-  );
+  return v.replace(/[&<>"']/g, (c) => {
+    const map: Record<string, string> = {
+      "&": "&",
+      "<": "<",
+      ">": ">",
+      '"': """,
+      "'": "&#39;",
+    };
+    return map[c] ?? c;
+  });
 }
 
 export const sendContactMessage = createServerFn({ method: "POST" })

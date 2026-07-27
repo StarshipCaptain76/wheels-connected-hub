@@ -26,6 +26,7 @@ import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin.classifieds'
+import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
 const SponsorsRoute = SponsorsRouteImport.update({
   id: '/sponsors',
@@ -115,6 +116,12 @@ const AuthenticatedAdminClassifiedsRoute =
     path: '/admin/classifieds',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicNewsletterUnsubscribeRoute =
+  ApiPublicNewsletterUnsubscribeRouteImport.update({
+    id: '/api/public/newsletter/unsubscribe',
+    path: '/api/public/newsletter/unsubscribe',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -171,6 +180,7 @@ export interface FileRoutesById {
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
+  '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/api/public/newsletter/unsubscribe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/classifieds/mine'
     | '/classifieds/new'
     | '/members/card'
+    | '/api/public/newsletter/unsubscribe'
   id:
     | '__root__'
     | '/'
@@ -228,6 +240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/classifieds/mine'
     | '/_authenticated/classifieds/new'
     | '/_authenticated/members/card'
+    | '/api/public/newsletter/unsubscribe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +255,7 @@ export interface RootRouteChildren {
   JoinRoute: typeof JoinRoute
   ShopRoute: typeof ShopRoute
   SponsorsRoute: typeof SponsorsRoute
+  ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -365,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/newsletter/unsubscribe': {
+      id: '/api/public/newsletter/unsubscribe'
+      path: '/api/public/newsletter/unsubscribe'
+      fullPath: '/api/public/newsletter/unsubscribe'
+      preLoaderRoute: typeof ApiPublicNewsletterUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -420,6 +441,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinRoute: JoinRoute,
   ShopRoute: ShopRoute,
   SponsorsRoute: SponsorsRoute,
+  ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -74,6 +74,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     { to: "/gallery", label: t("nav.gallery") },
     { to: "/classifieds", label: t("nav.classifieds") },
     { to: "/shop", label: t("nav.shop") },
+    { to: "/sponsors", label: t("nav.sponsors") },
     { to: "/about", label: t("nav.about") },
     { to: "/join", label: t("nav.join") },
     { to: "/contact", label: t("nav.contact") },

@@ -139,7 +139,28 @@ export const dictionaries = {
     "shop.error": "Could not send. Please try again or WhatsApp us.",
     "shop.masked": "Emails go to admin (address hidden to keep bots away).",
     "shop.priceFrom": "From",
+
+    "nav.sponsors": "Sponsors",
+    "sponsors.kicker": "Powered by",
+    "sponsors.title": "Our sponsors",
+    "sponsors.becomeCta": "Become a sponsor",
+    "sponsors.pageTitle": "Club sponsors",
+    "sponsors.pageIntro": "The businesses that keep the wheels turning. Support the ones that support us — and get in touch if you'd like to join them.",
+    "sponsors.visit": "Visit site",
+    "sponsors.applyTitle": "Become a sponsor",
+    "sponsors.applyIntro": "Send us your details — we'll reply from admin with sponsorship tiers and next steps.",
+    "sponsors.business": "Business name",
+    "sponsors.contact": "Contact person",
+    "sponsors.email": "Email",
+    "sponsors.phone": "Phone",
+    "sponsors.website": "Website",
+    "sponsors.message": "Tell us about your business",
+    "sponsors.send": "Send application",
+    "sponsors.sending": "Sending…",
+    "sponsors.sent": "Thanks — we'll be in touch shortly.",
+    "sponsors.error": "Could not send. Please try again or WhatsApp us.",
   },
+
 
 
   af: {
@@ -280,7 +301,28 @@ export const dictionaries = {
     "shop.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
     "shop.masked": "E-posse gaan na admin (adres versteek teen bots).",
     "shop.priceFrom": "Vanaf",
+
+    "nav.sponsors": "Borge",
+    "sponsors.kicker": "Aangedryf deur",
+    "sponsors.title": "Ons borge",
+    "sponsors.becomeCta": "Word 'n borg",
+    "sponsors.pageTitle": "Klub borge",
+    "sponsors.pageIntro": "Die besighede wat die wiele laat draai. Ondersteun dié wat ons ondersteun — en kontak ons as jy wil aansluit.",
+    "sponsors.visit": "Besoek webwerf",
+    "sponsors.applyTitle": "Word 'n borg",
+    "sponsors.applyIntro": "Stuur jou besonderhede — ons antwoord vanaf admin met borgvlakke en volgende stappe.",
+    "sponsors.business": "Besigheidsnaam",
+    "sponsors.contact": "Kontakpersoon",
+    "sponsors.email": "E-pos",
+    "sponsors.phone": "Foon",
+    "sponsors.website": "Webwerf",
+    "sponsors.message": "Vertel ons van jou besigheid",
+    "sponsors.send": "Stuur aansoek",
+    "sponsors.sending": "Stuur tans…",
+    "sponsors.sent": "Dankie — ons kontak jou binnekort.",
+    "sponsors.error": "Kon nie stuur nie. Probeer weer of WhatsApp ons.",
   },
+
 
 
 } as const;

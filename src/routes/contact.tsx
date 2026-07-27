@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
+import { sendContactMessage } from "@/lib/contact.functions";
 import { MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
@@ -42,12 +44,15 @@ const contactSchema = z.object({
 
 function Contact() {
   const { t } = useI18n();
-  const [status, setStatus] = useState<"idle" | "ok" | "err">("idle");
+  const send = useServerFn(sendContactMessage);
+  const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errMsg, setErrMsg] = useState<string>("");
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.currentTarget));
+    const form = e.currentTarget;
+    const data = Object.fromEntries(new FormData(form));
     const parsed = contactSchema.safeParse(data);
     if (!parsed.success) {
       const fieldErrors: Record<string, string> = {};
@@ -59,8 +64,16 @@ function Contact() {
       return;
     }
     setErrors({});
-    setStatus("ok");
-    e.currentTarget.reset();
+    setStatus("sending");
+    setErrMsg("");
+    try {
+      await send({ data: parsed.data });
+      setStatus("ok");
+      form.reset();
+    } catch (err) {
+      setStatus("err");
+      setErrMsg(err instanceof Error ? err.message : String(err));
+    }
   };
 
   return (
@@ -79,12 +92,17 @@ function Contact() {
             <Field name="message" label={t("contact.message")} textarea error={errors.message} />
             <button
               type="submit"
-              className="rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              disabled={status === "sending"}
+              className="rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-60"
             >
-              {t("contact.send")}
+              {status === "sending" ? "…" : t("contact.send")}
             </button>
             {status === "ok" && <p className="text-sm font-semibold text-primary">{t("contact.sent")}</p>}
+            {status === "err" && (
+              <p className="text-sm text-primary">{errMsg || "Could not send. Please try again."}</p>
+            )}
           </form>
+
 
           <div className="space-y-4">
             <a

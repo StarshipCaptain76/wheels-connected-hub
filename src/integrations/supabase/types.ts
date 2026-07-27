@@ -130,6 +130,13 @@ export type Database = {
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       listings: {
@@ -323,7 +330,51 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      listings_public: {
+        Row: {
+          category: Database["public"]["Enums"]["listing_category"] | null
+          condition: Database["public"]["Enums"]["listing_condition"] | null
+          created_at: string | null
+          description: string | null
+          description_af: string | null
+          id: string | null
+          location: string | null
+          price_zar: number | null
+          status: Database["public"]["Enums"]["listing_status"] | null
+          title: string | null
+          title_af: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["listing_category"] | null
+          condition?: Database["public"]["Enums"]["listing_condition"] | null
+          created_at?: string | null
+          description?: string | null
+          description_af?: string | null
+          id?: string | null
+          location?: string | null
+          price_zar?: number | null
+          status?: Database["public"]["Enums"]["listing_status"] | null
+          title?: string | null
+          title_af?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["listing_category"] | null
+          condition?: Database["public"]["Enums"]["listing_condition"] | null
+          created_at?: string | null
+          description?: string | null
+          description_af?: string | null
+          id?: string | null
+          location?: string | null
+          price_zar?: number | null
+          status?: Database["public"]["Enums"]["listing_status"] | null
+          title?: string | null
+          title_af?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {

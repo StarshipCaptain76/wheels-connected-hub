@@ -6,8 +6,15 @@ export type ListingCategory = "parts" | "cars" | "memorabilia" | "other";
 export type ListingCondition = "new" | "used" | "project";
 export type ListingStatus = "pending" | "approved" | "rejected" | "sold";
 
+export type ListingContact = {
+  contact_name: string;
+  contact_phone: string | null;
+  contact_email: string;
+};
+
 export type PublicListing = {
   id: string;
+  user_id?: string;
   title: string;
   title_af: string | null;
   description: string;
@@ -16,18 +23,18 @@ export type PublicListing = {
   category: ListingCategory;
   condition: ListingCondition;
   location: string | null;
-  contact_name: string;
-  contact_phone: string | null;
-  contact_email: string;
   status: ListingStatus;
   created_at: string;
+  contact?: ListingContact;
   photos: { id: string; url: string; sort: number }[];
 };
 
-export type MyListing = PublicListing & { user_id: string };
+export type MyListing = PublicListing;
 
 const LISTING_SELECT =
-  "id, user_id, title, title_af, description, description_af, price_zar, category, condition, location, contact_name, contact_phone, contact_email, status, created_at, listing_photos(id, image_url, sort)";
+  "id, user_id, title, title_af, description, description_af, price_zar, category, condition, location, status, created_at, listing_photos(id, image_url, sort)";
+
+const LISTING_WITH_CONTACT_SELECT = `${LISTING_SELECT}, listing_contacts!inner(contact_name, contact_phone, contact_email)`;
 
 type RawPhoto = { id: string; image_url: string; sort: number };
 type RawListing = {
@@ -41,12 +48,10 @@ type RawListing = {
   category: ListingCategory;
   condition: ListingCondition;
   location: string | null;
-  contact_name: string;
-  contact_phone: string | null;
-  contact_email: string;
   status: ListingStatus;
   created_at: string;
   listing_photos: RawPhoto[] | null;
+  listing_contacts?: { contact_name: string; contact_phone: string | null; contact_email: string }[] | null;
 };
 
 async function signPhotos(
@@ -78,7 +83,8 @@ async function signPhotos(
     .map((p) => ({ id: p.id, url: map.get(p.image_url) ?? "", sort: p.sort }));
 }
 
-function mapListing(raw: RawListing): PublicListing & { user_id?: string } {
+function mapListing(raw: RawListing): PublicListing {
+  const contact = raw.listing_contacts?.[0];
   return {
     id: raw.id,
     user_id: raw.user_id,
@@ -90,11 +96,15 @@ function mapListing(raw: RawListing): PublicListing & { user_id?: string } {
     category: raw.category,
     condition: raw.condition,
     location: raw.location,
-    contact_name: raw.contact_name,
-    contact_phone: raw.contact_phone,
-    contact_email: raw.contact_email,
     status: raw.status,
     created_at: raw.created_at,
+    contact: contact
+      ? {
+          contact_name: contact.contact_name,
+          contact_phone: contact.contact_phone,
+          contact_email: contact.contact_email,
+        }
+      : undefined,
     photos: [],
     // photos filled in caller after signing
     // @ts-expect-error placeholder
@@ -137,7 +147,7 @@ export const listApprovedListings = createServerFn({ method: "GET" })
     return listings as PublicListing[];
   });
 
-export const getListing = createServerFn({ method: "GET" })
+export const getPublicListing = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data }): Promise<PublicListing | null> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
@@ -158,13 +168,34 @@ export const getListing = createServerFn({ method: "GET" })
     return l as PublicListing;
   });
 
+export const getListing = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }): Promise<PublicListing | null> => {
+    const { supabase } = context;
+    const { data: row, error } = await supabase
+      .from("listings")
+      .select(LISTING_WITH_CONTACT_SELECT)
+      .eq("id", data.id)
+      .eq("status", "approved")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) return null;
+    const l = mapListing(row as RawListing);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    l.photos = await signPhotos(supabase as any, (l as any)._raw_photos);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (l as any)._raw_photos;
+    return l as PublicListing;
+  });
+
 export const listMyListings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<MyListing[]> => {
     const { supabase, userId } = context;
     const { data: rows, error } = await supabase
       .from("listings")
-      .select(LISTING_SELECT)
+      .select(LISTING_WITH_CONTACT_SELECT)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
@@ -198,13 +229,20 @@ export const createListing = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createSchema.parse(input))
   .handler(async ({ context, data }): Promise<{ id: string }> => {
     const { supabase, userId } = context;
-    const { photo_paths, ...listing } = data;
+    const { photo_paths, contact_name, contact_phone, contact_email, ...listing } = data;
     const { data: row, error } = await supabase
       .from("listings")
       .insert({ ...listing, user_id: userId, status: "pending" as const })
       .select("id")
       .single();
     if (error) throw error;
+    const { error: cErr } = await supabase.from("listing_contacts").insert({
+      listing_id: row.id,
+      contact_name,
+      contact_phone: contact_phone ?? null,
+      contact_email,
+    });
+    if (cErr) throw cErr;
     if (photo_paths.length > 0) {
       const photos = photo_paths.map((p, i) => ({
         listing_id: row.id,
@@ -252,7 +290,7 @@ export const listPendingListings = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data: rows, error } = await supabase
       .from("listings")
-      .select(LISTING_SELECT)
+      .select(LISTING_WITH_CONTACT_SELECT)
       .in("status", ["pending", "approved", "rejected"])
       .order("created_at", { ascending: false })
       .limit(100);

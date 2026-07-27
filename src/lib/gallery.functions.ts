@@ -28,18 +28,12 @@ export const listGalleryItems = createServerFn({ method: "GET" }).handler(
   },
 );
 
-async function assertAdmin(supabase: {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>;
-}, userId: string) {
-  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!data) throw new Error("Forbidden");
-}
-
 export const listAllGalleryItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GalleryItem[]> => {
     const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("gallery_items")
       .select("id, title, caption, image_url, event_id, taken_at, created_at, is_published")
@@ -60,7 +54,8 @@ export const createGalleryItem = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => createSchema.parse(i))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { data: row, error } = await supabase
       .from("gallery_items")
       .insert(data)
@@ -77,7 +72,8 @@ export const togglePublishGalleryItem = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { error } = await supabase
       .from("gallery_items")
       .update({ is_published: data.is_published })
@@ -91,7 +87,8 @@ export const deleteGalleryItem = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    await assertAdmin(supabase, userId);
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
     const { error } = await supabase.from("gallery_items").delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };

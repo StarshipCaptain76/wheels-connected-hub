@@ -23,9 +23,12 @@ export const Route = createFileRoute("/gallery")({
       { property: "og:title", content: "Gallery — Just Wheels Hessequa" },
       { property: "og:description", content: "Photos from runs, shows and workshop days." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/gallery" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/gallery" }],
   }),
+
   loader: ({ context }) => context.queryClient.ensureQueryData(galleryQuery),
   component: GalleryPage,
   errorComponent: ({ error }) => (

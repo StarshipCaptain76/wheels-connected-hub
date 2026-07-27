@@ -16,10 +16,14 @@ export const Route = createFileRoute("/about")({
         property: "og:description",
         content: "A community car club in the Southern Cape. Every era, every make, every budget.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/about" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/about" }],
   }),
   component: About,
 });
+
 
 function About() {
   const { t } = useI18n();

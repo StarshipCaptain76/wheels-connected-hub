@@ -19,8 +19,26 @@ export const Route = createFileRoute("/classifieds/$id")({
     if (!data) throw notFound();
     return data;
   },
-  head: ({ loaderData }) => {
+  head: ({ params, loaderData }) => {
     const title = loaderData?.title ?? "Listing";
+    const url = `https://wheels-connected-hub.lovable.app/classifieds/${params.id}`;
+    const image = loaderData?.photos[0]?.url;
+    const jsonLd = loaderData
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: loaderData.title,
+          description: loaderData.description ?? undefined,
+          image: image ? [image] : undefined,
+          offers: {
+            "@type": "Offer",
+            priceCurrency: "ZAR",
+            price: loaderData.price_zar ?? undefined,
+            availability: "https://schema.org/InStock",
+            url,
+          },
+        }
+      : null;
     return {
       meta: [
         { title: `${title} — Just Wheels Classifieds` },
@@ -36,16 +54,22 @@ export const Route = createFileRoute("/classifieds/$id")({
           content: loaderData?.description?.slice(0, 150) ?? "",
         },
         { property: "og:type", content: "product" },
-        ...(loaderData?.photos[0]?.url
+        { property: "og:url", content: url },
+        ...(image
           ? [
-              { property: "og:image", content: loaderData.photos[0].url },
-              { name: "twitter:image", content: loaderData.photos[0].url },
+              { property: "og:image", content: image },
+              { name: "twitter:image", content: image },
             ]
           : []),
         { name: "twitter:card", content: "summary_large_image" },
       ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: jsonLd
+        ? [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }]
+        : [],
     };
   },
+
   component: ListingDetail,
   notFoundComponent: () => (
     <SiteLayout>

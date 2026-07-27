@@ -19,11 +19,14 @@ export const Route = createFileRoute("/shop")({
       { property: "og:title", content: "Just Wheels Hessequa — Club Merch" },
       { property: "og:description", content: "Rep the tribe. Caps, tees, patches, stickers." },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://wheels-connected-hub.lovable.app/shop" },
       { name: "twitter:card", content: "summary" },
     ],
+    links: [{ rel: "canonical", href: "https://wheels-connected-hub.lovable.app/shop" }],
   }),
   component: Shop,
 });
+
 
 type Item = {
   id: string;

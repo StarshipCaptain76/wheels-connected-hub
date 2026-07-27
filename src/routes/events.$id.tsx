@@ -412,7 +412,7 @@ function AttendeeList({
             <li key={r.user_id} className="text-sm">
               <Link
                 to="/members/$number"
-                params={{ number: String(r.member_number) } as any}
+                params={{ number: String(r.member_number) }}
                 className="text-ink hover:text-primary hover:underline"
               >
                 {r.display_name ?? `#${r.member_number}`}

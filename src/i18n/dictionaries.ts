@@ -159,6 +159,14 @@ export const dictionaries = {
     "sponsors.sending": "Sending…",
     "sponsors.sent": "Thanks — we'll be in touch shortly.",
     "sponsors.error": "Could not send. Please try again or WhatsApp us.",
+
+    "newsletter.title": "Stay in the loop",
+    "newsletter.blurb": "Monthly-ish updates on runs, shows, and club news. No spam.",
+    "newsletter.placeholder": "you@email.com",
+    "newsletter.subscribe": "Subscribe",
+    "newsletter.sending": "…",
+    "newsletter.sent": "You're in — check your inbox for a welcome mail.",
+    "newsletter.error": "Could not subscribe. Please try again.",
   },
 
 

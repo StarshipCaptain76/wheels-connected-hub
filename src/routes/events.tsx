@@ -3,13 +3,23 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listUpcomingEvents, type PublicEvent } from "@/lib/events.functions";
+import { listGoogleCalendarEvents } from "@/lib/gcal.functions";
 import { Calendar, MapPin } from "lucide-react";
 
 const eventsQuery = queryOptions({
-  queryKey: ["events", "upcoming"],
-  queryFn: () => listUpcomingEvents(),
+  queryKey: ["events", "upcoming", "combined"],
+  queryFn: async (): Promise<PublicEvent[]> => {
+    const [db, gcal] = await Promise.all([listUpcomingEvents(), listGoogleCalendarEvents()]);
+    const seen = new Set(db.map((e) => `${e.title}|${e.starts_at.slice(0, 10)}`));
+    const merged = [
+      ...db,
+      ...gcal.filter((e) => !seen.has(`${e.title}|${e.starts_at.slice(0, 10)}`)),
+    ];
+    return merged.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  },
   staleTime: 60_000,
 });
+
 
 export const Route = createFileRoute("/events")({
   head: () => ({

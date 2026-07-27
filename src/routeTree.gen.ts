@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SponsorsRouteImport } from './routes/sponsors'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ShopRouteImport } from './routes/shop'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as EventsRouteImport } from './routes/events'
@@ -45,6 +46,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ShopRoute = ShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JoinRoute = JoinRouteImport.update({
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/events': typeof EventsRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/shop': typeof ShopRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/sponsors': typeof SponsorsRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/gallery'
     | '/join'
+    | '/reset-password'
     | '/shop'
     | '/sitemap.xml'
     | '/sponsors'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/gallery'
     | '/join'
+    | '/reset-password'
     | '/shop'
     | '/sitemap.xml'
     | '/sponsors'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/gallery'
     | '/join'
+    | '/reset-password'
     | '/shop'
     | '/sitemap.xml'
     | '/sponsors'
@@ -303,6 +315,7 @@ export interface RootRouteChildren {
   EventsRoute: typeof EventsRoute
   GalleryRoute: typeof GalleryRoute
   JoinRoute: typeof JoinRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
@@ -330,6 +343,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join': {
@@ -524,6 +544,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsRoute: EventsRoute,
   GalleryRoute: GalleryRoute,
   JoinRoute: JoinRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,

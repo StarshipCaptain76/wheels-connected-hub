@@ -352,6 +352,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      grant_admin_if_allowlisted: {
+        Args: { _confirmed_at: string; _email: string; _user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

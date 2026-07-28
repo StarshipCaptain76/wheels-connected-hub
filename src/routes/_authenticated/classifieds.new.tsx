@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { createListing } from "@/lib/listings.functions";
@@ -8,25 +9,34 @@ import { TranslateButton } from "@/components/TranslateButton";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, X, Upload } from "lucide-react";
 
+const searchSchema = z.object({
+  from: z.enum(["browse", "mine"]).optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/classifieds/new")({
   head: () => ({
     meta: [{ title: "Post a listing — Just Wheels" }],
   }),
+  validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: NewListingPage,
 });
 
 type Photo = { path: string; url: string };
 
+/** Preview signed URLs valid for 12 hours (long form sessions). */
+const PREVIEW_TTL_SEC = 60 * 60 * 12;
+
 function NewListingPage() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
+  const { from } = Route.useSearch();
+  const backTo = from === "browse" ? "/classifieds" : "/classifieds/mine";
   const createFn = useServerFn(createListing);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Controlled bilingual fields so translate can fill them
   const [title, setTitle] = useState("");
   const [titleAf, setTitleAf] = useState("");
   const [description, setDescription] = useState("");
@@ -55,7 +65,7 @@ function NewListingPage() {
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage
           .from("listings")
-          .createSignedUrl(path, 60 * 60);
+          .createSignedUrl(path, PREVIEW_TTL_SEC);
         uploaded.push({ path, url: signed?.signedUrl ?? "" });
       }
       setPhotos((p) => [...p, ...uploaded]);
@@ -63,6 +73,16 @@ function NewListingPage() {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function removePhoto(path: string) {
+    setPhotos((prev) => prev.filter((p) => p.path !== path));
+    // Best-effort: delete orphan from storage (D2)
+    try {
+      await supabase.storage.from("listings").remove([path]);
+    } catch {
+      /* ignore — file may already be gone */
     }
   }
 
@@ -99,7 +119,10 @@ function NewListingPage() {
   return (
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <Link to="/classifieds/mine" className="inline-flex items-center gap-1 text-sm text-ink/70 hover:text-ink">
+        <Link
+          to={backTo}
+          className="inline-flex items-center gap-1 text-sm text-ink/70 hover:text-ink"
+        >
           <ArrowLeft className="h-4 w-4" /> {t("members.back")}
         </Link>
         <h1 className="mt-4 font-display text-4xl tracking-wide text-ink">
@@ -168,7 +191,8 @@ function NewListingPage() {
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="text-sm font-bold uppercase tracking-wider text-ink">
-                {lang === "af" ? "Beskrywing (EN)" : "Description (EN)"} <span className="text-primary">*</span>
+                {lang === "af" ? "Beskrywing (EN)" : "Description (EN)"}{" "}
+                <span className="text-primary">*</span>
               </span>
               <TranslateButton source={descriptionAf} from="af" to="en" onResult={setDescription} />
             </div>
@@ -199,12 +223,12 @@ function NewListingPage() {
               {lang === "af" ? "Fotos" : "Photos"} ({photos.length}/6)
             </label>
             <div className="mb-3 flex flex-wrap gap-2">
-              {photos.map((p, i) => (
+              {photos.map((p) => (
                 <div key={p.path} className="relative">
                   <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
                   <button
                     type="button"
-                    onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                    onClick={() => void removePhoto(p.path)}
                     className="absolute -right-2 -top-2 rounded-full border-2 border-ink bg-primary p-0.5 text-paper"
                   >
                     <X className="h-3 w-3" />

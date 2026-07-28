@@ -112,10 +112,10 @@ function Index() {
     null;
 
   const garageThumb = featured?.garage_thumb_url?.trim() || null;
+  const bio = featured?.featured_bio?.trim() || null;
 
   return (
     <SiteLayout>
-      {/* Theme surface: white in day, black in night */}
       <section className="border-b-2 border-ink bg-paper text-ink">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
           <div>
@@ -154,7 +154,6 @@ function Index() {
         </div>
       </section>
 
-      {/* Red accent strip stays red in both modes */}
       <Link
         to={nextEvent ? `/events/${nextEvent.id}` : "/events"}
         className="block border-b-2 border-ink bg-primary text-white transition-colors hover:bg-primary/90"
@@ -176,14 +175,14 @@ function Index() {
       {featured && (
         <section className="border-b-2 border-ink bg-paper text-ink">
           <div className="mx-auto max-w-6xl px-4 py-8">
-            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border-2 border-ink/20 bg-card sm:flex-row sm:items-stretch">
+            <div className="flex flex-col overflow-hidden rounded-xl border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] sm:flex-row sm:items-stretch">
               {garageThumb && (
-                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-ink/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
+                <div className="relative h-36 w-full shrink-0 overflow-hidden border-b-2 border-ink sm:h-auto sm:w-44 sm:border-b-0 sm:border-r-2">
                   <img src={garageThumb} alt="" className="h-full w-full object-cover" />
                 </div>
               )}
 
-              <div className="flex flex-1 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
+              <div className="flex flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-5 sm:p-5">
                 <div className="flex shrink-0 items-center gap-3 sm:gap-4">
                   <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
                     {faceSrc ? (
@@ -220,9 +219,13 @@ function Index() {
                     {featured.town ? ` · ${featured.town}` : ""}
                     {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
                   </p>
-                  {featured.featured_bio && (
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
-                      {featured.featured_bio}
+                  {bio ? (
+                    <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink/80">{bio}</p>
+                  ) : (
+                    <p className="mt-2 text-xs italic text-ink/40">
+                      {lang === "af"
+                        ? "Geen biografie nog — admin kan dit by Featured member byvoeg."
+                        : "No bio yet — admin can add one under Featured member."}
                     </p>
                   )}
                 </div>
@@ -230,7 +233,7 @@ function Index() {
                 <Link
                   to="/members/$number"
                   params={{ number: String(featured.member_number) }}
-                  className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
+                  className="shrink-0 self-start rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-paper sm:self-center"
                 >
                   {lang === "af" ? "Bekyk" : "View"} →
                 </Link>

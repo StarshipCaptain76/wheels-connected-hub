@@ -213,7 +213,11 @@ function EventCard({
   const title = lang === "af" && event.title_af ? event.title_af : event.title;
   const description =
     lang === "af" && event.description_af ? event.description_af : event.description;
-  const isDbEvent = !event.id.startsWith("gcal:");
+  // DB events are UUIDs; Google Calendar imports use "gcal:…" and have no detail page
+  const isDbEvent = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    event.id,
+  );
+  const href = isDbEvent ? `/events/${event.id}` : null;
 
   const body = (
     <>
@@ -253,7 +257,7 @@ function EventCard({
         </div>
         <h2 className="mt-2 font-display text-xl tracking-wide text-ink">{title}</h2>
         {description ? <p className="mt-2 line-clamp-2 text-sm text-ink/70">{description}</p> : null}
-        {isDbEvent && (
+        {href ? (
           <p className="mt-3 text-xs font-bold uppercase tracking-wider text-primary">
             {past
               ? lang === "af"
@@ -263,6 +267,10 @@ function EventCard({
                 ? "Sien meer →"
                 : "See details →"}
           </p>
+        ) : (
+          <p className="mt-3 text-xs text-ink/40">
+            {lang === "af" ? "Kalender-item (geen detailblad)" : "Calendar item (no detail page)"}
+          </p>
         )}
       </div>
     </>
@@ -270,9 +278,10 @@ function EventCard({
 
   const cls =
     "group block overflow-hidden rounded-lg border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-1";
+
   return (
     <li>
-      {isDbEvent ? (
+      {href ? (
         <Link to="/events/$id" params={{ id: event.id }} className={cls}>
           {body}
         </Link>

@@ -10,9 +10,10 @@ import {
   deleteGaragePhoto,
   updateMyAvatar,
   type GarageVehicle,
+  type GaragePhoto,
 } from "@/lib/garage.functions";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Plus, Trash2, X, Upload, Star, Loader2, Car } from "lucide-react";
+import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon } from "lucide-react";
 
 const STORY_MAX = 4000;
 const MAX_PHOTO_MB = 6;
@@ -47,6 +48,20 @@ export function GarageManager({
     await qc.invalidateQueries({ queryKey: ["profile", "me"] });
   }
 
+  async function setAsCardPhoto(url: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      if (!url) throw new Error(lang === "af" ? "Geen foto nie" : "No photo URL");
+      await avatarFn({ data: { avatar_url: url } });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not set card photo");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function uploadAvatar(file: File) {
     setAvatarBusy(true);
     setError(null);
@@ -64,15 +79,12 @@ export function GarageManager({
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
       const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
 
-      const { error: upErr } = await supabase.storage
-        .from("garage")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: true,
-          contentType: file.type || "image/jpeg",
-        });
+      const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type || "image/jpeg",
+      });
       if (upErr) {
-        console.error("garage avatar upload", upErr);
         throw new Error(
           upErr.message.includes("Bucket not found")
             ? "Storage bucket 'garage' missing — run the SQL setup"
@@ -82,10 +94,9 @@ export function GarageManager({
         );
       }
 
-      const { data: signed, error: signErr } = await supabase.storage
+      const { data: signed } = await supabase.storage
         .from("garage")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (signErr) console.error("sign avatar", signErr);
       const url = signed?.signedUrl ?? path;
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
@@ -100,7 +111,7 @@ export function GarageManager({
     setBusy(true);
     setError(null);
     try {
-      const res = await upsertFn({
+      await upsertFn({
         data: {
           id: form.id ?? null,
           make: form.make ?? null,
@@ -115,10 +126,8 @@ export function GarageManager({
       });
       setEditing(null);
       await refresh();
-      return res.id as string;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
-      return null;
     } finally {
       setBusy(false);
     }
@@ -171,7 +180,6 @@ export function GarageManager({
           contentType: file.type || "image/jpeg",
         });
         if (upErr) {
-          console.error("garage vehicle upload", upErr);
           const msg = upErr.message.includes("Bucket not found")
             ? "Bucket 'garage' missing — run SQL setup"
             : upErr.message.includes("row-level security") || upErr.message.includes("policy")
@@ -185,17 +193,13 @@ export function GarageManager({
           await addPhotoFn({ data: { vehicleId, storage_path: path, caption: null } });
           uploaded += 1;
         } catch (e) {
-          failures.push(
-            `${file.name}: ${e instanceof Error ? e.message : "DB insert failed"}`,
-          );
+          failures.push(`${file.name}: ${e instanceof Error ? e.message : "DB insert failed"}`);
         }
       }
 
       await refresh();
 
-      if (failures.length && uploaded === 0) {
-        throw new Error(failures.join(" · "));
-      }
+      if (failures.length && uploaded === 0) throw new Error(failures.join(" · "));
       if (failures.length) {
         setError(
           (lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") +
@@ -228,8 +232,8 @@ export function GarageManager({
           <h2 className="font-display text-3xl tracking-wide text-ink">My garage</h2>
           <p className="mt-1 text-sm text-ink/60">
             {lang === "af"
-              ? "Jou foto, jou wiele, jou stories. As jy featured word, verskyn dit hier."
-              : "Your photo, your wheels, your stories. When you're featured, this is what the club sees."}
+              ? "Laai fotos op, skryf die storie, en kies een foto vir jou lidkaart."
+              : "Upload photos, tell the story, and pick one photo for your member card."}
           </p>
         </div>
         <button
@@ -255,7 +259,8 @@ export function GarageManager({
         <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>
       )}
 
-      <div className="flex items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
+      {/* Profile / card photo picker */}
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
         <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-ink bg-ink/10">
           {avatarUrl ? (
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -267,12 +272,12 @@ export function GarageManager({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wider text-ink/60">
-            {lang === "af" ? "My foto" : "My picture"}
+            {lang === "af" ? "Lidkaart-foto" : "Member card photo"}
           </p>
           <p className="mt-1 text-sm text-ink/70">
             {lang === "af"
-              ? "Word op jou lidprofiel en featured-blok gewys."
-              : "Shown on your member profile and when you're featured."}
+              ? "Hierdie foto verskyn op jou lidkaart. Laai op of kies uit jou garage hieronder."
+              : "This photo appears on your member card. Upload here or choose from your garage below."}
           </p>
           <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-ink/5">
             {avatarBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
@@ -302,64 +307,20 @@ export function GarageManager({
           </p>
         </div>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-6">
           {vehicles.map((v) => (
-            <li key={v.id} className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
-              <div className="flex flex-wrap items-start justify-between gap-3 p-4">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {v.is_primary && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-primary bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-                        <Star className="h-3 w-3" /> Primary
-                      </span>
-                    )}
-                    <h3 className="font-display text-xl text-ink">
-                      {v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle"}
-                    </h3>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setEditing(v)} className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase">
-                    {lang === "af" ? "Wysig" : "Edit"}
-                  </button>
-                  <button type="button" onClick={() => removeVehicle(v.id)} className="rounded border-2 border-primary bg-primary p-1.5 text-paper">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-              {(lang === "af" ? v.story_af || v.story : v.story) && (
-                <p className="border-t border-ink/10 px-4 py-3 text-sm whitespace-pre-wrap text-ink/80">
-                  {lang === "af" ? v.story_af || v.story : v.story}
-                </p>
-              )}
-              <div className="border-t border-ink/10 px-4 py-3">
-                <div className="mb-2 flex flex-wrap gap-2">
-                  {v.photos.map((p) => (
-                    <div key={p.id} className="relative">
-                      <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
-                      <button type="button" onClick={() => removePhoto(p.id)} className="absolute -right-1.5 -top-1.5 rounded-full border border-ink bg-primary p-0.5 text-paper">
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink">
-                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      disabled={busy}
-                      onChange={(e) => {
-                        void uploadPhotos(v.id, e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-                <p className="text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB each</p>
-              </div>
-            </li>
+            <VehicleCard
+              key={v.id}
+              vehicle={v}
+              lang={lang}
+              busy={busy}
+              cardPhotoUrl={avatarUrl}
+              onEdit={() => setEditing(v)}
+              onDelete={() => void removeVehicle(v.id)}
+              onUpload={(files) => void uploadPhotos(v.id, files)}
+              onRemovePhoto={(id) => void removePhoto(id)}
+              onSetCardPhoto={(url) => void setAsCardPhoto(url)}
+            />
           ))}
         </ul>
       )}
@@ -376,6 +337,176 @@ export function GarageManager({
         />
       )}
     </section>
+  );
+}
+
+function VehicleCard({
+  vehicle: v,
+  lang,
+  busy,
+  cardPhotoUrl,
+  onEdit,
+  onDelete,
+  onUpload,
+  onRemovePhoto,
+  onSetCardPhoto,
+}: {
+  vehicle: GarageVehicle;
+  lang: "en" | "af";
+  busy: boolean;
+  cardPhotoUrl: string | null;
+  onEdit: () => void;
+  onDelete: () => void;
+  onUpload: (files: FileList | null) => void;
+  onRemovePhoto: (id: string) => void;
+  onSetCardPhoto: (url: string) => void;
+}) {
+  const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
+  const story = lang === "af" ? v.story_af || v.story : v.story;
+  const hero = v.photos[0];
+
+  return (
+    <li className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
+      {/* Hero photo + title */}
+      <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="relative min-h-[200px] bg-ink/10">
+          {hero?.url ? (
+            <img src={hero.url} alt={title} className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-ink/30">
+              <ImageIcon className="h-10 w-10" />
+              <span className="text-xs font-bold uppercase tracking-wider">
+                {lang === "af" ? "Voeg foto by" : "Add a photo"}
+              </span>
+            </div>
+          )}
+          {v.is_primary && (
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-primary bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
+              <Star className="h-3 w-3" /> Primary
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-col p-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h3 className="font-display text-2xl text-ink">{title}</h3>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
+              >
+                {lang === "af" ? "Wysig" : "Edit"}
+              </button>
+              <button
+                type="button"
+                onClick={onDelete}
+                className="rounded border-2 border-primary bg-primary p-1.5 text-paper"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {[v.year, v.make, v.model].filter(Boolean).length > 0 && v.nickname && (
+            <p className="mt-1 text-sm text-ink/55">
+              {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+            </p>
+          )}
+
+          {story ? (
+            <p className="mt-3 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/80">{story}</p>
+          ) : (
+            <p className="mt-3 flex-1 text-sm italic text-ink/40">
+              {lang === "af" ? "Nog geen storie nie — klik Wysig." : "No story yet — click Edit."}
+            </p>
+          )}
+
+          {hero?.url && (
+            <button
+              type="button"
+              disabled={busy || cardPhotoUrl === hero.url}
+              onClick={() => onSetCardPhoto(hero.url)}
+              className="mt-4 inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+            >
+              <IdCard className="h-3.5 w-3.5" />
+              {cardPhotoUrl === hero.url
+                ? lang === "af"
+                  ? "Op lidkaart"
+                  : "On member card"
+                : lang === "af"
+                  ? "Gebruik op lidkaart"
+                  : "Use on member card"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Photo library strip */}
+      <div className="border-t-2 border-ink/10 px-4 py-3">
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink/50">
+          {lang === "af" ? "Foto-biblioteek" : "Photo library"} · {v.photos.length}/8
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {v.photos.map((p: GaragePhoto) => (
+            <div key={p.id} className="group relative">
+              {p.url ? (
+                <img
+                  src={p.url}
+                  alt=""
+                  className="h-20 w-20 rounded border-2 border-ink object-cover"
+                />
+              ) : (
+                <div className="flex h-20 w-20 items-center justify-center rounded border-2 border-dashed border-ink/30 text-[9px] text-ink/40">
+                  no url
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center gap-1 rounded bg-ink/60 opacity-0 transition-opacity group-hover:opacity-100">
+                {p.url && (
+                  <button
+                    type="button"
+                    title={lang === "af" ? "Op lidkaart" : "Set as card photo"}
+                    onClick={() => onSetCardPhoto(p.url)}
+                    className="rounded-full bg-paper p-1 text-ink"
+                  >
+                    <IdCard className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemovePhoto(p.id)}
+                  className="rounded-full bg-primary p-1 text-paper"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {cardPhotoUrl && p.url === cardPhotoUrl && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 text-[8px] font-bold uppercase text-paper">
+                  card
+                </span>
+              )}
+            </div>
+          ))}
+          {v.photos.length < 8 && (
+            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={busy}
+                onChange={(e) => {
+                  onUpload(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
+        </div>
+        <p className="mt-2 text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB</p>
+      </div>
+    </li>
   );
 }
 

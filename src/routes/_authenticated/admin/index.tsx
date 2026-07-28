@@ -7,6 +7,7 @@ import { listAllEvents } from "@/lib/events.functions";
 import { listAllGalleryItems } from "@/lib/gallery.functions";
 import { listSubscribers } from "@/lib/newsletter.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
+import { listAllSponsors } from "@/lib/sponsors.functions";
 import {
   Tag,
   Calendar,
@@ -14,6 +15,7 @@ import {
   Users,
   Mail,
   Star,
+  Handshake,
   ArrowRight,
 } from "lucide-react";
 
@@ -24,6 +26,33 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminOverview,
 });
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthBounds() {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth(); // 0-based
+  const start = new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 10);
+  const end = new Date(Date.UTC(y, m + 1, 0)).toISOString().slice(0, 10);
+  return { start, end };
+}
+
+function isSponsorPubliclyActive(s: {
+  is_active: boolean;
+  billing_starts_at: string | null;
+  billing_ends_at: string | null;
+}): boolean {
+  if (!s.is_active) return false;
+  const today = todayISO();
+  const start = s.billing_starts_at ? String(s.billing_starts_at).slice(0, 10) : null;
+  const end = s.billing_ends_at ? String(s.billing_ends_at).slice(0, 10) : null;
+  if (start && start > today) return false;
+  if (end && end < today) return false;
+  return true;
+}
+
 function AdminOverview() {
   const pending = useServerFn(listPendingListings);
   const events = useServerFn(listAllEvents);
@@ -31,6 +60,7 @@ function AdminOverview() {
   const members = useServerFn(listAllMembers);
   const subs = useServerFn(listSubscribers);
   const featured = useServerFn(getCurrentFeaturedMember);
+  const sponsors = useServerFn(listAllSponsors);
 
   const pendingQ = useQuery({ queryKey: ["listings", "moderation"], queryFn: () => pending() });
   const eventsQ = useQuery({ queryKey: ["events", "admin"], queryFn: () => events() });
@@ -38,6 +68,7 @@ function AdminOverview() {
   const membersQ = useQuery({ queryKey: ["admin", "members"], queryFn: () => members() });
   const subsQ = useQuery({ queryKey: ["newsletter", "subscribers"], queryFn: () => subs() });
   const featuredQ = useQuery({ queryKey: ["featured-member"], queryFn: () => featured() });
+  const sponsorsQ = useQuery({ queryKey: ["sponsors", "admin"], queryFn: () => sponsors() });
 
   const now = Date.now();
   const upcoming = (eventsQ.data ?? []).filter((e) => new Date(e.starts_at).getTime() > now).length;
@@ -46,6 +77,16 @@ function AdminOverview() {
   const pendingMembers = (membersQ.data ?? []).filter((m) => m.membership_status === "pending").length;
   const pendingListings = (pendingQ.data ?? []).filter((l) => l.status === "pending").length;
   const totalMembers = membersQ.data?.length ?? 0;
+
+  const { start: monthStart, end: monthEnd } = monthBounds();
+  const sponsorList = sponsorsQ.data ?? [];
+  const activeSponsors = sponsorList.filter(isSponsorPubliclyActive).length;
+  const expireThisMonth = sponsorList.filter((s) => {
+    if (!s.billing_ends_at) return false;
+    const end = String(s.billing_ends_at).slice(0, 10);
+    // Still active (or would be) and end falls in current calendar month
+    return end >= monthStart && end <= monthEnd && (s.is_active || end >= todayISO());
+  }).length;
 
   const cards = [
     {
@@ -69,10 +110,27 @@ function AdminOverview() {
     },
     {
       to: "/admin/members",
-      label: pendingMembers > 0 ? `${pendingMembers} pending · ${totalMembers} total` : `Members · ${totalMembers} total`,
+      label:
+        pendingMembers > 0
+          ? `${pendingMembers} pending · ${totalMembers} total`
+          : `Members · ${totalMembers} total`,
       value: membersQ.isLoading ? "…" : pendingMembers > 0 ? pendingMembers : totalMembers,
       icon: Users,
       highlight: pendingMembers > 0,
+    },
+    {
+      to: "/admin/sponsors",
+      label:
+        expireThisMonth > 0
+          ? `${activeSponsors} active · ${expireThisMonth} due this month`
+          : `${activeSponsors} active sponsors`,
+      value: sponsorsQ.isLoading ? "…" : activeSponsors,
+      sub:
+        !sponsorsQ.isLoading && expireThisMonth > 0
+          ? `${expireThisMonth} expire this month`
+          : undefined,
+      icon: Handshake,
+      highlight: expireThisMonth > 0,
     },
     {
       to: "/admin/newsletter",
@@ -97,6 +155,7 @@ function AdminOverview() {
         {cards.map((c) => {
           const Icon = c.icon;
           const highlight = "highlight" in c && c.highlight;
+          const sub = "sub" in c ? c.sub : undefined;
           return (
             <Link
               key={c.to}
@@ -106,11 +165,14 @@ function AdminOverview() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <Icon className={`h-5 w-5 ${highlight ? "text-primary" : "text-primary"}`} />
+                <Icon className="h-5 w-5 text-primary" />
                 <ArrowRight className="h-4 w-4 text-ink/40 group-hover:text-primary" />
               </div>
               <div className="mt-3 font-display text-3xl text-ink">{c.value}</div>
               <div className="mt-1 text-xs font-bold uppercase tracking-wider text-ink/60">{c.label}</div>
+              {sub ? (
+                <div className="mt-1 text-xs font-semibold text-primary">{sub}</div>
+              ) : null}
             </Link>
           );
         })}

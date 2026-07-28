@@ -236,6 +236,94 @@ export type Database = {
           },
         ]
       }
+      garage_vehicle_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          sort: number
+          storage_path: string
+          vehicle_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort?: number
+          storage_path: string
+          vehicle_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          sort?: number
+          storage_path?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "garage_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      garage_vehicles: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          make: string | null
+          model: string | null
+          nickname: string | null
+          sort: number
+          story: string | null
+          story_af: string | null
+          updated_at: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          make?: string | null
+          model?: string | null
+          nickname?: string | null
+          sort?: number
+          story?: string | null
+          story_af?: string | null
+          updated_at?: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          make?: string | null
+          model?: string | null
+          nickname?: string | null
+          sort?: number
+          story?: string | null
+          story_af?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_vehicles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_contacts: {
         Row: {
           contact_email: string
@@ -441,6 +529,7 @@ export type Database = {
           member_number: number
           membership_status: string
           phone: string | null
+          preferred_lang: string | null
           town: string | null
           updated_at: string
         }
@@ -458,6 +547,7 @@ export type Database = {
           member_number?: number
           membership_status?: string
           phone?: string | null
+          preferred_lang?: string | null
           town?: string | null
           updated_at?: string
         }
@@ -475,6 +565,7 @@ export type Database = {
           member_number?: number
           membership_status?: string
           phone?: string | null
+          preferred_lang?: string | null
           town?: string | null
           updated_at?: string
         }

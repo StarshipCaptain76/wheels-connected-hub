@@ -24,7 +24,8 @@ export type GarageVehicle = {
   photos: GaragePhoto[];
 };
 
-async function signPaths(
+/** Prefer public URL; fall back to a long-lived signed URL. */
+async function resolveUrls(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   paths: string[],
@@ -32,9 +33,32 @@ async function signPaths(
   const map = new Map<string, string>();
   const unique = [...new Set(paths.filter(Boolean))];
   if (unique.length === 0) return map;
-  const { data } = await supabase.storage.from("garage").createSignedUrls(unique, 60 * 60 * 24 * 7);
-  for (const row of data ?? []) {
-    if (row.path && row.signedUrl) map.set(row.path, row.signedUrl);
+
+  for (const path of unique) {
+    try {
+      const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
+      if (pub?.publicUrl) {
+        map.set(path, pub.publicUrl);
+        continue;
+      }
+    } catch {
+      /* fall through */
+    }
+  }
+
+  // Signed URLs for anything still missing (private bucket)
+  const missing = unique.filter((p) => !map.get(p));
+  if (missing.length > 0) {
+    try {
+      const { data } = await supabase.storage
+        .from("garage")
+        .createSignedUrls(missing, 60 * 60 * 24 * 30);
+      for (const row of data ?? []) {
+        if (row?.path && row?.signedUrl) map.set(row.path, row.signedUrl);
+      }
+    } catch (e) {
+      console.error("garage signPaths failed", e);
+    }
   }
   return map;
 }
@@ -47,14 +71,19 @@ async function hydrateVehicles(
 ): Promise<GarageVehicle[]> {
   if (vehicles.length === 0) return [];
   const ids = vehicles.map((v) => v.id);
-  const { data: photos } = await supabase
+  const { data: photos, error: photoErr } = await supabase
     .from("garage_vehicle_photos")
     .select("id, vehicle_id, storage_path, caption, sort")
     .in("vehicle_id", ids)
-    .order("sort", { ascending: true });
+    .order("sort", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (photoErr) {
+    console.error("garage_vehicle_photos select failed", photoErr);
+  }
 
   const paths = (photos ?? []).map((p: { storage_path: string }) => p.storage_path);
-  const signed = await signPaths(supabase, paths);
+  const urls = await resolveUrls(supabase, paths);
 
   const byVehicle = new Map<string, GaragePhoto[]>();
   for (const p of photos ?? []) {
@@ -62,7 +91,7 @@ async function hydrateVehicles(
     list.push({
       id: p.id,
       storage_path: p.storage_path,
-      url: signed.get(p.storage_path) ?? "",
+      url: urls.get(p.storage_path) ?? "",
       caption: p.caption,
       sort: p.sort,
     });
@@ -114,7 +143,16 @@ export const listGarageForUser = createServerFn({ method: "GET" })
 
 /** Public featured garage (no auth) — for homepage / featured block */
 export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ member: { display_name: string | null; member_number: number; town: string | null; avatar_url: string | null; featured_bio: string | null }; vehicles: GarageVehicle[] } | null> => {
+  async (): Promise<{
+    member: {
+      display_name: string | null;
+      member_number: number;
+      town: string | null;
+      avatar_url: string | null;
+      featured_bio: string | null;
+    };
+    vehicles: GarageVehicle[];
+  } | null> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
     const { data: p } = await supabase
@@ -196,7 +234,6 @@ export const deleteGarageVehicle = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    // Fetch photo paths to clean storage
     const { data: photos } = await supabase
       .from("garage_vehicle_photos")
       .select("storage_path")
@@ -226,7 +263,6 @@ export const addGaragePhoto = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => addPhotoSchema.parse(i))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    // Ownership check
     const { data: v } = await supabase
       .from("garage_vehicles")
       .select("id")
@@ -243,10 +279,12 @@ export const addGaragePhoto = createServerFn({ method: "POST" })
         caption: data.caption ?? null,
         sort: data.sort ?? 0,
       })
-      .select("id")
+      .select("id, storage_path")
       .single();
     if (error) throw error;
-    return { id: row.id };
+
+    const urls = await resolveUrls(supabase, [row.storage_path]);
+    return { id: row.id as string, url: urls.get(row.storage_path) ?? "" };
   });
 
 export const deleteGaragePhoto = createServerFn({ method: "POST" })
@@ -271,7 +309,7 @@ export const deleteGaragePhoto = createServerFn({ method: "POST" })
 export const updateMyAvatar = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({ avatar_url: z.string().trim().max(1000).nullable() }).parse(i),
+    z.object({ avatar_url: z.string().trim().max(2000).nullable() }).parse(i),
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;

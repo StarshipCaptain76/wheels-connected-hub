@@ -6,7 +6,6 @@ import {
   listMyGarage,
   upsertGarageVehicle,
   deleteGarageVehicle,
-  addGaragePhoto,
   deleteGaragePhoto,
   updateMyAvatar,
   type GarageVehicle,
@@ -30,10 +29,11 @@ function storageErrorMessage(msg: string): string {
 async function publicOrSignedUrl(path: string): Promise<string> {
   const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
   if (pub?.publicUrl) return pub.publicUrl;
-  const { data: signed } = await supabase.storage
+  const { data: signed, error } = await supabase.storage
     .from("garage")
     .createSignedUrl(path, 60 * 60 * 24 * 365);
-  return signed?.signedUrl ?? path;
+  if (error) console.warn("sign url", error);
+  return signed?.signedUrl ?? pub?.publicUrl ?? "";
 }
 
 export function GarageManager({
@@ -47,7 +47,6 @@ export function GarageManager({
   const listFn = useServerFn(listMyGarage);
   const upsertFn = useServerFn(upsertGarageVehicle);
   const delFn = useServerFn(deleteGarageVehicle);
-  const addPhotoFn = useServerFn(addGaragePhoto);
   const delPhotoFn = useServerFn(deleteGaragePhoto);
   const avatarFn = useServerFn(updateMyAvatar);
 
@@ -60,6 +59,7 @@ export function GarageManager({
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["garage", "me"] });
@@ -69,10 +69,12 @@ export function GarageManager({
   async function setAsCardPhoto(url: string) {
     setBusy(true);
     setError(null);
+    setOkMsg(null);
     try {
       if (!url) throw new Error(lang === "af" ? "Geen foto nie" : "No photo URL");
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
+      setOkMsg(lang === "af" ? "Lidkaart-foto opgedateer" : "Member card photo updated");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not set card photo");
     } finally {
@@ -83,6 +85,7 @@ export function GarageManager({
   async function uploadAvatar(file: File) {
     setAvatarBusy(true);
     setError(null);
+    setOkMsg(null);
     try {
       if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|gif|heic)$/i.test(file.name)) {
         throw new Error(lang === "af" ? "Kies 'n beeldlêer" : "Choose an image file");
@@ -95,7 +98,6 @@ export function GarageManager({
       if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      // Path: {userId}/avatar-{uuid}.ext  → foldername[1] = userId
       const path = `${userId}/avatar-${crypto.randomUUID()}.${ext}`;
 
       const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
@@ -106,8 +108,10 @@ export function GarageManager({
       if (upErr) throw new Error(storageErrorMessage(upErr.message));
 
       const url = await publicOrSignedUrl(path);
+      if (!url) throw new Error("Upload ok but could not resolve public URL");
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
+      setOkMsg(lang === "af" ? "Foto gelaai" : "Photo uploaded");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Avatar upload failed");
     } finally {
@@ -154,10 +158,12 @@ export function GarageManager({
     }
   }
 
+  /** Client-side storage + DB insert — avoids silent server-fn failures. */
   async function uploadPhotos(vehicleId: string, files: FileList | null) {
     if (!files?.length) return;
     setBusy(true);
     setError(null);
+    setOkMsg(null);
     try {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
@@ -180,7 +186,6 @@ export function GarageManager({
 
         const ext =
           (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        // Path: {userId}/{vehicleId}/{uuid}.ext → foldername[1] = userId (matches policy)
         const path = `${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
 
         const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
@@ -189,31 +194,56 @@ export function GarageManager({
           contentType: file.type || "image/jpeg",
         });
         if (upErr) {
+          console.error("garage upload", upErr);
           failures.push(`${file.name}: ${storageErrorMessage(upErr.message)}`);
           continue;
         }
 
-        try {
-          await addPhotoFn({ data: { vehicleId, storage_path: path, caption: null } });
-          uploaded += 1;
-        } catch (e) {
-          // Storage file exists but DB row failed — still report
+        // Insert photo row directly (RLS must allow owner insert)
+        const { data: row, error: dbErr } = await supabase
+          .from("garage_vehicle_photos")
+          .insert({
+            vehicle_id: vehicleId,
+            storage_path: path,
+            caption: null,
+            sort: uploaded,
+          })
+          .select("id")
+          .single();
+
+        if (dbErr || !row) {
+          console.error("garage_vehicle_photos insert", dbErr);
           failures.push(
-            `${file.name}: DB ${e instanceof Error ? e.message : "insert failed"}`,
+            `${file.name}: DB ${dbErr?.message ?? "insert failed — check table RLS"}`,
           );
+          // Best-effort cleanup of orphaned storage object
+          await supabase.storage.from("garage").remove([path]);
+          continue;
         }
+
+        uploaded += 1;
       }
 
       await refresh();
 
-      if (failures.length && uploaded === 0) throw new Error(failures.join(" · "));
+      if (failures.length && uploaded === 0) {
+        throw new Error(failures.join(" · "));
+      }
       if (failures.length) {
         setError(
           (lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") +
             failures.join(" · "),
         );
       }
+      if (uploaded > 0) {
+        setOkMsg(
+          lang === "af"
+            ? `${uploaded} foto(s) gelaai`
+            : `${uploaded} photo(s) uploaded`,
+        );
+      }
     } catch (e) {
+      console.error(e);
       setError(e instanceof Error ? e.message : "Photo upload failed");
     } finally {
       setBusy(false);
@@ -226,7 +256,10 @@ export function GarageManager({
       await delPhotoFn({ data: { id } });
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not remove photo");
+      // Client fallback delete
+      const { error: dbErr } = await supabase.from("garage_vehicle_photos").delete().eq("id", id);
+      if (dbErr) setError(e instanceof Error ? e.message : "Could not remove photo");
+      else await refresh();
     } finally {
       setBusy(false);
     }
@@ -263,7 +296,12 @@ export function GarageManager({
       </div>
 
       {error && (
-        <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>
+        <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+          {error}
+        </p>
+      )}
+      {okMsg && (
+        <p className="rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">{okMsg}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
@@ -369,7 +407,7 @@ function VehicleCard({
 }) {
   const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   const story = lang === "af" ? v.story_af || v.story : v.story;
-  const hero = v.photos[0];
+  const hero = v.photos.find((p) => p.url) ?? v.photos[0];
 
   return (
     <li className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">

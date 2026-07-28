@@ -71,8 +71,19 @@ function Index() {
       ? nextEvent.title_af
       : nextEvent.title
     : t("home.tbaTitle");
-  const nextBody = nextEvent
+
+  const nextMeta = nextEvent
     ? `${formatDate(nextEvent.starts_at, lang)}${nextEvent.location ? ` · ${nextEvent.location}` : ""}`
+    : null;
+
+  const nextDesc = nextEvent
+    ? lang === "af" && nextEvent.description_af
+      ? nextEvent.description_af
+      : nextEvent.description
+    : null;
+
+  const nextBody = nextEvent
+    ? [nextMeta, nextDesc].filter(Boolean).join(" — ")
     : t("home.tbaBody");
 
   return (
@@ -127,17 +138,20 @@ function Index() {
       </section>
 
       <Link
-        to="/events"
+        to={nextEvent ? `/events/${nextEvent.id}` : "/events"}
         className="block border-b-2 border-ink bg-primary text-paper transition-colors hover:bg-primary/90"
       >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="font-display text-xs tracking-[0.3em] text-paper/80">
               {t("home.nextEvent").toUpperCase()}
             </div>
             <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
+            {nextMeta && <p className="mt-1 text-sm font-semibold text-paper/85">{nextMeta}</p>}
           </div>
-          <p className="max-w-md text-sm text-paper/90">{nextBody}</p>
+          <p className="max-w-md text-sm text-paper/90 line-clamp-3">
+            {nextDesc || nextBody}
+          </p>
         </div>
       </Link>
 

@@ -30,16 +30,22 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** Escape for HTML email bodies without using entity literals (they get mangled in some pipelines). */
 function escapeHtml(value: string): string {
+  const amp = String.fromCharCode(38);
   return value
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, """)
-    .replace(/'/g, "&#39;");
+    .split(amp)
+    .join(amp + "amp;")
+    .split("<")
+    .join(amp + "lt;")
+    .split(">")
+    .join(amp + "gt;")
+    .split('"')
+    .join(amp + "quot;")
+    .split("'")
+    .join(amp + "#39;");
 }
 
-/** Public list: active + within billing window */
 export const listSponsors = createServerFn({ method: "GET" }).handler(async (): Promise<Sponsor[]> => {
   const sb = createPublicSupabase();
   const today = todayISO();
@@ -200,30 +206,41 @@ export const applySponsor = createServerFn({ method: "POST" })
     const key = process.env.RESEND_API_KEY;
     if (!key) throw new Error("RESEND_API_KEY not configured");
 
-    const subject = `Sponsor application — ${data.business}`;
-    const html = [
-      '<div style="font-family:Arial,sans-serif;color:#111;max-width:560px">',
-      "<h2 style=\"margin:0 0 12px\">New sponsor application</h2>",
-      '<p style="margin:0 0 16px;color:#555">Sent from justwheels.co.za sponsors page</p>',
-      '<table style="border-collapse:collapse;width:100%"><tbody>',
-      `<tr><td style="padding:6px 0;color:#666">Business</td><td style="padding:6px 0"><strong>${escapeHtml(data.business)}</strong></td></tr>`,
-      `<tr><td style="padding:6px 0;color:#666">Contact</td><td style="padding:6px 0">${escapeHtml(data.contact)}</td></tr>`,
-      `<tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:${escapeHtml(data.email)}">${escapeHtml(data.email)}</a></td></tr>`,
-      data.phone
-        ? `<tr><td style="padding:6px 0;color:#666">Phone</td><td style="padding:6px 0">${escapeHtml(data.phone)}</td></tr>`
-        : "",
-      data.website
-        ? `<tr><td style="padding:6px 0;color:#666">Website</td><td style="padding:6px 0">${escapeHtml(data.website)}</td></tr>`
-        : "",
-      data.message
-        ? `<tr><td style="padding:6px 0;color:#666;vertical-align:top">Message</td><td style="padding:6px 0;white-space:pre-wrap">${escapeHtml(data.message)}</td></tr>`
-        : "",
-      "</tbody></table></div>",
-    ].join("");
+    const subject = "Sponsor application — " + data.business;
+    const rows = [
+      ["Business", "<strong>" + escapeHtml(data.business) + "</strong>"],
+      ["Contact", escapeHtml(data.contact)],
+      [
+        "Email",
+        '<a href="mailto:' + escapeHtml(data.email) + '">' + escapeHtml(data.email) + "</a>",
+      ],
+    ];
+    if (data.phone) rows.push(["Phone", escapeHtml(data.phone)]);
+    if (data.website) rows.push(["Website", escapeHtml(data.website)]);
+    if (data.message) rows.push(["Message", escapeHtml(data.message)]);
+
+    const table = rows
+      .map(
+        ([label, value]) =>
+          '<tr><td style="padding:6px 0;color:#666">' +
+          label +
+          '</td><td style="padding:6px 0">' +
+          value +
+          "</td></tr>",
+      )
+      .join("");
+
+    const html =
+      '<div style="font-family:Arial,sans-serif;color:#111;max-width:560px">' +
+      "<h2 style=\"margin:0 0 12px\">New sponsor application</h2>" +
+      '<p style="margin:0 0 16px;color:#555">Sent from justwheels.co.za sponsors page</p>' +
+      '<table style="border-collapse:collapse;width:100%"><tbody>' +
+      table +
+      "</tbody></table></div>";
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
       body: JSON.stringify({
         from: FROM,
         to: [ADMIN_EMAIL],
@@ -235,8 +252,8 @@ export const applySponsor = createServerFn({ method: "POST" })
 
     if (!res.ok) {
       const body = await res.text();
-      console.error(`Resend failed [${res.status}]: ${body}`);
-      throw new Error(`Email send failed (${res.status})`);
+      console.error("Resend failed [" + res.status + "]: " + body);
+      throw new Error("Email send failed (" + res.status + ")");
     }
     return { ok: true as const };
   });

@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
+import { useTheme } from "@/lib/theme";
 import { LOGO_URL } from "@/lib/brand";
-import { MessageCircle, UserRound, Menu, X } from "lucide-react";
+import { MessageCircle, UserRound, Menu, X, Sun, Moon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 
@@ -27,6 +28,22 @@ function LangToggle() {
         AF
       </button>
     </div>
+  );
+}
+
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const isDark = theme === "dark";
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-ink bg-paper text-ink transition-colors hover:bg-ink hover:text-paper"
+      aria-label={isDark ? "Switch to day mode" : "Switch to night mode"}
+      title={isDark ? "Day" : "Night"}
+    >
+      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+    </button>
   );
 }
 
@@ -135,6 +152,9 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
           <div className="flex items-center gap-2">
             <div className="hidden md:block">
+              <ThemeToggle />
+            </div>
+            <div className="hidden md:block">
               <LangToggle />
             </div>
             <div className="hidden md:block">
@@ -172,6 +192,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 ))}
               </ul>
               <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3">
+                <ThemeToggle />
                 <LangToggle />
                 <AuthAffordance onNavigate={closeMenu} />
               </div>
@@ -182,21 +203,22 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-16 border-t-2 border-ink bg-ink text-paper">
+      {/* Always pure black — independent of day/night tokens */}
+      <footer className="mt-16 border-t-2 border-black bg-black text-white">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <img
                 src={LOGO_URL}
                 alt=""
-                className="h-12 w-12 rounded-full border-2 border-paper object-cover"
+                className="h-12 w-12 rounded-full border-2 border-white object-cover"
               />
               <div className="font-display text-2xl leading-none">
                 JUST WHEELS
                 <div className="text-xs tracking-[0.25em] text-primary">HESSEQUA</div>
               </div>
             </div>
-            <p className="mt-4 max-w-xs text-sm text-paper/70">{t("footer.tagline")}</p>
+            <p className="mt-4 max-w-xs text-sm text-white/70">{t("footer.tagline")}</p>
           </div>
 
           <div>
@@ -204,7 +226,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <ul className="space-y-2 text-sm">
               {navItems.map((item) => (
                 <li key={item.to}>
-                  <Link to={item.to} className="text-paper/80 hover:text-paper">
+                  <Link to={item.to} className="text-white/80 hover:text-white">
                     {item.label}
                   </Link>
                 </li>
@@ -219,7 +241,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp Hugo van Dyk"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-paper/40 px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper hover:border-primary hover:text-primary"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:border-primary hover:text-primary"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Hugo
             </a>
@@ -229,8 +251,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <NewsletterSignup />
           </div>
         </div>
-        <div className="border-t border-paper/10">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-paper/50">
+        <div className="border-t border-white/10">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-white/50">
             <span>© {new Date().getFullYear()} Just Wheels Hessequa. {t("footer.rights")}</span>
             <span>{t("footer.built")}</span>
           </div>

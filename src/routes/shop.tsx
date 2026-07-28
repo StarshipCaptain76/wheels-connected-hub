@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listMerchItems, sendMerchEnquiry, type MerchItem } from "@/lib/merch.functions";
-import { ShoppingBag, Mail, Package } from "lucide-react";
+import { ShoppingBag, Mail, Package, X } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
@@ -103,6 +103,7 @@ function Shop() {
                       )}
                     </span>
                     <button
+                      type="button"
                       onClick={() => setOpenItem(item)}
                       className="rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
                     >
@@ -136,6 +137,13 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
   const [status, setStatus] = useState<"idle" | "sending" | "ok" | "err">("idle");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const displayName = lang === "af" && item.name_af ? item.name_af : item.name;
+
+  // Auto-close ~2s after successful send
+  useEffect(() => {
+    if (status !== "ok") return;
+    const timer = window.setTimeout(() => onClose(), 2000);
+    return () => window.clearTimeout(timer);
+  }, [status, onClose]);
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -183,17 +191,23 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
             )}
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-full border-2 border-ink px-3 py-1 text-sm font-bold uppercase"
+            aria-label="Close"
+            className="rounded-full border-2 border-ink p-1.5 hover:bg-ink/5"
           >
-            ✕
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {status === "ok" ? (
-          <div className="rounded-xl border-2 border-ink bg-rust/10 p-6 text-center">
+          <div className="rounded-xl border-2 border-ink bg-emerald-50 p-6 text-center">
             <p className="font-display text-2xl text-ink">{t("shop.sent")}</p>
+            <p className="mt-2 text-sm text-ink/60">
+              {lang === "af" ? "Hierdie venster maak outomaties toe…" : "This window will close automatically…"}
+            </p>
             <button
+              type="button"
               onClick={onClose}
               className="mt-4 rounded-full border-2 border-ink bg-ink px-4 py-2 text-sm font-bold uppercase text-paper"
             >
@@ -247,9 +261,16 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
             </label>
 
             {status === "err" && (
-              <p className="rounded border border-rust bg-rust/10 p-2 text-sm text-rust">
-                {t("shop.error")}
-              </p>
+              <div className="rounded border-2 border-primary bg-primary/10 p-3 text-sm text-primary">
+                <p>{t("shop.error")}</p>
+                <button
+                  type="button"
+                  onClick={() => setStatus("idle")}
+                  className="mt-2 text-xs font-bold uppercase underline"
+                >
+                  {lang === "af" ? "Probeer weer" : "Try again"}
+                </button>
+              </div>
             )}
 
             <button

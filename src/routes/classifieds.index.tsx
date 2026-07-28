@@ -80,19 +80,27 @@ function ClassifiedsPage() {
               ? "Karre, onderdele en items te koop deur klublede. Kontak die verkoper direk."
               : "Cars, parts and gear for sale by club members. Contact the seller directly — no payments run through the club."}
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap gap-3">
             {signedIn ? (
-              <Link
-                to="/classifieds/new"
-                search={{ from: "browse" }}
-                className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-              >
-                {t("classifieds.postCta")}
-              </Link>
+              <>
+                <Link
+                  to="/classifieds/new"
+                  search={{ from: "browse" }}
+                  className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                >
+                  {t("classifieds.postCta")}
+                </Link>
+                <Link
+                  to="/classifieds/mine"
+                  className="inline-flex rounded-md border-2 border-paper/50 bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:border-paper hover:bg-paper/10"
+                >
+                  {lang === "af" ? "My advertensies" : "My listings"}
+                </Link>
+              </>
             ) : (
               <Link
                 to="/auth"
-                className="inline-flex rounded-md border-2 border-primary bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-paper"
+                className="inline-flex rounded-md border-2 border-primary bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-white"
               >
                 {lang === "af" ? "Teken in om te plaas" : "Sign in to post"}
               </Link>
@@ -120,7 +128,7 @@ function ClassifiedsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={lang === "af" ? "Soek..." : "Search..."}
-            className="ml-auto w-48 rounded-md border-2 border-ink bg-paper px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="ml-auto w-48 rounded-md border-2 border-ink bg-paper px-3 py-1 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
 

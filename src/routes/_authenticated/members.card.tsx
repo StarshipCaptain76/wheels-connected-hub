@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { getMyProfile, type MemberProfile } from "@/lib/profile.functions";
 import { listMyGarage, type GarageVehicle } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
-import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
+import { LOGO_URL } from "@/lib/brand";
 import { Download, WifiOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
@@ -49,15 +49,21 @@ function pickCarPhoto(vehicles: GarageVehicle[]): string | null {
 
 /**
  * Profile face for the bottom-right circle.
- * Never reuse the garage car URL as the face — that caused the wheel crop.
- * Prefer avatar_url only when it is different from the car background.
+ * Use profiles.avatar_url whenever set.
+ * Only skip when it is *exactly* the same URL as the car background
+ * (would look like a duplicated wheel crop).
  */
 function pickFacePhoto(avatarUrl: string | null, carPhoto: string | null): string | null {
-  if (!avatarUrl) return null;
+  if (!avatarUrl || !avatarUrl.trim()) return null;
   if (carPhoto && avatarUrl === carPhoto) return null;
-  // Also skip if avatar points at a vehicles/ garage path (car photo set as avatar)
-  if (/\/vehicles\//i.test(avatarUrl) || /garage.*vehicles/i.test(avatarUrl)) return null;
   return avatarUrl;
+}
+
+function initials(name: string | null | undefined): string {
+  if (!name?.trim()) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function MemberCardPage() {
@@ -162,8 +168,8 @@ function MemberCardPage() {
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"
-            ? "Agtergrond = motor · regs onder = jou gesig (laai op onder Lidkaart-foto) · links bo = klublogo."
-            : "Background = car · bottom-right = your face (upload under Member card photo) · top-left = club logo."}
+            ? "Agtergrond = motor · regs onder = jou gesig (My Garage → Lidkaart-foto) · links bo = klublogo."
+            : "Background = car · bottom-right = your face (My Garage → Member card photo) · top-left = club logo."}
         </p>
 
         {!profile ? (
@@ -186,7 +192,7 @@ function MemberCardPage() {
             {!facePhoto && (
               <p className="mt-2 text-center text-xs text-ink/50">
                 {lang === "af"
-                  ? "Geen gesigfoto nie — gaan na My Garage → Lidkaart-foto en laai jou profielfoto op."
+                  ? "Geen gesigfoto nie — gaan na My Garage → Lidkaart-foto en laai jou portret op."
                   : "No face photo — go to My Garage → Member card photo and upload your portrait."}
               </p>
             )}
@@ -211,7 +217,7 @@ function MemberCard({
   const { t, lang } = useI18n();
   const year = new Date(profile.joined_at).getFullYear();
   const number = String(profile.member_number).padStart(4, "0");
-  const logoSrc = logoAsset.url;
+  const faceInitials = initials(profile.display_name);
 
   return (
     <article
@@ -232,9 +238,9 @@ function MemberCard({
       <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
         <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            {/* Club logo — never replaced by car/avatar */}
+            {/* Club logo — top left only */}
             <img
-              src={logoSrc}
+              src={LOGO_URL}
               alt="Just Wheels"
               className="h-11 w-11 shrink-0 rounded-full border-2 border-paper bg-paper object-cover shadow-md sm:h-12 sm:w-12"
             />
@@ -270,18 +276,28 @@ function MemberCard({
           </div>
         </div>
 
-        {/* Bottom-right: profile FACE + small club logo badge */}
+        {/* Bottom-right: PROFILE FACE (never the club logo as the main circle) */}
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className="relative h-16 w-16 sm:h-20 sm:w-20">
-            <div className="h-full w-full overflow-hidden rounded-full border-[3px] border-paper bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
+            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-paper bg-[#2a1a16] shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
               {facePhoto ? (
-                <img src={facePhoto} alt="" className="h-full w-full object-cover" />
+                <img
+                  src={facePhoto}
+                  alt={profile.display_name ?? "Member"}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
               ) : (
-                <img src={logoSrc} alt="Just Wheels" className="h-full w-full object-cover" />
+                <span className="font-display text-xl tracking-wide text-paper/90 sm:text-2xl">
+                  {faceInitials}
+                </span>
               )}
             </div>
+            {/* Small club logo badge only */}
             <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 overflow-hidden rounded-full border-2 border-paper bg-paper shadow sm:h-8 sm:w-8">
-              <img src={logoSrc} alt="" className="h-full w-full object-cover" />
+              <img src={LOGO_URL} alt="" className="h-full w-full object-cover" />
             </div>
           </div>
         </div>
@@ -306,6 +322,7 @@ async function downloadLandscapeCard(
   const year = new Date(profile.joined_at).getFullYear();
   const name = profile.display_name ?? "—";
   const ride = profile.favourite_ride || (af ? "Geen ry gelys nie" : "No ride listed");
+  const faceInitials = initials(profile.display_name);
 
   ctx.fillStyle = "#140e0c";
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
@@ -336,7 +353,7 @@ async function downloadLandscapeCard(
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
   try {
-    const logo = await loadImage(logoAsset.url);
+    const logo = await loadImage(LOGO_URL);
     drawCircleImage(ctx, logo, 48, 48, 36);
   } catch {
     /* skip */
@@ -389,12 +406,41 @@ async function downloadLandscapeCard(
     ctx.strokeStyle = "#140e0c";
     ctx.lineWidth = 4;
     ctx.stroke();
-    const faceSrc = facePhoto || logoAsset.url;
-    const face = await loadImage(faceSrc);
-    drawCircleImage(ctx, face, cx, cy, r);
+
+    if (facePhoto) {
+      try {
+        const face = await loadImage(facePhoto);
+        drawCircleImage(ctx, face, cx, cy, r);
+      } catch {
+        // initials fallback
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#2a1a16";
+        ctx.fill();
+        ctx.fillStyle = "#f5f0e8";
+        ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(faceInitials, cx, cy);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+      }
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fillStyle = "#2a1a16";
+      ctx.fill();
+      ctx.fillStyle = "#f5f0e8";
+      ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(faceInitials, cx, cy);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+    }
     ctx.restore();
 
-    const logo = await loadImage(logoAsset.url);
+    const logo = await loadImage(LOGO_URL);
     const br = 22;
     const bx = cx + r * 0.65;
     const by = cy + r * 0.65;
@@ -424,7 +470,6 @@ async function downloadLandscapeCard(
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    // Same-origin assets work without CORS; remote storage needs it for canvas
     if (/^https?:\/\//i.test(src) && !src.includes(window.location.host)) {
       img.crossOrigin = "anonymous";
     }

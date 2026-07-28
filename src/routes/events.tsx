@@ -2,12 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { listUpcomingEvents, type PublicEvent } from "@/lib/events.functions";
+import {
+  listUpcomingEvents,
+  listPastEvents,
+  type PublicEvent,
+} from "@/lib/events.functions";
 import { listGoogleCalendarEvents } from "@/lib/gcal.functions";
 import { Calendar, MapPin } from "lucide-react";
 
-
-const eventsQuery = queryOptions({
+const upcomingQuery = queryOptions({
   queryKey: ["events", "upcoming", "combined"],
   queryFn: async (): Promise<PublicEvent[]> => {
     const [db, gcal] = await Promise.all([listUpcomingEvents(), listGoogleCalendarEvents()]);
@@ -21,13 +24,18 @@ const eventsQuery = queryOptions({
   staleTime: 60_000,
 });
 
+const pastQuery = queryOptions({
+  queryKey: ["events", "past"],
+  queryFn: () => listPastEvents(),
+  staleTime: 60_000,
+});
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
 
 export const Route = createFileRoute("/events")({
   head: ({ loaderData }) => {
-    const events = (loaderData as PublicEvent[] | undefined) ?? [];
+    const events = (loaderData as { upcoming: PublicEvent[] } | undefined)?.upcoming ?? [];
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "ItemList",
@@ -45,12 +53,20 @@ export const Route = createFileRoute("/events")({
             ? {
                 "@type": "Place",
                 name: ev.location,
-                address: { "@type": "PostalAddress", addressRegion: "Western Cape", addressCountry: "ZA" },
+                address: {
+                  "@type": "PostalAddress",
+                  addressRegion: "Western Cape",
+                  addressCountry: "ZA",
+                },
               }
             : undefined,
           description: ev.description ?? undefined,
           image: ev.cover_url ?? undefined,
-          organizer: { "@type": "Organization", name: "Just Wheels Hessequa", url: SITE_ORIGIN },
+          organizer: {
+            "@type": "Organization",
+            name: "Just Wheels Hessequa",
+            url: SITE_ORIGIN,
+          },
         },
       })),
     };
@@ -60,10 +76,13 @@ export const Route = createFileRoute("/events")({
         {
           name: "description",
           content:
-            "Upcoming breakfast runs, show-and-shines, cruises and workshop days for the Just Wheels Hessequa car club in the Southern Cape.",
+            "Upcoming and past breakfast runs, show-and-shines, cruises and workshop days for Just Wheels Hessequa.",
         },
         { property: "og:title", content: "Events | Just Wheels Hessequa" },
-        { property: "og:description", content: "Upcoming runs, shows and cruises across the Southern Cape." },
+        {
+          property: "og:description",
+          content: "Upcoming runs, shows and cruises across the Southern Cape.",
+        },
         { property: "og:type", content: "website" },
         { property: "og:url", content: `${SITE_ORIGIN}/events` },
         { property: "og:image", content: OG_LOGO },
@@ -74,7 +93,13 @@ export const Route = createFileRoute("/events")({
       scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
     };
   },
-  loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
+  loader: async ({ context }) => {
+    const [upcoming, past] = await Promise.all([
+      context.queryClient.ensureQueryData(upcomingQuery),
+      context.queryClient.ensureQueryData(pastQuery),
+    ]);
+    return { upcoming, past };
+  },
   component: EventsPage,
   errorComponent: ({ error }) => (
     <SiteLayout>
@@ -89,7 +114,6 @@ export const Route = createFileRoute("/events")({
     </SiteLayout>
   ),
 });
-
 
 function formatDate(iso: string, lang: "en" | "af") {
   return new Date(iso).toLocaleDateString(lang === "af" ? "af-ZA" : "en-ZA", {
@@ -109,7 +133,8 @@ function formatTime(iso: string, lang: "en" | "af") {
 
 function EventsPage() {
   const { t, lang } = useI18n();
-  const { data: events } = useSuspenseQuery(eventsQuery);
+  const { data: upcoming } = useSuspenseQuery(upcomingQuery);
+  const { data: past } = useSuspenseQuery(pastQuery);
 
   return (
     <SiteLayout>
@@ -123,15 +148,18 @@ function EventsPage() {
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-paper/80">
             {lang === "af"
-              ? "Ons volgende ritte, shows en werkswinkeldae oor die Suid-Kaap."
-              : "Our next runs, shows and workshop days across the Southern Cape."}
+              ? "Komende én vorige ritte, shows en werkswinkeldae. Lede kan fotos byvoeg by elke byeenkoms."
+              : "Upcoming and past runs, shows and workshop days. Members can add photos to any event."}
           </p>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-14">
-        {events.length === 0 ? (
-          <div className="rounded-lg border-2 border-dashed border-ink/30 bg-card p-12 text-center">
+        <h2 className="font-display text-3xl tracking-wide text-ink">
+          {lang === "af" ? "Komende" : "Upcoming"}
+        </h2>
+        {upcoming.length === 0 ? (
+          <div className="mt-6 rounded-lg border-2 border-dashed border-ink/30 bg-card p-12 text-center">
             <p className="font-display text-2xl text-ink">
               {lang === "af" ? "Geen komende byeenkomste nie." : "No upcoming events yet."}
             </p>
@@ -142,18 +170,46 @@ function EventsPage() {
             </p>
           </div>
         ) : (
-          <ul className="grid gap-6 md:grid-cols-2">
-            {events.map((ev) => (
+          <ul className="mt-6 grid gap-6 md:grid-cols-2">
+            {upcoming.map((ev) => (
               <EventCard key={ev.id} event={ev} lang={lang} />
             ))}
           </ul>
         )}
       </section>
+
+      {past.length > 0 && (
+        <section className="border-t-2 border-ink bg-steel/10">
+          <div className="mx-auto max-w-6xl px-4 py-14">
+            <h2 className="font-display text-3xl tracking-wide text-ink">
+              {lang === "af" ? "Vorige byeenkomste" : "Past events"}
+            </h2>
+            <p className="mt-2 text-sm text-ink/60">
+              {lang === "af"
+                ? "Blaai deur vorige dae en voeg steeds fotos by."
+                : "Browse past days and keep adding photos."}
+            </p>
+            <ul className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {past.map((ev) => (
+                <EventCard key={ev.id} event={ev} lang={lang} past />
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
     </SiteLayout>
   );
 }
 
-function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
+function EventCard({
+  event,
+  lang,
+  past = false,
+}: {
+  event: PublicEvent;
+  lang: "en" | "af";
+  past?: boolean;
+}) {
   const title = lang === "af" && event.title_af ? event.title_af : event.title;
   const description =
     lang === "af" && event.description_af ? event.description_af : event.description;
@@ -165,11 +221,11 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
         <img
           src={event.cover_url}
           alt=""
-          className="h-48 w-full border-b-2 border-ink object-cover"
+          className={`h-40 w-full border-b-2 border-ink object-cover ${past ? "opacity-90" : ""}`}
         />
       ) : (
         <div
-          className="h-32 w-full border-b-2 border-ink"
+          className="h-28 w-full border-b-2 border-ink"
           style={{
             background:
               "repeating-linear-gradient(45deg, var(--color-primary) 0 12px, var(--color-ink) 12px 24px)",
@@ -177,8 +233,13 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
           aria-hidden
         />
       )}
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold uppercase tracking-wider text-primary">
+          {past && (
+            <span className="rounded-full border border-ink/30 bg-ink/5 px-2 py-0.5 text-[10px] text-ink/60">
+              {lang === "af" ? "Verby" : "Past"}
+            </span>
+          )}
           <span className="inline-flex items-center gap-1">
             <Calendar className="h-3.5 w-3.5" />
             {formatDate(event.starts_at, lang)} · {formatTime(event.starts_at, lang)}
@@ -190,11 +251,17 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
             </span>
           ) : null}
         </div>
-        <h2 className="mt-3 font-display text-2xl tracking-wide text-ink">{title}</h2>
-        {description ? <p className="mt-2 text-ink/70">{description}</p> : null}
+        <h2 className="mt-2 font-display text-xl tracking-wide text-ink">{title}</h2>
+        {description ? <p className="mt-2 line-clamp-2 text-sm text-ink/70">{description}</p> : null}
         {isDbEvent && (
           <p className="mt-3 text-xs font-bold uppercase tracking-wider text-primary">
-            {lang === "af" ? "Sien meer →" : "See details →"}
+            {past
+              ? lang === "af"
+                ? "Fotos & besonderhede →"
+                : "Photos & details →"
+              : lang === "af"
+                ? "Sien meer →"
+                : "See details →"}
           </p>
         )}
       </div>
@@ -215,4 +282,3 @@ function EventCard({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
     </li>
   );
 }
-

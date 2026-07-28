@@ -58,10 +58,10 @@ async function signPhotos(
   client: {
     storage: {
       from: (b: string) => {
-        createSignedUrls: (paths: string[], expires: number) => Promise<{
-          data: { path: string | null; signedUrl: string }[] | null;
-          error: unknown;
-        }>;
+        createSignedUrls: (
+          paths: string[],
+          expires: number,
+        ) => Promise<{ data: { path: string | null; signedUrl: string }[] | null; error: unknown }>;
       };
     };
   },
@@ -69,9 +69,7 @@ async function signPhotos(
 ): Promise<{ id: string; url: string; sort: number }[]> {
   if (photos.length === 0) return [];
   const paths = photos.map((p) => p.image_url);
-  const { data, error } = await client.storage
-    .from("listings")
-    .createSignedUrls(paths, 60 * 60 * 24 * 7);
+  const { data, error } = await client.storage.from("listings").createSignedUrls(paths, 60 * 60 * 24 * 7);
   if (error) throw error;
   const map = new Map<string, string>();
   (data ?? []).forEach((d) => {
@@ -113,10 +111,7 @@ function mapListing(raw: RawListing): PublicListing {
 
 const listInputSchema = z
   .object({
-    category: z
-      .enum(["parts", "cars", "memorabilia", "other"])
-      .nullable()
-      .optional(),
+    category: z.enum(["parts", "cars", "memorabilia", "other"]).nullable().optional(),
     search: z.string().trim().max(120).nullable().optional(),
   })
   .optional();
@@ -204,7 +199,7 @@ export const listMyListings = createServerFn({ method: "GET" })
       .select(LISTING_WITH_CONTACT_SELECT)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
     for (const l of listings) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -241,14 +236,14 @@ export const createListing = createServerFn({ method: "POST" })
       .insert({ ...listing, user_id: userId, status: "pending" as const })
       .select("id")
       .single();
-    if (error) throw error;
+    if (error) throw new Error(error.message);
     const { error: cErr } = await supabase.from("listing_contacts").insert({
       listing_id: row.id,
       contact_name,
       contact_phone: contact_phone ?? null,
       contact_email,
     });
-    if (cErr) throw cErr;
+    if (cErr) throw new Error(cErr.message);
     if (photo_paths.length > 0) {
       const photos = photo_paths.map((p, i) => ({
         listing_id: row.id,
@@ -256,31 +251,82 @@ export const createListing = createServerFn({ method: "POST" })
         sort: i,
       }));
       const { error: pErr } = await supabase.from("listing_photos").insert(photos);
-      if (pErr) throw pErr;
+      if (pErr) throw new Error(pErr.message);
     }
     return { id: row.id };
   });
 
+/** Owner (or admin via RLS) permanently deletes their listing */
 export const deleteListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
-    const { error } = await supabase.from("listings").delete().eq("id", data.id);
-    if (error) throw error;
+    const { supabase, userId } = context;
+
+    // Verify ownership first for a clear error (RLS would otherwise silently no-op)
+    const { data: row, error: findErr } = await supabase
+      .from("listings")
+      .select("id, user_id")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (!row) throw new Error("Listing not found");
+    if (row.user_id !== userId) {
+      // Admins can still delete via their policy if present
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) throw new Error("You can only delete your own listings");
+    }
+
+    const { error, count } = await supabase
+      .from("listings")
+      .delete({ count: "exact" })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    if (count === 0) {
+      throw new Error(
+        "Delete blocked by security policy. Ask an admin to check listings_owner_delete RLS.",
+      );
+    }
     return { ok: true };
   });
 
+/** Owner delists / marks sold — removes from public marketplace */
 export const markSold = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }) => {
-    const { supabase } = context;
-    const { error } = await supabase
+    const { supabase, userId } = context;
+
+    const { data: row, error: findErr } = await supabase
+      .from("listings")
+      .select("id, user_id, status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (!row) throw new Error("Listing not found");
+    if (row.user_id !== userId) {
+      const { data: isAdmin } = await supabase.rpc("has_role", {
+        _user_id: userId,
+        _role: "admin",
+      });
+      if (!isAdmin) throw new Error("You can only delist your own listings");
+    }
+
+    const { data: updated, error } = await supabase
       .from("listings")
       .update({ status: "sold" as const })
-      .eq("id", data.id);
-    if (error) throw error;
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) {
+      throw new Error(
+        "Delist blocked by security policy. Owners may only set status to sold — check listings_owner_update RLS.",
+      );
+    }
     return { ok: true };
   });
 
@@ -297,7 +343,6 @@ export const listPendingListings = createServerFn({ method: "GET" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    // Prefer service role so admin always sees every listing regardless of RLS
     let rows: unknown[] | null = null;
     let client: typeof supabase = supabase;
     try {
@@ -325,7 +370,6 @@ export const listPendingListings = createServerFn({ method: "GET" })
 
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
 
-    // Pending first, then newest
     listings.sort((a, b) => {
       const rank = (s: string) => (s === "pending" ? 0 : s === "approved" ? 1 : 2);
       const d = rank(a.status) - rank(b.status);
@@ -361,7 +405,6 @@ export const moderateListing = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    // Service role so RLS cannot block admin approval
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { error } = await supabaseAdmin

@@ -47,6 +47,19 @@ function pickCarPhoto(vehicles: GarageVehicle[]): string | null {
   return null;
 }
 
+/**
+ * Profile face for the bottom-right circle.
+ * Never reuse the garage car URL as the face — that caused the wheel crop.
+ * Prefer avatar_url only when it is different from the car background.
+ */
+function pickFacePhoto(avatarUrl: string | null, carPhoto: string | null): string | null {
+  if (!avatarUrl) return null;
+  if (carPhoto && avatarUrl === carPhoto) return null;
+  // Also skip if avatar points at a vehicles/ garage path (car photo set as avatar)
+  if (/\/vehicles\//i.test(avatarUrl) || /garage.*vehicles/i.test(avatarUrl)) return null;
+  return avatarUrl;
+}
+
 function MemberCardPage() {
   const { t, lang } = useI18n();
   const fetchProfile = useServerFn(getMyProfile);
@@ -96,13 +109,13 @@ function MemberCardPage() {
 
   const profile = query.data ?? cached;
   const carPhoto = pickCarPhoto(garageQuery.data ?? []);
-  const profilePhoto = profile?.avatar_url ?? null;
+  const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
 
   async function downloadCard() {
     if (!profile || downloading) return;
     setDownloading(true);
     try {
-      await downloadLandscapeCard(profile, carPhoto, profilePhoto, lang === "af");
+      await downloadLandscapeCard(profile, carPhoto, facePhoto, lang === "af");
     } catch (e) {
       console.error(e);
       alert(lang === "af" ? "Aflaai het misluk" : "Download failed");
@@ -149,8 +162,8 @@ function MemberCardPage() {
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"
-            ? "Agtergrond = motor uit jou garage · sirkel regs onder = jou profielfoto · laai af teen CR80 (85.6×54 mm) om te lamineer."
-            : "Background = car from your garage · bottom-right circle = your profile photo · download at CR80 (85.6×54 mm) to laminate."}
+            ? "Agtergrond = motor · regs onder = jou gesig (laai op onder Lidkaart-foto) · links bo = klublogo."
+            : "Background = car · bottom-right = your face (upload under Member card photo) · top-left = club logo."}
         </p>
 
         {!profile ? (
@@ -161,13 +174,20 @@ function MemberCardPage() {
               ref={cardRef}
               profile={profile}
               carPhoto={carPhoto}
-              profilePhoto={profilePhoto}
+              facePhoto={facePhoto}
             />
             {!carPhoto && (
               <p className="mt-3 text-center text-xs text-ink/50">
                 {lang === "af"
-                  ? "Geen garage-foto nie — laai 'n motorfoto in My Garage op vir die agtergrond."
-                  : "No garage photo yet — upload a car photo in My Garage for the background."}
+                  ? "Geen garage-foto nie — laai 'n motorfoto in My Garage op."
+                  : "No garage photo yet — upload a car photo in My Garage."}
+              </p>
+            )}
+            {!facePhoto && (
+              <p className="mt-2 text-center text-xs text-ink/50">
+                {lang === "af"
+                  ? "Geen gesigfoto nie — gaan na My Garage → Lidkaart-foto en laai jou profielfoto op."
+                  : "No face photo — go to My Garage → Member card photo and upload your portrait."}
               </p>
             )}
           </div>
@@ -180,21 +200,18 @@ function MemberCardPage() {
 function MemberCard({
   profile,
   carPhoto,
-  profilePhoto,
+  facePhoto,
   ref,
 }: {
   profile: MemberProfile;
   carPhoto: string | null;
-  profilePhoto: string | null;
+  facePhoto: string | null;
   ref?: React.Ref<HTMLElement>;
 }) {
   const { t, lang } = useI18n();
   const year = new Date(profile.joined_at).getFullYear();
   const number = String(profile.member_number).padStart(4, "0");
-  // Full-bleed background: garage car preferred
-  const bg = carPhoto || null;
-  // Bottom-right circle: profile face
-  const face = profilePhoto || null;
+  const logoSrc = logoAsset.url;
 
   return (
     <article
@@ -202,29 +219,24 @@ function MemberCard({
       aria-label="Just Wheels Hessequa member card"
       className="relative aspect-[85.6/53.98] w-full overflow-hidden rounded-2xl border-4 border-ink bg-ink text-paper shadow-[8px_8px_0_0_var(--color-primary)]"
     >
-      {bg ? (
-        <img
-          src={bg}
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover"
-          crossOrigin="anonymous"
-        />
+      {/* Background = garage car only */}
+      {carPhoto ? (
+        <img src={carPhoto} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-ink via-[#1a1210] to-[#2a1512]" />
       )}
 
-      {/* Dark gradient for legibility over the car */}
       <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/70 to-ink/20" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/90 to-transparent" />
 
       <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
         <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
+            {/* Club logo — never replaced by car/avatar */}
             <img
-              src={logoAsset.url}
-              alt=""
-              className="h-11 w-11 rounded-full border-2 border-paper object-cover shadow-md sm:h-12 sm:w-12"
-              crossOrigin="anonymous"
+              src={logoSrc}
+              alt="Just Wheels"
+              className="h-11 w-11 shrink-0 rounded-full border-2 border-paper bg-paper object-cover shadow-md sm:h-12 sm:w-12"
             />
             <div>
               <div className="font-display text-lg leading-none tracking-wide sm:text-xl">
@@ -258,34 +270,18 @@ function MemberCard({
           </div>
         </div>
 
-        {/* Bottom-right: profile photo with small JW logo badge */}
+        {/* Bottom-right: profile FACE + small club logo badge */}
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className="relative h-16 w-16 sm:h-20 sm:w-20">
-            <div className="h-full w-full overflow-hidden rounded-full border-[3px] border-paper bg-ink shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
-              {face ? (
-                <img
-                  src={face}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  crossOrigin="anonymous"
-                />
+            <div className="h-full w-full overflow-hidden rounded-full border-[3px] border-paper bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
+              {facePhoto ? (
+                <img src={facePhoto} alt="" className="h-full w-full object-cover" />
               ) : (
-                <img
-                  src={logoAsset.url}
-                  alt="Just Wheels"
-                  className="h-full w-full object-cover"
-                  crossOrigin="anonymous"
-                />
+                <img src={logoSrc} alt="Just Wheels" className="h-full w-full object-cover" />
               )}
             </div>
-            {/* Small club logo overlay on the profile circle */}
             <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 overflow-hidden rounded-full border-2 border-paper bg-paper shadow sm:h-8 sm:w-8">
-              <img
-                src={logoAsset.url}
-                alt=""
-                className="h-full w-full object-cover"
-                crossOrigin="anonymous"
-              />
+              <img src={logoSrc} alt="" className="h-full w-full object-cover" />
             </div>
           </div>
         </div>
@@ -297,7 +293,7 @@ function MemberCard({
 async function downloadLandscapeCard(
   profile: MemberProfile,
   carPhoto: string | null,
-  profilePhoto: string | null,
+  facePhoto: string | null,
   af: boolean,
 ) {
   const canvas = document.createElement("canvas");
@@ -314,7 +310,6 @@ async function downloadLandscapeCard(
   ctx.fillStyle = "#140e0c";
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
-  // Background = garage car
   if (carPhoto) {
     try {
       const img = await loadImage(carPhoto);
@@ -382,7 +377,6 @@ async function downloadLandscapeCard(
     .join("  ·  ");
   ctx.fillText(meta, 48, PRINT_H - 28);
 
-  // Bottom-right profile face + small logo badge
   const cx = PRINT_W - 90;
   const cy = PRINT_H - 90;
   const r = 62;
@@ -395,12 +389,11 @@ async function downloadLandscapeCard(
     ctx.strokeStyle = "#140e0c";
     ctx.lineWidth = 4;
     ctx.stroke();
-    const faceSrc = profilePhoto || logoAsset.url;
+    const faceSrc = facePhoto || logoAsset.url;
     const face = await loadImage(faceSrc);
     drawCircleImage(ctx, face, cx, cy, r);
     ctx.restore();
 
-    // Mini logo badge
     const logo = await loadImage(logoAsset.url);
     const br = 22;
     const bx = cx + r * 0.65;
@@ -431,7 +424,10 @@ async function downloadLandscapeCard(
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    // Same-origin assets work without CORS; remote storage needs it for canvas
+    if (/^https?:\/\//i.test(src) && !src.includes(window.location.host)) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to load ${src}`));
     img.src = src;

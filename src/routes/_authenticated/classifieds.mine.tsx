@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
+import { toast } from "sonner";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
@@ -10,7 +12,7 @@ import {
   type MyListing,
   type ListingStatus,
 } from "@/lib/listings.functions";
-import { Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 
 const myListingsQuery = queryOptions({
   queryKey: ["listings", "mine"],
@@ -23,16 +25,26 @@ export const Route = createFileRoute("/_authenticated/classifieds/mine")({
   component: MyListingsPage,
 });
 
+function statusLabel(s: ListingStatus, lang: "en" | "af"): string {
+  const map: Record<ListingStatus, { en: string; af: string }> = {
+    approved: { en: "Live", af: "Aktief" },
+    pending: { en: "Pending review", af: "Wag op goedkeuring" },
+    rejected: { en: "Rejected", af: "Afgekeur" },
+    sold: { en: "Sold / delisted", af: "Verkoop / verwyder" },
+  };
+  return lang === "af" ? map[s].af : map[s].en;
+}
+
 function statusColor(s: ListingStatus): string {
   switch (s) {
     case "approved":
       return "bg-emerald-600 text-white";
     case "pending":
-      return "bg-amber-500 text-ink";
+      return "bg-amber-500 text-black";
     case "rejected":
-      return "bg-primary text-paper";
+      return "bg-primary text-white";
     case "sold":
-      return "bg-ink text-paper";
+      return "bg-black text-white";
   }
 }
 
@@ -42,41 +54,94 @@ function MyListingsPage() {
   const qc = useQueryClient();
   const delFn = useServerFn(deleteListing);
   const soldFn = useServerFn(markSold);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function onDelete(id: string) {
-    if (!confirm(lang === "af" ? "Skrap hierdie advertensie?" : "Delete this listing?")) return;
-    await delFn({ data: { id } });
-    await qc.invalidateQueries({ queryKey: ["listings"] });
-  }
-  async function onSold(id: string) {
-    await soldFn({ data: { id } });
-    await qc.invalidateQueries({ queryKey: ["listings"] });
+  async function run(id: string, action: "delete" | "sold") {
+    if (action === "delete") {
+      const ok = confirm(
+        lang === "af"
+          ? "Skrap hierdie advertensie permanent? Dit kan nie ontdoen word nie."
+          : "Permanently delete this listing? This cannot be undone.",
+      );
+      if (!ok) return;
+    }
+    setBusyId(id);
+    try {
+      if (action === "delete") {
+        await delFn({ data: { id } });
+        toast.success(lang === "af" ? "Advertensie geskrap" : "Listing deleted");
+      } else {
+        await soldFn({ data: { id } });
+        toast.success(
+          lang === "af"
+            ? "Advertensie van die markplek verwyder"
+            : "Listing removed from the marketplace",
+        );
+      }
+      await qc.invalidateQueries({ queryKey: ["listings"] });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(lang === "af" ? `Kon nie bywerk nie: ${msg}` : `Could not update: ${msg}`);
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
     <SiteLayout>
       <div className="mx-auto max-w-4xl px-4 py-10">
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-4xl tracking-wide text-ink">
-            {lang === "af" ? "My advertensies" : "My listings"}
-          </h1>
+        <Link
+          to="/classifieds"
+          className="mb-4 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-ink/60 hover:text-ink"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          {lang === "af" ? "Terug na markplek" : "Back to marketplace"}
+        </Link>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="font-display text-4xl tracking-wide text-ink">
+              {lang === "af" ? "My advertensies" : "My listings"}
+            </h1>
+            <p className="mt-1 text-sm text-ink/60">
+              {lang === "af"
+                ? "Verwyder van die markplek, merk as verkoop, of skrap permanent."
+                : "Delist from the marketplace, mark as sold, or delete permanently."}
+            </p>
+          </div>
           <Link
             to="/classifieds/new"
             search={{ from: "mine" }}
-            className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-3 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-3 py-2 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
           >
             <Plus className="h-4 w-4" /> {lang === "af" ? "Nuwe" : "New"}
           </Link>
         </div>
 
         {listings.length === 0 ? (
-          <p className="mt-10 text-center text-ink/60">
-            {lang === "af" ? "Niks nog nie." : "Nothing yet."}
-          </p>
+          <div className="mt-10 rounded-2xl border-2 border-dashed border-ink/25 bg-paper px-6 py-16 text-center">
+            <p className="font-display text-xl text-ink/50">
+              {lang === "af" ? "Nog geen advertensies nie." : "No listings yet."}
+            </p>
+            <Link
+              to="/classifieds/new"
+              search={{ from: "mine" }}
+              className="mt-4 inline-flex rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white"
+            >
+              {lang === "af" ? "Plaas jou eerste" : "Post your first"}
+            </Link>
+          </div>
         ) : (
           <ul className="mt-8 space-y-3">
             {listings.map((l) => (
-              <MineRow key={l.id} listing={l} onDelete={onDelete} onSold={onSold} lang={lang} />
+              <MineRow
+                key={l.id}
+                listing={l}
+                busy={busyId === l.id}
+                onDelist={() => run(l.id, "sold")}
+                onDelete={() => run(l.id, "delete")}
+                lang={lang}
+              />
             ))}
           </ul>
         )}
@@ -87,54 +152,87 @@ function MyListingsPage() {
 
 function MineRow({
   listing,
+  busy,
+  onDelist,
   onDelete,
-  onSold,
   lang,
 }: {
   listing: MyListing;
-  onDelete: (id: string) => void;
-  onSold: (id: string) => void;
+  busy: boolean;
+  onDelist: () => void;
+  onDelete: () => void;
   lang: "en" | "af";
 }) {
+  const isLive = listing.status === "approved";
+  const isPending = listing.status === "pending";
+  const isGone = listing.status === "sold" || listing.status === "rejected";
+
   return (
-    <li className="flex items-center gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
+    <li className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:items-center">
       {listing.photos[0] ? (
         <img
           src={listing.photos[0].url}
           alt=""
-          className="h-16 w-16 rounded border-2 border-ink object-cover"
+          className="h-20 w-full rounded border-2 border-ink object-cover sm:h-16 sm:w-16"
         />
       ) : (
-        <div className="h-16 w-16 rounded border-2 border-ink bg-ink/10" />
+        <div className="h-16 w-full rounded border-2 border-ink bg-ink/10 sm:w-16" />
       )}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusColor(listing.status)}`}
           >
-            {listing.status}
+            {statusLabel(listing.status, lang)}
           </span>
-          <span className="text-xs text-ink/60">{listing.category}</span>
+          <span className="text-xs uppercase tracking-wider text-ink/50">{listing.category}</span>
         </div>
         <p className="mt-1 truncate font-display text-lg text-ink">{listing.title}</p>
+        {listing.price_zar != null && (
+          <p className="text-sm text-ink/70">R {listing.price_zar.toLocaleString("en-ZA")}</p>
+        )}
       </div>
-      <div className="flex items-center gap-2">
-        {listing.status === "approved" ? (
+
+      <div className="flex flex-wrap items-center gap-2">
+        {(isLive || isPending) && (
           <button
             type="button"
-            onClick={() => onSold(listing.id)}
-            title={lang === "af" ? "Merk as verkoop" : "Mark as sold"}
-            className="rounded border-2 border-ink p-1.5 hover:bg-ink hover:text-paper"
+            disabled={busy}
+            onClick={onDelist}
+            title={
+              lang === "af"
+                ? "Verwyder van markplek (merk as verkoop / versteek)"
+                : "Remove from marketplace (mark sold / hide)"
+            }
+            className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-white disabled:opacity-50"
           >
-            <CheckCircle2 className="h-4 w-4" />
+            {busy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : isLive ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            )}
+            {lang === "af" ? "Verwyder" : "Delist"}
           </button>
-        ) : null}
+        )}
+
+        {isGone && (
+          <span className="text-xs text-ink/50">
+            {lang === "af" ? "Nie meer openbaar nie" : "Not public"}
+          </span>
+        )}
+
         <button
           type="button"
-          onClick={() => onDelete(listing.id)}
-          className="rounded border-2 border-primary p-1.5 text-primary hover:bg-primary hover:text-paper"
+          disabled={busy}
+          onClick={onDelete}
+          title={lang === "af" ? "Skrap permanent" : "Delete permanently"}
+          className="inline-flex items-center gap-1.5 rounded-md border-2 border-primary bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary hover:text-white disabled:opacity-50"
         >
-          <Trash2 className="h-4 w-4" />
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          {lang === "af" ? "Skrap" : "Delete"}
         </button>
       </div>
     </li>

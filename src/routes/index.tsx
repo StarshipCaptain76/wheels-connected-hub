@@ -120,7 +120,7 @@ function Index() {
           className="absolute inset-0 opacity-20"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 20% 20%, var(--color-primary) 0, transparent 40%), radial-gradient(circle at 80% 80%, var(--color-rust) 0, transparent 45%)",
+              "radial-gradient(circle at 20% 20%, var(--color-primary) 0, transparent 40%), radial-gradient(circle at 80% 80%, #000 0, transparent 45%)",
           }}
           aria-hidden
         />
@@ -272,7 +272,6 @@ function Index() {
         </div>
       </section>
 
-      {/* Black band — matches footer */}
       <section className="border-t-2 border-ink bg-ink text-paper">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
           <h2 className="font-display text-4xl tracking-wide text-paper sm:text-5xl">

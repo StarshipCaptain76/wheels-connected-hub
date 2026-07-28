@@ -31,9 +31,9 @@ export function NewsletterSignup() {
       <div className="mb-3 font-display text-sm tracking-widest text-primary">
         {t("newsletter.title")}
       </div>
-      <p className="text-sm text-paper/70">{t("newsletter.blurb")}</p>
+      <p className="text-sm text-ink/70">{t("newsletter.blurb")}</p>
       {state === "sent" ? (
-        <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-paper">
+        <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-ink">
           {t("newsletter.sent")}
         </p>
       ) : (
@@ -46,13 +46,13 @@ export function NewsletterSignup() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t("newsletter.placeholder")}
-              className="w-full rounded-md border-2 border-paper bg-paper py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-md border-2 border-ink bg-paper py-2 pl-9 pr-3 text-sm text-ink placeholder:text-ink/40 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/40"
             />
           </div>
           <button
             type="submit"
             disabled={state === "sending"}
-            className="rounded-md border-2 border-primary bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper transition-transform hover:translate-y-0.5 disabled:opacity-60"
+            className="rounded-md border-2 border-primary bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-transform hover:translate-y-0.5 disabled:opacity-60"
           >
             {state === "sending" ? t("newsletter.sending") : t("newsletter.subscribe")}
           </button>

@@ -2,10 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-// -----------------------------------------------------------------------------
-// Types
-// -----------------------------------------------------------------------------
-
 export type EventWaypoint = {
   id: string;
   event_id: string;
@@ -41,9 +37,11 @@ export type EventDetail = {
   counts: { going: number; going_party_total: number; maybe: number; not_going: number };
 };
 
-// -----------------------------------------------------------------------------
-// Public: event detail
-// -----------------------------------------------------------------------------
+const CORE_COLS =
+  "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published";
+
+const EXTENDED_COLS =
+  "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, hero_image_url, details_md, details_af_md, destination_lat, destination_lng, destination_place_id, destination_address, is_published";
 
 export const getEventDetail = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
@@ -51,43 +49,88 @@ export const getEventDetail = createServerFn({ method: "GET" })
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
 
-    const { data: event } = await supabase
+    // Prefer full row; fall back to core columns if migration not applied
+    let event: Record<string, unknown> | null = null;
+
+    const full = await supabase
       .from("events")
-      .select(
-        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, hero_image_url, details_md, details_af_md, destination_lat, destination_lng, destination_place_id, destination_address, is_published",
-      )
+      .select(EXTENDED_COLS)
       .eq("id", data.id)
       .eq("is_published", true)
       .maybeSingle();
+
+    if (full.error) {
+      console.warn("[getEventDetail] extended select failed, trying core", full.error.message);
+      const core = await supabase
+        .from("events")
+        .select(CORE_COLS)
+        .eq("id", data.id)
+        .eq("is_published", true)
+        .maybeSingle();
+      if (core.error) {
+        console.error("[getEventDetail] core select failed", core.error);
+        throw new Error(core.error.message);
+      }
+      event = core.data as Record<string, unknown> | null;
+    } else {
+      event = full.data as Record<string, unknown> | null;
+    }
+
     if (!event) return null;
 
-    const { data: waypoints } = await supabase
-      .from("event_waypoints")
-      .select("id, event_id, label, label_af, address, lat, lng, place_id, meet_time, sort")
-      .eq("event_id", data.id)
-      .order("sort", { ascending: true });
+    let waypoints: EventWaypoint[] = [];
+    try {
+      const { data: wp, error: wpErr } = await supabase
+        .from("event_waypoints")
+        .select("id, event_id, label, label_af, address, lat, lng, place_id, meet_time, sort")
+        .eq("event_id", data.id)
+        .order("sort", { ascending: true });
+      if (!wpErr && wp) waypoints = wp as EventWaypoint[];
+    } catch (e) {
+      console.warn("[getEventDetail] waypoints skipped", e);
+    }
 
-    const { data: counts } = await supabase
-      .from("event_rsvp_counts")
-      .select("going_count, going_party_total, maybe_count, not_going_count")
-      .eq("event_id", data.id)
-      .maybeSingle();
+    let counts = { going: 0, going_party_total: 0, maybe: 0, not_going: 0 };
+    try {
+      const { data: c } = await supabase
+        .from("event_rsvp_counts")
+        .select("going_count, going_party_total, maybe_count, not_going_count")
+        .eq("event_id", data.id)
+        .maybeSingle();
+      if (c) {
+        counts = {
+          going: Number(c.going_count ?? 0),
+          going_party_total: Number(c.going_party_total ?? 0),
+          maybe: Number(c.maybe_count ?? 0),
+          not_going: Number(c.not_going_count ?? 0),
+        };
+      }
+    } catch (e) {
+      console.warn("[getEventDetail] counts skipped", e);
+    }
 
     return {
-      ...(event as Omit<EventDetail, "waypoints" | "counts">),
-      waypoints: (waypoints ?? []) as EventWaypoint[],
-      counts: {
-        going: Number(counts?.going_count ?? 0),
-        going_party_total: Number(counts?.going_party_total ?? 0),
-        maybe: Number(counts?.maybe_count ?? 0),
-        not_going: Number(counts?.not_going_count ?? 0),
-      },
+      id: event.id as string,
+      title: event.title as string,
+      title_af: (event.title_af as string | null) ?? null,
+      description: (event.description as string | null) ?? null,
+      description_af: (event.description_af as string | null) ?? null,
+      location: (event.location as string | null) ?? null,
+      starts_at: event.starts_at as string,
+      ends_at: (event.ends_at as string | null) ?? null,
+      cover_url: (event.cover_url as string | null) ?? null,
+      hero_image_url: (event.hero_image_url as string | null) ?? null,
+      details_md: (event.details_md as string | null) ?? null,
+      details_af_md: (event.details_af_md as string | null) ?? null,
+      destination_lat: (event.destination_lat as number | null) ?? null,
+      destination_lng: (event.destination_lng as number | null) ?? null,
+      destination_place_id: (event.destination_place_id as string | null) ?? null,
+      destination_address: (event.destination_address as string | null) ?? null,
+      is_published: Boolean(event.is_published),
+      waypoints,
+      counts,
     };
   });
-
-// -----------------------------------------------------------------------------
-// Members: attendees + my RSVP
-// -----------------------------------------------------------------------------
 
 export type AttendeeRow = {
   user_id: string;
@@ -197,10 +240,6 @@ export const deleteMyRsvp = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// -----------------------------------------------------------------------------
-// Admin: waypoints
-// -----------------------------------------------------------------------------
-
 const waypointInput = z.object({
   id: z.string().uuid().nullable().optional(),
   label: z.string().trim().min(1).max(120),
@@ -231,7 +270,6 @@ export const saveEventWaypoints = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
 
-    // Wipe and re-insert to keep it simple and consistent.
     const { error: delErr } = await supabase
       .from("event_waypoints")
       .delete()

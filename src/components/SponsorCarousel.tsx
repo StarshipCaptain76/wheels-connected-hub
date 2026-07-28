@@ -14,37 +14,31 @@ export function SponsorCarousel() {
 
   if (sponsors.length === 0) return null;
 
-  // Enough copies so the track is always wider than the viewport for a smooth loop
   const copies = Math.max(2, Math.ceil(8 / Math.max(sponsors.length, 1)));
   const loop: Sponsor[] = Array.from({ length: copies }, () => sponsors).flat();
-
-  // ~35px/s based on approximate card width (224px + gap)
   const durationSec = Math.max(20, sponsors.length * 6);
 
   return (
-    <section className="border-y-2 border-ink bg-steel/10 py-10">
+    <section className="border-y-2 border-ink bg-ink py-10 text-paper">
       <div className="mx-auto max-w-6xl px-4">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/60">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-paper/50">
               {t("sponsors.kicker")}
             </p>
-            <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">
+            <h2 className="font-display text-3xl tracking-wide text-paper sm:text-4xl">
               {t("sponsors.title")}
             </h2>
           </div>
           <Link
             to="/sponsors"
-            className="hidden shrink-0 rounded-full border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink transition hover:bg-ink hover:text-paper sm:inline-flex"
+            className="hidden shrink-0 rounded-full border-2 border-paper/50 px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:border-primary hover:text-primary sm:inline-flex"
           >
             {t("sponsors.becomeCta")}
           </Link>
         </div>
 
-        <div
-          className="group/marquee relative overflow-hidden"
-          aria-label={t("sponsors.title")}
-        >
+        <div className="group/marquee relative overflow-hidden" aria-label={t("sponsors.title")}>
           <div
             className="flex w-max gap-6 animate-sponsor-marquee group-hover/marquee:[animation-play-state:paused]"
             style={{ animationDuration: `${durationSec}s` }}
@@ -52,7 +46,7 @@ export function SponsorCarousel() {
             {loop.map((s, i) => {
               const tagline = lang === "af" ? s.tagline_af ?? s.tagline : s.tagline;
               const inner = (
-                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_hsl(var(--ink))] transition hover:-translate-y-0.5">
+                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-paper/30 bg-paper p-3 shadow-[3px_3px_0_0_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5">
                   <img
                     src={s.logo_url}
                     alt={s.name}
@@ -88,7 +82,7 @@ export function SponsorCarousel() {
         <div className="mt-6 flex justify-center sm:hidden">
           <Link
             to="/sponsors"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-paper/50 px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
           >
             <Handshake className="h-4 w-4" /> {t("sponsors.becomeCta")}
           </Link>

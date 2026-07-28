@@ -115,16 +115,8 @@ function Index() {
 
   return (
     <SiteLayout>
-      <section className="relative overflow-hidden border-b-2 border-ink bg-ink text-paper grain">
-        <div
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 20%, var(--color-primary) 0, transparent 40%), radial-gradient(circle at 80% 80%, #000 0, transparent 45%)",
-          }}
-          aria-hidden
-        />
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
+      <section className="border-b-2 border-ink bg-ink text-paper">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
           <div>
             <div className="mb-4 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
               {t("home.heroKicker")}
@@ -152,14 +144,11 @@ function Index() {
           </div>
 
           <div className="flex items-center justify-center">
-            <div className="relative">
-              <div className="absolute -inset-6 rounded-full bg-primary/30 blur-2xl" aria-hidden />
-              <img
-                src={LOGO_URL}
-                alt="Just Wheels Hessequa club badge"
-                className="relative h-64 w-64 -rotate-6 rounded-full border-4 border-paper object-cover shadow-2xl md:h-80 md:w-80"
-              />
-            </div>
+            <img
+              src={LOGO_URL}
+              alt="Just Wheels Hessequa club badge"
+              className="h-64 w-64 -rotate-6 rounded-full border-4 border-paper object-cover shadow-2xl md:h-80 md:w-80"
+            />
           </div>
         </div>
       </section>

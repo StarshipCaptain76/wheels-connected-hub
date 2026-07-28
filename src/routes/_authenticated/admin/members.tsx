@@ -14,14 +14,39 @@ import { Search, Shield, Star } from "lucide-react";
 const membersQuery = queryOptions({
   queryKey: ["admin", "members"],
   queryFn: () => listAllMembers(),
+  retry: 1,
 });
 
 export const Route = createFileRoute("/_authenticated/admin/members")({
   head: () => ({
     meta: [{ title: "Members — Admin — Just Wheels" }, { name: "robots", content: "noindex" }],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(membersQuery),
+  loader: async ({ context }) => {
+    try {
+      await context.queryClient.ensureQueryData(membersQuery);
+    } catch (e) {
+      // Let the page render; component will surface the error via query
+      console.error("[admin/members] loader", e);
+    }
+  },
   component: AdminMembersPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="rounded-xl border-2 border-primary bg-primary/10 p-6">
+      <h1 className="font-display text-2xl text-ink">Members failed to load</h1>
+      <p className="mt-2 text-sm text-ink/80">{error.message}</p>
+      <button
+        type="button"
+        onClick={reset}
+        className="mt-4 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white"
+      >
+        Try again
+      </button>
+      <p className="mt-3 text-xs text-ink/50">
+        If this keeps happening, ensure <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> is set
+        in Vercel and your account has the admin role.
+      </p>
+    </div>
+  ),
 });
 
 function AdminMembersPage() {
@@ -69,16 +94,20 @@ function AdminMembersPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search name, email, town, number…"
-            className="w-64 rounded-md border-2 border-ink bg-paper py-2 pl-8 pr-3 text-sm"
+            className="w-64 rounded-md border-2 border-ink bg-paper py-2 pl-8 pr-3 text-sm text-ink"
           />
         </div>
       </div>
 
-      {error && <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
+          {error}
+        </p>
+      )}
 
       <div className="mt-4 overflow-x-auto rounded-lg border-2 border-ink">
         <table className="w-full min-w-[760px] text-sm">
-          <thead className="bg-ink text-paper">
+          <thead className="bg-black text-white">
             <tr>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">#</th>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Member</th>
@@ -97,11 +126,13 @@ function AdminMembersPage() {
                     {String(m.member_number).padStart(4, "0")}
                   </td>
                   <td className="px-3 py-2">
-                    <div className="font-semibold">{m.display_name ?? "—"}</div>
+                    <div className="font-semibold text-ink">{m.display_name ?? "—"}</div>
                     <div className="text-xs text-ink/60">{m.town ?? ""}</div>
-                    {m.favourite_ride && <div className="text-xs text-ink/60">🚗 {m.favourite_ride}</div>}
+                    {m.favourite_ride && (
+                      <div className="text-xs text-ink/60">🚗 {m.favourite_ride}</div>
+                    )}
                   </td>
-                  <td className="px-3 py-2 text-xs">
+                  <td className="px-3 py-2 text-xs text-ink">
                     <div>{m.email ?? "—"}</div>
                     {m.phone && <div className="text-ink/60">{m.phone}</div>}
                   </td>
@@ -112,11 +143,14 @@ function AdminMembersPage() {
                       onChange={(e) =>
                         run(m.user_id, () =>
                           setStatus({
-                            data: { userId: m.user_id, status: e.target.value as "pending" | "active" | "suspended" },
+                            data: {
+                              userId: m.user_id,
+                              status: e.target.value as "pending" | "active" | "suspended",
+                            },
                           }),
                         )
                       }
-                      className="rounded border-2 border-ink bg-paper px-2 py-1 text-xs"
+                      className="rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink"
                     >
                       <option value="pending">pending</option>
                       <option value="active">active</option>
@@ -131,7 +165,7 @@ function AdminMembersPage() {
                         run(m.user_id, () => setRole({ data: { userId: m.user_id, isAdmin: !m.is_admin } }))
                       }
                       className={`inline-flex items-center gap-1 rounded border-2 border-ink px-2 py-1 text-xs font-bold uppercase ${
-                        m.is_admin ? "bg-ink text-paper" : "bg-paper text-ink"
+                        m.is_admin ? "bg-black text-white" : "bg-paper text-ink"
                       }`}
                     >
                       <Shield className="h-3 w-3" /> {m.is_admin ? "Admin" : "Grant"}
@@ -151,7 +185,7 @@ function AdminMembersPage() {
                         )
                       }
                       className={`inline-flex items-center gap-1 rounded border-2 border-ink px-2 py-1 text-xs font-bold uppercase ${
-                        m.is_featured ? "bg-primary text-paper" : "bg-paper text-ink"
+                        m.is_featured ? "bg-primary text-white" : "bg-paper text-ink"
                       }`}
                     >
                       <Star className="h-3 w-3" /> {m.is_featured ? "Featured" : "Feature"}

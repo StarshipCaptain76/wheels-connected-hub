@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
@@ -21,14 +21,25 @@ import { Calendar, MapPin, ArrowLeft, Users, ExternalLink } from "lucide-react";
 const eventQuery = (id: string) =>
   queryOptions({
     queryKey: ["event", id],
-    queryFn: () => getEventDetail({ data: { id } }),
+    queryFn: async () => {
+      try {
+        return await getEventDetail({ data: { id } });
+      } catch (e) {
+        console.error("[event detail]", id, e);
+        throw e;
+      }
+    },
     staleTime: 60_000,
   });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 
 export const Route = createFileRoute("/events/$id")({
-  loader: ({ context, params }) => context.queryClient.ensureQueryData(eventQuery(params.id)),
+  loader: async ({ context, params }) => {
+    const data = await context.queryClient.ensureQueryData(eventQuery(params.id));
+    if (!data) throw notFound();
+    return data;
+  },
   head: ({ loaderData, params }) => {
     const ev = loaderData as EventDetail | null | undefined;
     const title = ev ? `${ev.title} | Just Wheels Hessequa` : "Event | Just Wheels Hessequa";
@@ -56,6 +67,9 @@ export const Route = createFileRoute("/events/$id")({
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl">Event not found</h1>
+        <p className="mt-2 text-sm text-ink/60">
+          This event may be unpublished or the link is outdated.
+        </p>
         <Link to="/events" className="mt-4 inline-block text-primary underline">
           Back to events
         </Link>
@@ -66,6 +80,9 @@ export const Route = createFileRoute("/events/$id")({
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <p className="text-ink/70">Could not load event: {error.message}</p>
+        <Link to="/events" className="mt-4 inline-block text-primary underline">
+          Back to events
+        </Link>
       </div>
     </SiteLayout>
   ),
@@ -288,7 +305,8 @@ function EventDetailPage() {
           </p>
         </section>
 
-        <RsvpSection eventId={data.id} />
+        {/* RSVP only for upcoming; past events skip to photos */}
+        {!isPast && <RsvpSection eventId={data.id} />}
 
         {/* Member photos — works for live and past events */}
         <EventPhotosGallery eventId={data.id} lang={lang} />

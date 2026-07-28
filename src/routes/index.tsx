@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
+import { LOGO_URL } from "@/lib/brand";
 import { Calendar, IdCard, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
@@ -14,7 +14,7 @@ const nextEventQuery = queryOptions({
 });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
-const OG_LOGO = `${SITE_ORIGIN}${logoAsset.url}`;
+const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -77,7 +77,6 @@ function Index() {
 
   return (
     <SiteLayout>
-      {/* HERO */}
       <section className="relative overflow-hidden border-b-2 border-ink bg-ink text-paper grain">
         <div
           className="absolute inset-0 opacity-20"
@@ -116,12 +115,9 @@ function Index() {
 
           <div className="flex items-center justify-center">
             <div className="relative">
-              <div
-                className="absolute -inset-6 rounded-full bg-primary/30 blur-2xl"
-                aria-hidden
-              />
+              <div className="absolute -inset-6 rounded-full bg-primary/30 blur-2xl" aria-hidden />
               <img
-                src={logoAsset.url}
+                src={LOGO_URL}
                 alt="Just Wheels Hessequa club badge"
                 className="relative h-64 w-64 -rotate-6 rounded-full border-4 border-paper object-cover shadow-2xl md:h-80 md:w-80"
               />
@@ -130,7 +126,6 @@ function Index() {
         </div>
       </section>
 
-      {/* NEXT EVENT STRIP */}
       <Link
         to="/events"
         className="block border-b-2 border-ink bg-primary text-paper transition-colors hover:bg-primary/90"
@@ -146,10 +141,8 @@ function Index() {
         </div>
       </Link>
 
-      {/* SPONSORS — between NEXT UP and WHY JOIN */}
       <SponsorCarousel />
 
-      {/* FEATURES / WHY JOIN */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
           {t("home.featuresTitle")}
@@ -173,7 +166,6 @@ function Index() {
         </div>
       </section>
 
-      {/* ABOUT TEASER */}
       <section className="border-t-2 border-ink bg-secondary">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
           <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">

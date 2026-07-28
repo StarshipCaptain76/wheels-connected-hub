@@ -5,7 +5,16 @@ import { lovable } from "@/integrations/lovable";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 
+function safePath(value: unknown): string {
+  if (typeof value !== "string") return "/members";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/members";
+  return value;
+}
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: safePath(search.redirect),
+  }),
   head: () => ({
     meta: [
       { title: "Sign in — Just Wheels Hessequa" },
@@ -20,6 +29,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { redirect: redirectTo } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,9 +40,10 @@ function AuthPage() {
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/members", replace: true });
+      if (data.session) navigate({ to: redirectTo, replace: true });
     });
-  }, [navigate]);
+  }, [navigate, redirectTo]);
+
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -60,7 +71,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/members", replace: true });
+        navigate({ to: redirectTo, replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -74,10 +85,10 @@ function AuthPage() {
     setLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/auth`,
+        redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(redirectTo)}`,
       });
       if (result.error) throw result.error;
-      if (!result.redirected) navigate({ to: "/members", replace: true });
+      if (!result.redirected) navigate({ to: redirectTo, replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setLoading(false);

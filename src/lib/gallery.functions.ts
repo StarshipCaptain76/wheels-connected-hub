@@ -22,7 +22,7 @@ export const listGalleryItems = createServerFn({ method: "GET" }).handler(
       .select("id, title, caption, image_url, event_id, taken_at, created_at")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
-      .limit(60);
+      .limit(200);
     if (error) throw new Error(error.message);
     return (data ?? []) as GalleryItem[];
   },

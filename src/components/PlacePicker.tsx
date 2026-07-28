@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MapPin, X } from "lucide-react";
-import { loadGoogleMaps } from "@/lib/google-maps";
+import { Loader2, MapPin, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { hasGoogleMapsKey, loadGoogleMaps } from "@/lib/google-maps";
 
 export type PlaceResult = {
   formatted: string;
@@ -32,12 +32,38 @@ export function PlacePicker({
   const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mapsStatus, setMapsStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [mapOpen, setMapOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const serviceRef = useRef<any>(null);
   const placesRef = useRef<any>(null);
   const sessionToken = useRef<any>(null);
+
+  // Preload Google Maps as soon as the picker mounts (destination / stops tab)
+  useEffect(() => {
+    if (!hasGoogleMapsKey()) {
+      setMapsStatus("error");
+      setError(
+        "Google Maps key not in this build. Add VITE_GOOGLE_MAPS_API_KEY in Vercel and Redeploy.",
+      );
+      return;
+    }
+    setMapsStatus("loading");
+    loadGoogleMaps()
+      .then(async (g) => {
+        serviceRef.current = new g.maps.places.AutocompleteService();
+        const div = document.createElement("div");
+        placesRef.current = new g.maps.places.PlacesService(div);
+        sessionToken.current = new g.maps.places.AutocompleteSessionToken();
+        setMapsStatus("ready");
+        setError(null);
+      })
+      .catch((e) => {
+        setMapsStatus("error");
+        setError(e instanceof Error ? e.message : "Google Maps failed to load");
+      });
+  }, []);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -82,23 +108,29 @@ export function PlacePicker({
           },
           (preds: any[] | null, status: string) => {
             setLoading(false);
-            if (status !== "OK" || !preds?.length) {
-              setSuggestions([]);
-              setOpen(false);
-              if (status !== "ZERO_RESULTS" && status !== "OK") {
-                setError(`Places: ${status} — enable Places API on your Google key`);
-              }
+            if (status === "OK" && preds?.length) {
+              setSuggestions(
+                preds.slice(0, 6).map((p) => ({
+                  placeId: p.place_id as string,
+                  description: p.description as string,
+                  mainText:
+                    (p.structured_formatting?.main_text as string) ?? (p.description as string),
+                  secondaryText: (p.structured_formatting?.secondary_text as string) ?? "",
+                })),
+              );
+              setOpen(true);
               return;
             }
-            setSuggestions(
-              preds.slice(0, 6).map((p) => ({
-                placeId: p.place_id as string,
-                description: p.description as string,
-                mainText: (p.structured_formatting?.main_text as string) ?? (p.description as string),
-                secondaryText: (p.structured_formatting?.secondary_text as string) ?? "",
-              })),
-            );
-            setOpen(true);
+            setSuggestions([]);
+            setOpen(false);
+            if (status === "ZERO_RESULTS") return;
+            if (status === "REQUEST_DENIED") {
+              setError(
+                "Places REQUEST_DENIED — enable Places API on the key and allow www.justwheels.co.za in website restrictions.",
+              );
+            } else if (status && status !== "OK") {
+              setError(`Places status: ${status}`);
+            }
           },
         );
       } catch (e) {
@@ -128,6 +160,7 @@ export function PlacePicker({
             sessionToken.current = new g.maps.places.AutocompleteSessionToken();
             if (status !== "OK" || !place?.geometry?.location) {
               onChange(s.description);
+              if (status && status !== "OK") setError(`Place details: ${status}`);
               resolve();
               return;
             }
@@ -158,6 +191,23 @@ export function PlacePicker({
 
   return (
     <div ref={wrapRef} className="relative space-y-2">
+      {mapsStatus === "loading" && (
+        <p className="flex items-center gap-1.5 text-[11px] text-ink/50">
+          <Loader2 className="h-3 w-3 animate-spin" /> Loading Google Places…
+        </p>
+      )}
+      {mapsStatus === "ready" && (
+        <p className="flex items-center gap-1.5 text-[11px] text-emerald-700">
+          <CheckCircle2 className="h-3 w-3" /> Google search ready — type 2+ letters
+        </p>
+      )}
+      {mapsStatus === "error" && (
+        <p className="flex items-start gap-1.5 text-[11px] text-primary">
+          <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+          {error ?? "Google Maps not available"}
+        </p>
+      )}
+
       <div className="relative">
         <input
           value={value}
@@ -205,7 +255,9 @@ export function PlacePicker({
         Choose on map
       </button>
 
-      {error && <p className="text-xs text-primary">{error}</p>}
+      {error && mapsStatus === "ready" && (
+        <p className="text-xs text-primary">{error}</p>
+      )}
 
       {mapOpen && (
         <MapPickModal
@@ -233,7 +285,6 @@ function MapPickModal({
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const markerRef = useRef<any>(null);
-  const mapInstance = useRef<any>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,7 +299,6 @@ function MapPickModal({
           mapTypeControl: true,
           fullscreenControl: false,
         });
-        mapInstance.current = map;
 
         map.addListener("click", (e: any) => {
           if (!e.latLng) return;
@@ -338,7 +388,7 @@ function MapPickModal({
         {err && <p className="border-t border-ink/20 px-4 py-2 text-xs text-primary">{err}</p>}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-ink px-4 py-3">
           <p className="text-xs text-ink/50">
-            {ready ? "Pin ready when you click the map" : "Loading map…"}
+            {ready ? "Pin ready when you click the map" : "Loading Google Map…"}
           </p>
           <button
             type="button"

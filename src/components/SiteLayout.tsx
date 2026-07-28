@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
-import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
+import { LOGO_URL } from "@/lib/brand";
 import { MessageCircle, UserRound, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
@@ -105,12 +105,11 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      {/* Single sticky header — no second mobile strip */}
       <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex min-w-0 items-center gap-3" onClick={closeMenu}>
             <img
-              src={logoAsset.url}
+              src={LOGO_URL}
               alt="Just Wheels Hessequa logo"
               className="h-10 w-10 shrink-0 rounded-full border-2 border-ink object-cover sm:h-11 sm:w-11"
             />
@@ -188,7 +187,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div>
             <div className="flex items-center gap-3">
               <img
-                src={logoAsset.url}
+                src={LOGO_URL}
                 alt=""
                 className="h-12 w-12 rounded-full border-2 border-paper object-cover"
               />

@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMyProfile, type MemberProfile } from "@/lib/profile.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
-import { WifiOff } from "lucide-react";
+import { Download, WifiOff, IdCard } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
   head: () => ({
@@ -18,6 +18,10 @@ export const Route = createFileRoute("/_authenticated/members/card")({
   }),
   component: MemberCardPage,
 });
+
+/** CR80 credit-card size at ~300 DPI for laminate print */
+const PRINT_W = 1013;
+const PRINT_H = 638;
 
 function readCache(): MemberProfile | null {
   if (typeof window === "undefined") return null;
@@ -30,10 +34,12 @@ function readCache(): MemberProfile | null {
 }
 
 function MemberCardPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const fetchProfile = useServerFn(getMyProfile);
   const [cached, setCached] = useState<MemberProfile | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setCached(readCache());
@@ -59,96 +65,345 @@ function MemberCardPage() {
     if (query.data) {
       try {
         window.localStorage.setItem(CACHED_PROFILE_KEY, JSON.stringify(query.data));
-      } catch {}
+      } catch {
+        /* ignore */
+      }
       setCached(query.data);
     }
   }, [query.data]);
 
   const profile = query.data ?? cached;
 
+  async function downloadCard() {
+    if (!profile || downloading) return;
+    setDownloading(true);
+    try {
+      await downloadLandscapeCard(profile, lang === "af");
+    } catch (e) {
+      console.error(e);
+      alert(lang === "af" ? "Aflaai het misluk" : "Download failed");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-lg px-4 py-10">
-        <div className="mb-4 flex items-center justify-between">
+      <section className="mx-auto max-w-3xl px-4 py-10">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             to="/members"
             className="text-xs font-bold uppercase tracking-widest text-ink/60 hover:text-ink"
           >
             ← {t("members.back")}
           </Link>
-          {!isOnline && (
-            <span className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-ink">
-              <WifiOff className="h-3 w-3" /> {t("card.offline")}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {!isOnline && (
+              <span className="inline-flex items-center gap-1 rounded-full border-2 border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-ink">
+                <WifiOff className="h-3 w-3" /> {t("card.offline")}
+              </span>
+            )}
+            {profile && (
+              <button
+                type="button"
+                onClick={() => void downloadCard()}
+                disabled={downloading}
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                {downloading
+                  ? lang === "af"
+                    ? "Laai…"
+                    : "Saving…"
+                  : lang === "af"
+                    ? "Laai af vir laminaat"
+                    : "Download for laminate"}
+              </button>
+            )}
+          </div>
         </div>
+
+        <p className="mb-4 text-sm text-ink/60">
+          {lang === "af"
+            ? "Landskap lidkaart · kies jou foto in My Garage · laai af teen volle CR80-grootte (85.6×54 mm) om te lamineer."
+            : "Landscape member card · pick your photo in My Garage · download at full CR80 size (85.6×54 mm) ready to laminate."}
+        </p>
 
         {!profile ? (
           <p className="text-ink/60">{t("card.needSync")}</p>
         ) : (
-          <MemberCard profile={profile} />
+          <div className="mx-auto w-full max-w-2xl">
+            <MemberCard ref={cardRef} profile={profile} />
+          </div>
         )}
       </section>
     </SiteLayout>
   );
 }
 
-function MemberCard({ profile }: { profile: MemberProfile }) {
+function MemberCard({
+  profile,
+  ref,
+}: {
+  profile: MemberProfile;
+  ref?: React.Ref<HTMLElement>;
+}) {
   const { t, lang } = useI18n();
   const year = new Date(profile.joined_at).getFullYear();
   const number = String(profile.member_number).padStart(4, "0");
+  const photo = profile.avatar_url;
 
   return (
     <article
+      ref={ref}
       aria-label="Just Wheels Hessequa member card"
-      className="relative overflow-hidden rounded-3xl border-4 border-ink bg-gradient-to-br from-ink via-ink to-[oklch(0.22_0.02_20)] p-6 text-paper shadow-[8px_8px_0_0_var(--color-primary)]"
+      className="relative aspect-[85.6/53.98] w-full overflow-hidden rounded-2xl border-4 border-ink bg-ink text-paper shadow-[8px_8px_0_0_var(--color-primary)]"
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/20 blur-2xl"
-      />
-
-      <header className="flex items-center gap-3">
+      {/* Background photo or gradient */}
+      {photo ? (
         <img
-          src={logoAsset.url}
+          src={photo}
           alt=""
-          className="h-14 w-14 rounded-full border-2 border-paper object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
+          crossOrigin="anonymous"
         />
-        <div>
-          <div className="font-display text-2xl leading-none tracking-wide">JUST WHEELS</div>
-          <div className="text-xs tracking-[0.3em] text-primary">HESSEQUA</div>
-        </div>
-        <span className="ml-auto rounded-full border border-paper/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-paper/80">
-          {lang === "af" ? "Lidkaart" : "Member"}
-        </span>
-      </header>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-ink via-[#1a1210] to-[#2a1512]" />
+      )}
 
-      <div className="mt-8">
-        <p className="font-display text-xs tracking-[0.3em] text-primary">
-          {t("card.number")}
-        </p>
-        <p className="font-display text-5xl leading-none tracking-wider">#{number}</p>
+      {/* Dark gradient for legibility */}
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/75 to-ink/25" />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/90 to-transparent" />
+
+      {/* Content */}
+      <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
+        <header className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <img
+              src={logoAsset.url}
+              alt=""
+              className="h-11 w-11 rounded-full border-2 border-paper object-cover shadow-md sm:h-12 sm:w-12"
+              crossOrigin="anonymous"
+            />
+            <div>
+              <div className="font-display text-lg leading-none tracking-wide sm:text-xl">
+                JUST WHEELS
+              </div>
+              <div className="text-[10px] tracking-[0.28em] text-primary sm:text-xs">HESSEQUA</div>
+            </div>
+          </div>
+          <span className="rounded-full border border-paper/40 bg-ink/40 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest backdrop-blur-sm sm:text-[10px]">
+            {lang === "af" ? "Lidkaart" : "Member"}
+          </span>
+        </header>
+
+        <div className="mt-auto max-w-[65%]">
+          <p className="font-display text-[10px] tracking-[0.25em] text-primary sm:text-xs">
+            {t("card.number")}
+          </p>
+          <p className="font-display text-3xl leading-none tracking-wider sm:text-4xl">#{number}</p>
+          <p className="mt-2 font-display text-xl leading-tight sm:text-2xl">
+            {profile.display_name ?? "—"}
+          </p>
+          <p className="mt-0.5 line-clamp-1 text-xs text-paper/75 sm:text-sm">
+            {profile.favourite_ride || t("card.noRide")}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-widest text-paper/70 sm:text-[11px]">
+            <span>
+              {t("card.since")} {year}
+            </span>
+            <span className="text-primary">{profile.membership_status}</span>
+            {profile.town && <span>{profile.town}</span>}
+          </div>
+        </div>
+
+        {/* Circular logo badge overlaid on photo side */}
+        <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
+          <div className="relative h-16 w-16 rounded-full border-[3px] border-paper bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.45)] sm:h-20 sm:w-20">
+            <img
+              src={logoAsset.url}
+              alt="Just Wheels"
+              className="h-full w-full rounded-full object-cover"
+              crossOrigin="anonymous"
+            />
+          </div>
+        </div>
       </div>
-
-      <div className="mt-6 grid gap-2">
-        <div className="font-display text-2xl leading-tight">
-          {profile.display_name ?? "—"}
-        </div>
-        <div className="text-sm text-paper/70">
-          {profile.favourite_ride || t("card.noRide")}
-        </div>
-      </div>
-
-      <footer className="mt-8 flex items-end justify-between text-[11px] uppercase tracking-widest text-paper/70">
-        <div>
-          <div className="text-paper/50">{t("card.member")}</div>
-          <div className="text-paper">{t("card.since")} {year}</div>
-        </div>
-        <div className="text-right">
-          <div className="text-paper/50">{t("card.status")}</div>
-          <div className="text-primary">{profile.membership_status}</div>
-        </div>
-      </footer>
     </article>
   );
+}
+
+/** Draw a print-ready landscape CR80 card to canvas and trigger PNG download. */
+async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
+  const canvas = document.createElement("canvas");
+  canvas.width = PRINT_W;
+  canvas.height = PRINT_H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unsupported");
+
+  const number = String(profile.member_number).padStart(4, "0");
+  const year = new Date(profile.joined_at).getFullYear();
+  const name = profile.display_name ?? "—";
+  const ride = profile.favourite_ride || (af ? "Geen ry gelys nie" : "No ride listed");
+
+  // Background
+  ctx.fillStyle = "#140e0c";
+  ctx.fillRect(0, 0, PRINT_W, PRINT_H);
+
+  // Member photo
+  if (profile.avatar_url) {
+    try {
+      const img = await loadImage(profile.avatar_url);
+      // cover-fit
+      const scale = Math.max(PRINT_W / img.width, PRINT_H / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      const x = (PRINT_W - w) / 2;
+      const y = (PRINT_H - h) / 2;
+      ctx.drawImage(img, x, y, w, h);
+    } catch {
+      /* keep solid bg */
+    }
+  }
+
+  // Left dark wash
+  const grad = ctx.createLinearGradient(0, 0, PRINT_W * 0.75, 0);
+  grad.addColorStop(0, "rgba(20,14,12,0.96)");
+  grad.addColorStop(0.55, "rgba(20,14,12,0.72)");
+  grad.addColorStop(1, "rgba(20,14,12,0.15)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, PRINT_W, PRINT_H);
+
+  // Bottom fade
+  const bot = ctx.createLinearGradient(0, PRINT_H * 0.45, 0, PRINT_H);
+  bot.addColorStop(0, "rgba(20,14,12,0)");
+  bot.addColorStop(1, "rgba(20,14,12,0.88)");
+  ctx.fillStyle = bot;
+  ctx.fillRect(0, 0, PRINT_W, PRINT_H);
+
+  // Header logo circle
+  try {
+    const logo = await loadImage(logoAsset.url);
+    drawCircleImage(ctx, logo, 48, 48, 36);
+  } catch {
+    /* skip */
+  }
+
+  ctx.fillStyle = "#f5f0e8";
+  ctx.font = "700 28px Bebas Neue, Barlow, sans-serif";
+  ctx.fillText("JUST WHEELS", 100, 52);
+  ctx.fillStyle = "#cc2222";
+  ctx.font = "600 14px Barlow, sans-serif";
+  ctx.fillText("HESSEQUA", 100, 74);
+
+  // Badge
+  ctx.strokeStyle = "rgba(245,240,232,0.45)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, PRINT_W - 140, 28, 110, 28, 14);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(245,240,232,0.9)";
+  ctx.font = "700 12px Barlow, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(af ? "LIDKAART" : "MEMBER", PRINT_W - 85, 47);
+  ctx.textAlign = "left";
+
+  // Member number + name
+  ctx.fillStyle = "#cc2222";
+  ctx.font = "600 14px Barlow, sans-serif";
+  ctx.fillText(af ? "LIDNOMMER" : "MEMBER NO.", 48, PRINT_H - 200);
+  ctx.fillStyle = "#f5f0e8";
+  ctx.font = "700 64px Bebas Neue, Barlow, sans-serif";
+  ctx.fillText(`#${number}`, 48, PRINT_H - 140);
+  ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
+  ctx.fillText(name.slice(0, 28), 48, PRINT_H - 90);
+  ctx.fillStyle = "rgba(245,240,232,0.75)";
+  ctx.font = "500 18px Barlow, sans-serif";
+  ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 58);
+  ctx.font = "600 14px Barlow, sans-serif";
+  ctx.fillStyle = "rgba(245,240,232,0.65)";
+  const meta = [
+    `${af ? "Sedert" : "Since"} ${year}`,
+    profile.membership_status,
+    profile.town,
+  ]
+    .filter(Boolean)
+    .join("  ·  ");
+  ctx.fillText(meta, 48, PRINT_H - 28);
+
+  // Large circular logo badge bottom-right
+  try {
+    const logo = await loadImage(logoAsset.url);
+    const cx = PRINT_W - 90;
+    const cy = PRINT_H - 90;
+    const r = 62;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+    ctx.fillStyle = "#f5f0e8";
+    ctx.fill();
+    ctx.strokeStyle = "#140e0c";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    drawCircleImage(ctx, logo, cx, cy, r);
+    ctx.restore();
+  } catch {
+    /* skip */
+  }
+
+  // Outer border
+  ctx.strokeStyle = "#140e0c";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(5, 5, PRINT_W - 10, PRINT_H - 10);
+
+  const url = canvas.toDataURL("image/png");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `just-wheels-member-${number}.png`;
+  a.click();
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load ${src}`));
+    img.src = src;
+  });
+}
+
+function drawCircleImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  cx: number,
+  cy: number,
+  r: number,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  const scale = Math.max((r * 2) / img.width, (r * 2) / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  ctx.restore();
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

@@ -106,7 +106,6 @@ function mapListing(raw: RawListing): PublicListing {
         }
       : undefined,
     photos: [],
-    // photos filled in caller after signing
     // @ts-expect-error placeholder
     _raw_photos: raw.listing_photos ?? [],
   };
@@ -173,8 +172,6 @@ export const getListing = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ context, data }): Promise<PublicListing | null> => {
     const { supabase } = context;
-    // Non-inner join: contact row is only returned when the caller's RLS
-    // grants access (owner or admin). Others get the listing without contacts.
     const SELECT_WITH_OPTIONAL_CONTACT = `${LISTING_SELECT}, listing_contacts(contact_name, contact_phone, contact_email)`;
     const { data: row, error } = await supabase
       .from("listings")
@@ -184,8 +181,9 @@ export const getListing = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!row) return null;
-    const raw = row as RawListing & { listing_contacts?: RawListing["listing_contacts"] | RawListing["listing_contacts"][] };
-    // PostgREST returns an array for non-inner embedded relations; normalize.
+    const raw = row as RawListing & {
+      listing_contacts?: RawListing["listing_contacts"] | RawListing["listing_contacts"][];
+    };
     if (Array.isArray(raw.listing_contacts)) {
       raw.listing_contacts = raw.listing_contacts[0] ?? null;
     }
@@ -196,7 +194,6 @@ export const getListing = createServerFn({ method: "GET" })
     delete (l as any)._raw_photos;
     return l as PublicListing;
   });
-
 
 export const listMyListings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -287,27 +284,58 @@ export const markSold = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Admin
+// ── Admin ────────────────────────────────────────────────────────────
+
 export const listPendingListings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<MyListing[]> => {
     const { supabase, userId } = context;
-    const { data: isAdmin } = await supabase.rpc("has_role", {
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
     });
+    if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
-    const { data: rows, error } = await supabase
-      .from("listings")
-      .select(LISTING_WITH_CONTACT_SELECT)
-      .in("status", ["pending", "approved", "rejected"])
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (error) throw error;
+
+    // Prefer service role so admin always sees every listing regardless of RLS
+    let rows: unknown[] | null = null;
+    let client: typeof supabase = supabase;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      client = supabaseAdmin as typeof supabase;
+      const res = await supabaseAdmin
+        .from("listings")
+        .select(LISTING_WITH_CONTACT_SELECT)
+        .in("status", ["pending", "approved", "rejected"])
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (res.error) throw res.error;
+      rows = res.data;
+    } catch (e) {
+      console.error("[admin listings] service role list failed, falling back", e);
+      const res = await supabase
+        .from("listings")
+        .select(LISTING_WITH_CONTACT_SELECT)
+        .in("status", ["pending", "approved", "rejected"])
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (res.error) throw res.error;
+      rows = res.data;
+    }
+
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
+
+    // Pending first, then newest
+    listings.sort((a, b) => {
+      const rank = (s: string) => (s === "pending" ? 0 : s === "approved" ? 1 : 2);
+      const d = rank(a.status) - rank(b.status);
+      if (d !== 0) return d;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
     for (const l of listings) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      l.photos = await signPhotos(supabase as any, (l as any)._raw_photos);
+      l.photos = await signPhotos(client as any, (l as any)._raw_photos);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (l as any)._raw_photos;
     }
@@ -326,15 +354,28 @@ export const moderateListing = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    const { data: isAdmin } = await supabase.rpc("has_role", {
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
     });
+    if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
-    const { error } = await supabase
-      .from("listings")
-      .update({ status: data.status })
-      .eq("id", data.id);
-    if (error) throw error;
+
+    // Service role so RLS cannot block admin approval
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { error } = await supabaseAdmin
+        .from("listings")
+        .update({ status: data.status })
+        .eq("id", data.id);
+      if (error) throw error;
+    } catch (e) {
+      const { error } = await supabase
+        .from("listings")
+        .update({ status: data.status })
+        .eq("id", data.id);
+      if (error) throw new Error(`Could not update listing: ${error.message}`);
+      if (e instanceof Error) console.error("[admin listings] service role moderate failed", e);
+    }
     return { ok: true };
   });

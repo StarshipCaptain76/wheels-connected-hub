@@ -132,6 +132,31 @@ function MembersPage() {
           </div>
         </div>
 
+        {/* Admin portal — top of page, above profile / garage */}
+        {isAdmin && (
+          <div className="mt-6 rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)] sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
+                </div>
+                <h2 className="mt-1 font-display text-2xl tracking-wide">Club admin portal</h2>
+                <p className="mt-1 text-sm text-paper/70">
+                  Manage events, gallery, members, featured member, classifieds, shop, sponsors and
+                  newsletter.
+                </p>
+              </div>
+              <Link
+                to="/admin"
+                className="inline-flex shrink-0 items-center gap-2 rounded-md border-2 border-primary bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper hover:bg-paper hover:text-primary"
+              >
+                Open admin portal
+              </Link>
+            </div>
+          </div>
+        )}
+
         {isLoading || !profile ? (
           <p className="mt-8 text-ink/60">{t("members.loading")}</p>
         ) : (
@@ -238,26 +263,6 @@ function MembersPage() {
 
             <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
           </>
-        )}
-
-        {isAdmin && (
-          <div className="mt-8 rounded-2xl border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
-            </div>
-            <h2 className="mt-1 font-display text-2xl tracking-wide">Club admin portal</h2>
-            <p className="mt-1 text-sm text-paper/70">
-              Manage events, gallery, members, featured member, classifieds, shop, sponsors and
-              newsletter.
-            </p>
-            <Link
-              to="/admin"
-              className="mt-4 inline-flex items-center gap-2 rounded-md border-2 border-primary bg-primary px-5 py-2 text-sm font-bold uppercase tracking-wider text-paper hover:bg-paper hover:text-primary"
-            >
-              Open admin portal
-            </Link>
-          </div>
         )}
       </section>
     </SiteLayout>

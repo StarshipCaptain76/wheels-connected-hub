@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   listAllMembers,
   setFeaturedMember,
@@ -34,11 +34,28 @@ function AdminFeatured() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Hydrate form from currently featured member
+  useEffect(() => {
+    if (current) {
+      setBio(current.featured_bio ?? "");
+      setPhotoUrl(current.featured_photo_url ?? "");
+    } else {
+      setBio("");
+      setPhotoUrl("");
+    }
+  }, [current?.user_id, current?.featured_bio, current?.featured_photo_url]);
+
   async function save(userId: string | null) {
     setBusy(true);
     setError(null);
     try {
-      await setFeatured({ data: { userId, bio: bio || null, photoUrl: photoUrl || null } });
+      await setFeatured({
+        data: {
+          userId,
+          bio: bio.trim() ? bio.trim() : null,
+          photoUrl: photoUrl.trim() ? photoUrl.trim() : null,
+        },
+      });
       await qc.invalidateQueries({ queryKey: ["admin", "members"] });
       await qc.invalidateQueries({ queryKey: ["featured-member"] });
       setPicking(false);
@@ -53,17 +70,19 @@ function AdminFeatured() {
     <div>
       <h1 className="font-display text-4xl tracking-wide text-ink">Featured member</h1>
       <p className="mt-1 text-sm text-ink/60">
-        Exactly one member is featured on the public site at a time.
+        Exactly one member is featured on the public site at a time. The bio appears in the homepage
+        featured frame.
       </p>
 
       {error && (
-        <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>
+        <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
+          {error}
+        </p>
       )}
 
       <div className="mt-6 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[4px_4px_0_0_var(--color-ink)]">
         {current ? (
           <div className="flex flex-col gap-4 sm:flex-row">
-            {current && (current as AdminMember & { featured_photo_url?: string | null }).favourite_ride ? null : null}
             <div className="flex-1">
               <p className="font-display text-xs tracking-[0.3em] text-primary">CURRENTLY FEATURED</p>
               <h2 className="mt-1 font-display text-3xl text-ink">{current.display_name ?? "—"}</h2>
@@ -75,18 +94,31 @@ function AdminFeatured() {
                 <p className="mt-2 text-sm text-ink/70">🚗 {current.favourite_ride}</p>
               )}
 
+              {current.featured_bio && (
+                <div className="mt-3 rounded-lg border border-ink/20 bg-ink/5 p-3 text-sm text-ink/80">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-ink/50">
+                    On homepage now
+                  </p>
+                  <p className="mt-1 leading-relaxed">{current.featured_bio}</p>
+                </div>
+              )}
+
               <div className="mt-4 space-y-3">
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
-                    Featured bio (optional)
+                    Featured bio (shown in homepage frame)
                   </span>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Short story to display on the site…"
-                    className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
+                    maxLength={600}
+                    className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
                   />
+                  <span className="mt-0.5 block text-right text-[11px] text-ink/40">
+                    {bio.length}/600
+                  </span>
                 </label>
                 <label className="block">
                   <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
@@ -96,7 +128,7 @@ function AdminFeatured() {
                     value={photoUrl}
                     onChange={(e) => setPhotoUrl(e.target.value)}
                     placeholder="https://…"
-                    className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
                   />
                 </label>
               </div>
@@ -106,7 +138,7 @@ function AdminFeatured() {
                   type="button"
                   disabled={busy}
                   onClick={() => save(current.user_id)}
-                  className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-60"
+                  className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white disabled:opacity-60"
                 >
                   {busy ? "Saving…" : "Save bio & photo"}
                 </button>
@@ -135,7 +167,7 @@ function AdminFeatured() {
             <button
               type="button"
               onClick={() => setPicking(true)}
-              className="mt-4 inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
+              className="mt-4 inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white"
             >
               <Star className="h-4 w-4" /> Pick a featured member
             </button>

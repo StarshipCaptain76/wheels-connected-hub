@@ -16,7 +16,7 @@ export function SponsorCarousel() {
 
   const copies = Math.max(2, Math.ceil(8 / Math.max(sponsors.length, 1)));
   const loop: Sponsor[] = Array.from({ length: copies }, () => sponsors).flat();
-  const durationSec = Math.max(20, sponsors.length * 6);
+  const durationSec = Math.max(24, sponsors.length * 7);
 
   return (
     <section className="border-y-2 border-ink bg-paper py-10 text-ink">
@@ -40,24 +40,29 @@ export function SponsorCarousel() {
 
         <div className="group/marquee relative overflow-hidden" aria-label={t("sponsors.title")}>
           <div
-            className="flex w-max gap-6 animate-sponsor-marquee group-hover/marquee:[animation-play-state:paused]"
+            className="flex w-max gap-5 animate-sponsor-marquee group-hover/marquee:[animation-play-state:paused]"
             style={{ animationDuration: `${durationSec}s` }}
           >
             {loop.map((s, i) => {
               const tagline = lang === "af" ? s.tagline_af ?? s.tagline : s.tagline;
               const inner = (
-                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-ink bg-card p-3 shadow-[3px_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5">
-                  <img
-                    src={s.logo_url}
-                    alt={s.name}
-                    loading="lazy"
-                    className="max-h-12 max-w-full object-contain"
-                  />
-                  {tagline && (
-                    <p className="mt-1 line-clamp-1 text-[10px] uppercase tracking-wider text-ink/60">
+                <div className="flex h-40 w-64 shrink-0 flex-col items-center justify-start rounded-xl border-2 border-ink bg-card px-4 pb-3 pt-3 shadow-[3px_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5">
+                  <div className="flex h-14 w-full items-center justify-center">
+                    <img
+                      src={s.logo_url}
+                      alt=""
+                      loading="lazy"
+                      className="max-h-12 max-w-full object-contain"
+                    />
+                  </div>
+                  <p className="mt-2 w-full text-center font-display text-sm leading-tight tracking-wide text-ink line-clamp-1">
+                    {s.name}
+                  </p>
+                  {tagline ? (
+                    <p className="mt-1 w-full text-center text-xs leading-snug text-ink/65 line-clamp-3">
                       {tagline}
                     </p>
-                  )}
+                  ) : null}
                 </div>
               );
               return s.website_url ? (

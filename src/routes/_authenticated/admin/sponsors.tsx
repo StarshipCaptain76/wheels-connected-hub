@@ -27,30 +27,40 @@ export const Route = createFileRoute("/_authenticated/admin/sponsors")({
   component: AdminSponsors,
   errorComponent: ({ error }) => (
     <div className="py-20 text-center">
-      <p className="text-ink/70">Access denied: {error.message}</p>
+      <p className="text-ink/70">Could not load sponsors: {error.message}</p>
+      <p className="mt-2 text-xs text-ink/50">
+        If this mentions billing_starts_at, run the sponsors SQL migration in Supabase first.
+      </p>
     </div>
   ),
 });
 
 type FormState = Partial<AdminSponsor>;
 
+/** HTML date inputs need YYYY-MM-DD only */
+function toDateInput(v: string | null | undefined, fallback: string): string {
+  if (!v) return fallback;
+  const s = String(v).slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : fallback;
+}
+
 function fmtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   try {
-    return new Date(iso + (iso.length === 10 ? "T12:00:00" : "")).toLocaleDateString("en-ZA", {
+    return new Date(String(iso).slice(0, 10) + "T12:00:00").toLocaleDateString("en-ZA", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
   } catch {
-    return iso;
+    return String(iso);
   }
 }
 
 function isExpired(ends: string | null | undefined): boolean {
   if (!ends) return false;
   const today = new Date().toISOString().slice(0, 10);
-  return ends < today;
+  return String(ends).slice(0, 10) < today;
 }
 
 function AdminSponsors() {
@@ -74,8 +84,10 @@ function AdminSponsors() {
         logo_path: form.logo_path ?? "",
         is_active: form.is_active ?? true,
         sort: form.sort ?? 0,
-        billing_starts_at: form.billing_starts_at ?? null,
-        billing_ends_at: form.billing_ends_at ?? null,
+        billing_starts_at: form.billing_starts_at
+          ? String(form.billing_starts_at).slice(0, 10)
+          : null,
+        billing_ends_at: form.billing_ends_at ? String(form.billing_ends_at).slice(0, 10) : null,
       },
     });
     await qc.invalidateQueries({ queryKey: ["sponsors"] });
@@ -94,7 +106,7 @@ function AdminSponsors() {
         <div>
           <h1 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">Manage sponsors</h1>
           <p className="mt-1 text-sm text-ink/60">
-            Billing window controls public visibility. After the end date the logo is hidden and admin is emailed.
+            Click <strong>Edit</strong> on a row — billing start/end dates are near the top of the form.
           </p>
         </div>
         <button
@@ -137,14 +149,20 @@ function AdminSponsors() {
                 </div>
                 <p className="font-display text-lg text-ink">{s.name}</p>
                 <p className="line-clamp-1 text-sm text-ink/70">{s.tagline ?? ""}</p>
-                <p className="mt-1 text-xs text-ink/55">
+                <p className="mt-1 text-xs font-medium text-ink/70">
                   Billing: {fmtDate(s.billing_starts_at)} → {fmtDate(s.billing_ends_at)}
                 </p>
               </div>
               <div className="flex flex-row gap-2 sm:flex-col">
                 <button
                   type="button"
-                  onClick={() => setEditing(s)}
+                  onClick={() =>
+                    setEditing({
+                      ...s,
+                      billing_starts_at: toDateInput(s.billing_starts_at, DEFAULT_START),
+                      billing_ends_at: toDateInput(s.billing_ends_at, DEFAULT_END),
+                    })
+                  }
                   className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase text-ink"
                 >
                   Edit
@@ -202,9 +220,9 @@ function EditModal({
   onClose: () => void;
 }) {
   const [form, setForm] = useState<FormState>({
-    billing_starts_at: DEFAULT_START,
-    billing_ends_at: DEFAULT_END,
     ...state,
+    billing_starts_at: toDateInput(state.billing_starts_at, DEFAULT_START),
+    billing_ends_at: toDateInput(state.billing_ends_at, DEFAULT_END),
   });
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -217,17 +235,15 @@ function EditModal({
         onSubmit={async (e) => {
           e.preventDefault();
           if (taglineEn.length > TAGLINE_MAX || taglineAf.length > TAGLINE_MAX) return;
-          if (
-            form.billing_starts_at &&
-            form.billing_ends_at &&
-            form.billing_ends_at < form.billing_starts_at
-          ) {
+          const start = toDateInput(form.billing_starts_at, DEFAULT_START);
+          const end = toDateInput(form.billing_ends_at, DEFAULT_END);
+          if (end < start) {
             alert("End date must be on or after the start date");
             return;
           }
           setBusy(true);
           try {
-            await onSave(form);
+            await onSave({ ...form, billing_starts_at: start, billing_ends_at: end });
           } finally {
             setBusy(false);
           }
@@ -241,9 +257,39 @@ function EditModal({
             <X className="h-4 w-4" />
           </button>
         </div>
+
         <Row label="Business name">
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
+
+        {/* Billing dates — top of form so they are always visible */}
+        <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Billing period</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Row label="Start date">
+              <input
+                type="date"
+                required
+                value={toDateInput(form.billing_starts_at, DEFAULT_START)}
+                onChange={(e) => set("billing_starts_at", e.target.value || DEFAULT_START)}
+                className={input}
+              />
+            </Row>
+            <Row label="End date">
+              <input
+                type="date"
+                required
+                value={toDateInput(form.billing_ends_at, DEFAULT_END)}
+                onChange={(e) => set("billing_ends_at", e.target.value || DEFAULT_END)}
+                className={input}
+              />
+            </Row>
+          </div>
+          <p className="mt-2 text-xs text-ink/60">
+            After the end date the sponsor is hidden and admin is emailed to renew.
+          </p>
+        </div>
+
         <Row
           label="Tagline (EN)"
           trailing={
@@ -302,29 +348,6 @@ function EditModal({
           storePath
           maxMb={3}
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Row label="Billing start">
-            <input
-              type="date"
-              required
-              value={form.billing_starts_at ?? DEFAULT_START}
-              onChange={(e) => set("billing_starts_at", e.target.value || null)}
-              className={input}
-            />
-          </Row>
-          <Row label="Billing end">
-            <input
-              type="date"
-              required
-              value={form.billing_ends_at ?? DEFAULT_END}
-              onChange={(e) => set("billing_ends_at", e.target.value || null)}
-              className={input}
-            />
-          </Row>
-        </div>
-        <p className="text-xs text-ink/50">
-          After the end date the sponsor is hidden from the site and admin@justwheels.co.za is notified to renew.
-        </p>
         <Row label="Sort">
           <input
             type="number"

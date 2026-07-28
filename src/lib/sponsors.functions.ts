@@ -21,13 +21,23 @@ export type AdminSponsor = {
   logo_path: string;
   is_active: boolean;
   sort: number;
+  billing_starts_at: string | null;
+  billing_ends_at: string | null;
+  expiry_notified_at: string | null;
 };
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Public list: active + within billing window */
 export const listSponsors = createServerFn({ method: "GET" }).handler(async (): Promise<Sponsor[]> => {
   const sb = createPublicSupabase();
+  const today = todayISO();
+
   const { data, error } = await sb
     .from("sponsors")
-    .select("id, name, tagline, tagline_af, website_url, logo_path, sort")
+    .select("id, name, tagline, tagline_af, website_url, logo_path, sort, billing_starts_at, billing_ends_at")
     .eq("is_active", true)
     .order("sort", { ascending: true })
     .order("name", { ascending: true });
@@ -36,8 +46,16 @@ export const listSponsors = createServerFn({ method: "GET" }).handler(async (): 
     return [];
   }
 
+  const rows = (data ?? []).filter((row) => {
+    const start = row.billing_starts_at as string | null;
+    const end = row.billing_ends_at as string | null;
+    if (start && start > today) return false;
+    if (end && end < today) return false;
+    return true;
+  });
+
   const out: Sponsor[] = [];
-  for (const row of data ?? []) {
+  for (const row of rows) {
     let logo_url = row.logo_path;
     if (!/^https?:\/\//i.test(row.logo_path)) {
       const { data: signed } = await sb.storage
@@ -65,7 +83,9 @@ export const listAllSponsors = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("sponsors")
-      .select("id, name, tagline, tagline_af, website_url, logo_path, is_active, sort")
+      .select(
+        "id, name, tagline, tagline_af, website_url, logo_path, is_active, sort, billing_starts_at, billing_ends_at, expiry_notified_at",
+      )
       .order("sort", { ascending: true })
       .order("name", { ascending: true });
     if (error) throw error;
@@ -81,6 +101,8 @@ const upsertSchema = z.object({
   logo_path: z.string().trim().min(1).max(500),
   is_active: z.boolean().default(true),
   sort: z.number().int().min(0).max(9999).default(0),
+  billing_starts_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  billing_ends_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 });
 
 export const upsertSponsor = createServerFn({ method: "POST" })
@@ -90,7 +112,24 @@ export const upsertSponsor = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    const { id, ...values } = data;
+    const { id, ...rest } = data;
+
+    // Extending end date past today clears previous expiry notification
+    const values: Record<string, unknown> = {
+      name: rest.name,
+      tagline: rest.tagline ?? null,
+      tagline_af: rest.tagline_af ?? null,
+      website_url: rest.website_url ?? null,
+      logo_path: rest.logo_path,
+      is_active: rest.is_active,
+      sort: rest.sort,
+      billing_starts_at: rest.billing_starts_at ?? null,
+      billing_ends_at: rest.billing_ends_at ?? null,
+    };
+    if (rest.billing_ends_at && rest.billing_ends_at >= todayISO()) {
+      values.expiry_notified_at = null;
+    }
+
     if (id) {
       const { error } = await supabase.from("sponsors").update(values).eq("id", id);
       if (error) throw error;
@@ -113,6 +152,125 @@ export const deleteSponsor = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const ADMIN_EMAIL = "admin@justwheels.co.za";
+const FROM = "Just Wheels Sponsors <sponsors@notify.justwheels.co.za>";
+
+function esc(v: string) {
+  return v.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" }[c]!),
+  );
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    return new Date(iso + (iso.length === 10 ? "T12:00:00Z" : "")).toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/** Hide expired sponsors and email admin once per expiry cycle */
+export async function processExpiredSponsors(): Promise<{ expired: number; emailed: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const today = todayISO();
+
+  const { data: expired, error } = await supabaseAdmin
+    .from("sponsors")
+    .select("id, name, billing_starts_at, billing_ends_at, is_active, expiry_notified_at")
+    .not("billing_ends_at", "is", null)
+    .lt("billing_ends_at", today);
+  if (error) throw new Error(error.message);
+
+  let emailed = 0;
+  for (const s of expired ?? []) {
+    if (s.is_active) {
+      await supabaseAdmin.from("sponsors").update({ is_active: false }).eq("id", s.id);
+    }
+    if (!s.expiry_notified_at) {
+      const sent = await sendSponsorExpiredEmail({
+        name: s.name as string,
+        starts: s.billing_starts_at as string | null,
+        ends: s.billing_ends_at as string | null,
+      });
+      if (sent) {
+        await supabaseAdmin
+          .from("sponsors")
+          .update({ expiry_notified_at: new Date().toISOString() })
+          .eq("id", s.id);
+        emailed += 1;
+      }
+    }
+  }
+  return { expired: (expired ?? []).length, emailed };
+}
+
+async function sendSponsorExpiredEmail(opts: {
+  name: string;
+  starts: string | null;
+  ends: string | null;
+}): Promise<boolean> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    console.error("[sponsors] RESEND_API_KEY missing — skip expiry email");
+    return false;
+  }
+
+  const subject = `Sponsorship ended — ${opts.name} (renewal needed)`;
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;max-width:560px;line-height:1.5">
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#c41e3a">Just Wheels Hessequa</p>
+      <h2 style="margin:0 0 16px;font-size:22px">Sponsorship has ended</h2>
+      <p style="margin:0 0 16px;color:#444">
+        The billing period for <strong>${esc(opts.name)}</strong> has finished.
+        Their logo has been hidden from the website until the sponsorship is renewed.
+      </p>
+      <table style="border-collapse:collapse;width:100%;margin:0 0 20px;background:#f7f7f7;border-radius:8px">
+        <tbody>
+          <tr>
+            <td style="padding:12px 16px;color:#666;width:40%">Sponsor</td>
+            <td style="padding:12px 16px"><strong>${esc(opts.name)}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;color:#666">Billing start</td>
+            <td style="padding:12px 16px">${esc(formatDate(opts.starts))}</td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;color:#666">Billing end</td>
+            <td style="padding:12px 16px">${esc(formatDate(opts.ends))}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin:0 0 16px;color:#444">
+        To renew: open the <a href="https://www.justwheels.co.za/admin/sponsors">Admin → Sponsors</a>
+        page, set a new end date, and mark the sponsor <strong>Active</strong> again.
+      </p>
+      <p style="margin:0;font-size:12px;color:#888">
+        Automated notice from justwheels.co.za · admin@justwheels.co.za
+      </p>
+    </div>`;
+
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      from: FROM,
+      to: [ADMIN_EMAIL],
+      subject,
+      html,
+    }),
+  });
+  if (!res.ok) {
+    console.error(`[sponsors] expiry email failed [${res.status}]: ${await res.text()}`);
+    return false;
+  }
+  return true;
+}
+
 const applySchema = z.object({
   business: z.string().trim().min(1).max(120),
   contact: z.string().trim().min(1).max(100),
@@ -121,15 +279,6 @@ const applySchema = z.object({
   website: z.string().trim().max(255).optional().default(""),
   message: z.string().trim().max(2000).optional().default(""),
 });
-
-const ADMIN_EMAIL = "admin@justwheels.co.za";
-const FROM = "Just Wheels Sponsors <sponsors@notify.justwheels.co.za>";
-
-function esc(v: string) {
-  return v.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
-  );
-}
 
 export const applySponsor = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => applySchema.parse(input))

@@ -1,4 +1,3 @@
-/// <reference types="google.maps" />
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, MapPin, X } from "lucide-react";
 
@@ -16,39 +15,44 @@ type Suggestion = {
   description: string;
 };
 
-let mapsPromise: Promise<typeof google> | null = null;
+// Minimal globals so we don't depend on @types/google.maps at build time
+declare global {
+  interface Window {
+    google?: any;
+    __jwMapsPlacesInit?: () => void;
+  }
+}
+
+let mapsPromise: Promise<any> | null = null;
 
 function getBrowserKey(): string | undefined {
   return import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as string | undefined;
 }
 
-export function loadGoogleMaps(): Promise<typeof google> {
+export function loadGoogleMaps(): Promise<any> {
   if (typeof window === "undefined") return Promise.reject(new Error("no window"));
-  const w = window as unknown as { google?: typeof google };
-  if (w.google?.maps?.places) return Promise.resolve(w.google);
-  if (w.google?.maps) {
-    // maps loaded but places missing — still resolve; places may need reload
-    return Promise.resolve(w.google);
-  }
+  if (window.google?.maps?.places) return Promise.resolve(window.google);
   if (mapsPromise) return mapsPromise;
+
   const key = getBrowserKey();
-  if (!key) return Promise.reject(new Error("Google Maps browser key missing (VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY)"));
+  if (!key) {
+    return Promise.reject(
+      new Error("Google Maps browser key missing (VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY)"),
+    );
+  }
 
   mapsPromise = new Promise((resolve, reject) => {
-    const cbName = "__jwMapsPlacesInit";
-    (window as unknown as Record<string, unknown>)[cbName] = () => {
-      const g = (window as unknown as { google: typeof google }).google;
-      if (g?.maps) resolve(g);
+    window.__jwMapsPlacesInit = () => {
+      if (window.google?.maps) resolve(window.google);
       else reject(new Error("Google Maps failed to initialise"));
     };
+
     const existing = document.querySelector('script[data-jw-maps="1"]');
     if (existing) {
-      // script already injected — wait a tick for google
       const t = setInterval(() => {
-        const g = (window as unknown as { google?: typeof google }).google;
-        if (g?.maps) {
+        if (window.google?.maps) {
           clearInterval(t);
-          resolve(g);
+          resolve(window.google);
         }
       }, 50);
       setTimeout(() => {
@@ -57,9 +61,10 @@ export function loadGoogleMaps(): Promise<typeof google> {
       }, 15000);
       return;
     }
+
     const s = document.createElement("script");
     s.dataset.jwMaps = "1";
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&loading=async&libraries=places,geometry&callback=${cbName}`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&loading=async&libraries=places,geometry&callback=__jwMapsPlacesInit`;
     s.async = true;
     s.defer = true;
     s.onerror = () => reject(new Error("Google Maps script failed to load"));
@@ -87,9 +92,9 @@ export function PlacePicker({
   const [mapOpen, setMapOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const serviceRef = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesRef = useRef<google.maps.places.PlacesService | null>(null);
-  const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const serviceRef = useRef<any>(null);
+  const placesRef = useRef<any>(null);
+  const sessionToken = useRef<any>(null);
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -105,7 +110,6 @@ export function PlacePicker({
       serviceRef.current = new g.maps.places.AutocompleteService();
     }
     if (!placesRef.current) {
-      // PlacesService needs a DOM node
       const div = document.createElement("div");
       placesRef.current = new g.maps.places.PlacesService(div);
     }
@@ -127,32 +131,29 @@ export function PlacePicker({
       setError(null);
       try {
         await ensureServices();
-        const svc = serviceRef.current!;
+        const svc = serviceRef.current;
         svc.getPlacePredictions(
           {
             input: q.trim(),
             componentRestrictions: { country: "za" },
             sessionToken: sessionToken.current ?? undefined,
           },
-          (preds, status) => {
+          (preds: any[] | null, status: string) => {
             setLoading(false);
-            if (
-              status !== google.maps.places.PlacesServiceStatus.OK ||
-              !preds?.length
-            ) {
+            if (status !== "OK" || !preds?.length) {
               setSuggestions([]);
               setOpen(false);
-              if (status !== google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              if (status !== "ZERO_RESULTS" && status !== "OK") {
                 setError(`Places: ${status}`);
               }
               return;
             }
             setSuggestions(
               preds.slice(0, 6).map((p) => ({
-                placeId: p.place_id,
-                description: p.description,
-                mainText: p.structured_formatting?.main_text ?? p.description,
-                secondaryText: p.structured_formatting?.secondary_text ?? "",
+                placeId: p.place_id as string,
+                description: p.description as string,
+                mainText: (p.structured_formatting?.main_text as string) ?? (p.description as string),
+                secondaryText: (p.structured_formatting?.secondary_text as string) ?? "",
               })),
             );
             setOpen(true);
@@ -173,8 +174,8 @@ export function PlacePicker({
     setResolving(true);
     setError(null);
     try {
-      await ensureServices();
-      const places = placesRef.current!;
+      const g = await ensureServices();
+      const places = placesRef.current;
       await new Promise<void>((resolve) => {
         places.getDetails(
           {
@@ -182,26 +183,25 @@ export function PlacePicker({
             fields: ["formatted_address", "geometry", "place_id", "name"],
             sessionToken: sessionToken.current ?? undefined,
           },
-          (place, status) => {
-            sessionToken.current = new google.maps.places.AutocompleteSessionToken();
-            if (
-              status !== google.maps.places.PlacesServiceStatus.OK ||
-              !place?.geometry?.location
-            ) {
+          (place: any, status: string) => {
+            sessionToken.current = new g.maps.places.AutocompleteSessionToken();
+            if (status !== "OK" || !place?.geometry?.location) {
               onChange(s.description);
               resolve();
               return;
             }
-            const lat = place.geometry.location.lat();
-            const lng = place.geometry.location.lng();
+            const lat = place.geometry.location.lat() as number;
+            const lng = place.geometry.location.lng() as number;
             const formatted =
-              place.formatted_address ?? place.name ?? s.description;
+              (place.formatted_address as string) ??
+              (place.name as string) ??
+              s.description;
             onChange(formatted);
             onResolved({
               formatted,
               lat,
               lng,
-              placeId: place.place_id ?? s.placeId,
+              placeId: (place.place_id as string) ?? s.placeId,
             });
             resolve();
           },
@@ -268,8 +268,6 @@ export function PlacePicker({
 
       {mapOpen && (
         <MapPickModal
-          initialLat={null}
-          initialLng={null}
           onClose={() => setMapOpen(false)}
           onPick={(r) => {
             onChange(r.formatted);
@@ -286,8 +284,6 @@ function MapPickModal({
   onClose,
   onPick,
 }: {
-  initialLat: number | null;
-  initialLng: number | null;
   onClose: () => void;
   onPick: (r: PlaceResult) => void;
 }) {
@@ -295,15 +291,13 @@ function MapPickModal({
   const [ready, setReady] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
-  const markerRef = useRef<google.maps.Marker | null>(null);
-  const mapObj = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<any>(null);
 
   useEffect(() => {
     let cancelled = false;
     loadGoogleMaps()
       .then((g) => {
         if (cancelled || !mapRef.current) return;
-        // Default center: Hessequa / Stilbaai area
         const center = { lat: -34.37, lng: 21.41 };
         const map = new g.maps.Map(mapRef.current, {
           center,
@@ -312,9 +306,8 @@ function MapPickModal({
           mapTypeControl: true,
           fullscreenControl: false,
         });
-        mapObj.current = map;
 
-        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+        map.addListener("click", (e: any) => {
           if (!e.latLng) return;
           const lat = e.latLng.lat();
           const lng = e.latLng.lng();
@@ -323,9 +316,6 @@ function MapPickModal({
             position: { lat, lng },
             map,
             draggable: true,
-          });
-          markerRef.current.addListener("dragend", () => {
-            /* keep marker; confirm on button */
           });
         });
 
@@ -337,37 +327,48 @@ function MapPickModal({
     };
   }, []);
 
-  async function confirm() {
-    const pos = markerRef.current?.getPosition();
+  function confirm() {
+    const pos = markerRef.current?.getPosition?.();
     if (!pos) {
       setErr("Click the map to drop a pin first");
       return;
     }
     setPicking(true);
     setErr(null);
-    const lat = pos.lat();
-    const lng = pos.lng();
-    try {
-      const g = await loadGoogleMaps();
-      const geocoder = new g.maps.Geocoder();
-      const { results } = await geocoder.geocode({ location: { lat, lng } });
-      const top = results?.[0];
-      onPick({
-        formatted: top?.formatted_address ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-        lat,
-        lng,
-        placeId: top?.place_id ?? `manual:${lat},${lng}`,
+    const lat = pos.lat() as number;
+    const lng = pos.lng() as number;
+
+    loadGoogleMaps()
+      .then((g) => {
+        const geocoder = new g.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results: any[] | null, status: string) => {
+          setPicking(false);
+          if (status === "OK" && results?.[0]) {
+            onPick({
+              formatted: results[0].formatted_address as string,
+              lat,
+              lng,
+              placeId: (results[0].place_id as string) ?? `manual:${lat},${lng}`,
+            });
+          } else {
+            onPick({
+              formatted: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+              lat,
+              lng,
+              placeId: `manual:${lat},${lng}`,
+            });
+          }
+        });
+      })
+      .catch(() => {
+        setPicking(false);
+        onPick({
+          formatted: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+          lat,
+          lng,
+          placeId: `manual:${lat},${lng}`,
+        });
       });
-    } catch {
-      onPick({
-        formatted: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-        lat,
-        lng,
-        placeId: `manual:${lat},${lng}`,
-      });
-    } finally {
-      setPicking(false);
-    }
   }
 
   return (
@@ -391,11 +392,13 @@ function MapPickModal({
         <div ref={mapRef} className="h-80 w-full bg-ink/10 sm:h-96" />
         {err && <p className="border-t border-ink/20 px-4 py-2 text-xs text-primary">{err}</p>}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t-2 border-ink px-4 py-3">
-          <p className="text-xs text-ink/50">{ready ? "Pin ready when you click the map" : "Loading map…"}</p>
+          <p className="text-xs text-ink/50">
+            {ready ? "Pin ready when you click the map" : "Loading map…"}
+          </p>
           <button
             type="button"
             disabled={picking}
-            onClick={() => void confirm()}
+            onClick={confirm}
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper disabled:opacity-60"
           >
             {picking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}

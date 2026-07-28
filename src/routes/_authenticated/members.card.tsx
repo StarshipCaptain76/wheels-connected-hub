@@ -238,7 +238,6 @@ function MemberCard({
       <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
         <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            {/* Club logo — top left only */}
             <img
               src={LOGO_URL}
               alt="Just Wheels"
@@ -256,27 +255,35 @@ function MemberCard({
           </span>
         </header>
 
-        <div className="mt-auto max-w-[62%]">
-          <p className="font-display text-[10px] tracking-[0.25em] text-primary sm:text-xs">
-            {t("card.number")}
-          </p>
-          <p className="font-display text-3xl leading-none tracking-wider sm:text-4xl">#{number}</p>
-          <p className="mt-2 font-display text-xl leading-tight sm:text-2xl">
+        {/* Name first & largest — easy to read for older members */}
+        <div className="mt-auto max-w-[68%]">
+          <p
+            className="font-display text-[1.75rem] leading-[1.05] tracking-wide text-paper sm:text-4xl md:text-5xl"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
+          >
             {profile.display_name ?? "—"}
           </p>
-          <p className="mt-0.5 line-clamp-1 text-xs text-paper/75 sm:text-sm">
+
+          <p className="mt-2 font-display text-lg leading-none tracking-wider text-paper/95 sm:text-2xl">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:text-xs">
+              {t("card.number")}{" "}
+            </span>
+            #{number}
+          </p>
+
+          <p className="mt-1.5 line-clamp-1 text-sm text-paper/80 sm:text-base">
             {profile.favourite_ride || t("card.noRide")}
           </p>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] uppercase tracking-widest text-paper/70 sm:text-[11px]">
+
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs uppercase tracking-widest text-paper/70 sm:text-sm">
             <span>
               {t("card.since")} {year}
             </span>
-            <span className="text-primary">{profile.membership_status}</span>
+            <span className="font-semibold text-primary">{profile.membership_status}</span>
             {profile.town && <span>{profile.town}</span>}
           </div>
         </div>
 
-        {/* Bottom-right: PROFILE FACE (never the club logo as the main circle) */}
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className="relative h-16 w-16 sm:h-20 sm:w-20">
             <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-paper bg-[#2a1a16] shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
@@ -295,7 +302,6 @@ function MemberCard({
                 </span>
               )}
             </div>
-            {/* Small club logo badge only */}
             <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 overflow-hidden rounded-full border-2 border-paper bg-paper shadow sm:h-8 sm:w-8">
               <img src={LOGO_URL} alt="" className="h-full w-full object-cover" />
             </div>
@@ -376,23 +382,28 @@ async function downloadLandscapeCard(
   ctx.fillText(af ? "LIDKAART" : "MEMBER", PRINT_W - 85, 47);
   ctx.textAlign = "left";
 
-  ctx.fillStyle = "#cc2222";
-  ctx.font = "600 14px Barlow, sans-serif";
-  ctx.fillText(af ? "LIDNOMMER" : "MEMBER NO.", 48, PRINT_H - 200);
+  // Name largest on print card
   ctx.fillStyle = "#f5f0e8";
-  ctx.font = "700 64px Bebas Neue, Barlow, sans-serif";
-  ctx.fillText(`#${number}`, 48, PRINT_H - 140);
+  ctx.font = "700 56px Bebas Neue, Barlow, sans-serif";
+  ctx.fillText(name.slice(0, 26), 48, PRINT_H - 130);
+
+  ctx.fillStyle = "#cc2222";
+  ctx.font = "600 16px Barlow, sans-serif";
+  ctx.fillText(af ? "LIDNOMMER" : "MEMBER NO.", 48, PRINT_H - 95);
+  ctx.fillStyle = "#f5f0e8";
   ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
-  ctx.fillText(name.slice(0, 28), 48, PRINT_H - 90);
-  ctx.fillStyle = "rgba(245,240,232,0.75)";
+  ctx.fillText(`#${number}`, 48, PRINT_H - 58);
+
+  ctx.fillStyle = "rgba(245,240,232,0.8)";
   ctx.font = "500 18px Barlow, sans-serif";
-  ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 58);
-  ctx.font = "600 14px Barlow, sans-serif";
-  ctx.fillStyle = "rgba(245,240,232,0.65)";
+  ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 28);
+
   const meta = [`${af ? "Sedert" : "Since"} ${year}`, profile.membership_status, profile.town]
     .filter(Boolean)
     .join("  ·  ");
-  ctx.fillText(meta, 48, PRINT_H - 28);
+  ctx.fillStyle = "rgba(245,240,232,0.55)";
+  ctx.font = "600 14px Barlow, sans-serif";
+  ctx.fillText(meta, 220, PRINT_H - 58);
 
   const cx = PRINT_W - 90;
   const cy = PRINT_H - 90;
@@ -412,7 +423,6 @@ async function downloadLandscapeCard(
         const face = await loadImage(facePhoto);
         drawCircleImage(ctx, face, cx, cy, r);
       } catch {
-        // initials fallback
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.fillStyle = "#2a1a16";

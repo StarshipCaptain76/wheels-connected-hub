@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
-import { Calendar, IdCard, Users, Star } from "lucide-react";
+import { Calendar, IdCard, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
@@ -74,6 +74,13 @@ function formatDate(iso: string, lang: "en" | "af") {
   });
 }
 
+function initials(name: string | null | undefined): string {
+  if (!name?.trim()) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 function Index() {
   const { t, lang } = useI18n();
   const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
@@ -98,6 +105,12 @@ function Index() {
   const nextBody = nextEvent
     ? [nextMeta, nextDesc].filter(Boolean).join(" — ")
     : t("home.tbaBody");
+
+  // Prefer member profile picture; optional admin featured override; then initials
+  const faceSrc =
+    featured?.avatar_url?.trim() ||
+    featured?.featured_photo_url?.trim() ||
+    null;
 
   return (
     <SiteLayout>
@@ -168,22 +181,21 @@ function Index() {
 
       <SponsorCarousel />
 
-      {/* Featured member — compact, only when set */}
       {featured && (
         <section className="border-b border-ink/15 bg-paper">
           <div className="mx-auto max-w-6xl px-4 py-8">
             <div className="flex flex-col gap-4 rounded-xl border border-ink/20 bg-card/60 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
               <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-                <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink/10 sm:h-20 sm:w-20">
-                  {featured.featured_photo_url ? (
+                <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
+                  {faceSrc ? (
                     <img
-                      src={featured.featured_photo_url}
-                      alt=""
+                      src={faceSrc}
+                      alt={featured.display_name ?? "Featured member"}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-ink text-paper">
-                      <Star className="h-6 w-6 text-primary" />
+                    <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">
+                      {initials(featured.display_name)}
                     </div>
                   )}
                 </div>

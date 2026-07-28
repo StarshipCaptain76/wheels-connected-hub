@@ -33,6 +33,25 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
   },
 );
 
+/** Published events that have already started (in progress or finished). */
+export const listPastEvents = createServerFn({ method: "GET" }).handler(
+  async (): Promise<PublicEvent[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase();
+    const { data, error } = await supabase
+      .from("events")
+      .select(
+        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
+      )
+      .eq("is_published", true)
+      .lt("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: false })
+      .limit(48);
+    if (error) throw new Error(error.message);
+    return (data ?? []) as PublicEvent[];
+  },
+);
+
 export const getNextEvent = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicEvent | null> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
@@ -128,9 +147,9 @@ export const deleteEvent = createServerFn({ method: "POST" })
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
 
-    // Delete dependent rows first (in case cascade policies are missing)
     await supabase.from("event_rsvps").delete().eq("event_id", data.id);
     await supabase.from("event_waypoints").delete().eq("event_id", data.id);
+    await supabase.from("event_photos").delete().eq("event_id", data.id);
 
     const { data: deleted, error } = await supabase
       .from("events")

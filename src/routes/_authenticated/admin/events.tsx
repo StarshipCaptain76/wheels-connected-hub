@@ -426,7 +426,8 @@ function EditModal({
               </Field>
               <Field label="Lng (manual override)">
                 <input
-                  type="number"\tableofcontentsstep="any"
+                  type="number"
+                  step="any"
                   value={form.destination_lng ?? ""}
                   onChange={(e) =>
                     set("destination_lng", e.target.value ? Number(e.target.value) : null)

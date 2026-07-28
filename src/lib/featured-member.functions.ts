@@ -7,6 +7,7 @@ export type FeaturedMember = {
   favourite_ride: string | null;
   featured_bio: string | null;
   featured_photo_url: string | null;
+  avatar_url: string | null;
   featured_since: string | null;
 };
 
@@ -17,7 +18,7 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, featured_since",
+        "display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, avatar_url, featured_since",
       )
       .eq("is_featured", true)
       .maybeSingle();

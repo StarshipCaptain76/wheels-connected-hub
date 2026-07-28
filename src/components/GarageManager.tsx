@@ -18,6 +18,24 @@ import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon } from "
 const STORY_MAX = 4000;
 const MAX_PHOTO_MB = 6;
 
+function storageErrorMessage(msg: string): string {
+  if (msg.includes("Bucket not found")) return "Bucket 'garage' missing — run the SQL setup";
+  if (msg.includes("row-level security") || msg.includes("policy") || msg.includes("403"))
+    return "Upload blocked by storage policy — re-run the garage SQL policies";
+  if (msg.includes("mime") || msg.includes("not allowed"))
+    return "File type not allowed — use JPG, PNG or WebP";
+  return msg;
+}
+
+async function publicOrSignedUrl(path: string): Promise<string> {
+  const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
+  if (pub?.publicUrl) return pub.publicUrl;
+  const { data: signed } = await supabase.storage
+    .from("garage")
+    .createSignedUrl(path, 60 * 60 * 24 * 365);
+  return signed?.signedUrl ?? path;
+}
+
 export function GarageManager({
   avatarUrl,
   lang = "en",
@@ -77,27 +95,17 @@ export function GarageManager({
       if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
+      // Path: {userId}/avatar-{uuid}.ext  → foldername[1] = userId
+      const path = `${userId}/avatar-${crypto.randomUUID()}.${ext}`;
 
       const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
         cacheControl: "3600",
         upsert: true,
         contentType: file.type || "image/jpeg",
       });
-      if (upErr) {
-        throw new Error(
-          upErr.message.includes("Bucket not found")
-            ? "Storage bucket 'garage' missing — run the SQL setup"
-            : upErr.message.includes("row-level security") || upErr.message.includes("policy")
-              ? "Upload blocked by storage policy — run the garage SQL policies"
-              : upErr.message,
-        );
-      }
+      if (upErr) throw new Error(storageErrorMessage(upErr.message));
 
-      const { data: signed } = await supabase.storage
-        .from("garage")
-        .createSignedUrl(path, 60 * 60 * 24 * 365);
-      const url = signed?.signedUrl ?? path;
+      const url = await publicOrSignedUrl(path);
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
     } catch (e) {
@@ -172,7 +180,8 @@ export function GarageManager({
 
         const ext =
           (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        const path = `vehicles/${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
+        // Path: {userId}/{vehicleId}/{uuid}.ext → foldername[1] = userId (matches policy)
+        const path = `${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
 
         const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
           cacheControl: "3600",
@@ -180,12 +189,7 @@ export function GarageManager({
           contentType: file.type || "image/jpeg",
         });
         if (upErr) {
-          const msg = upErr.message.includes("Bucket not found")
-            ? "Bucket 'garage' missing — run SQL setup"
-            : upErr.message.includes("row-level security") || upErr.message.includes("policy")
-              ? "Blocked by storage policy — run garage SQL policies"
-              : upErr.message;
-          failures.push(`${file.name}: ${msg}`);
+          failures.push(`${file.name}: ${storageErrorMessage(upErr.message)}`);
           continue;
         }
 
@@ -193,7 +197,10 @@ export function GarageManager({
           await addPhotoFn({ data: { vehicleId, storage_path: path, caption: null } });
           uploaded += 1;
         } catch (e) {
-          failures.push(`${file.name}: ${e instanceof Error ? e.message : "DB insert failed"}`);
+          // Storage file exists but DB row failed — still report
+          failures.push(
+            `${file.name}: DB ${e instanceof Error ? e.message : "insert failed"}`,
+          );
         }
       }
 
@@ -259,7 +266,6 @@ export function GarageManager({
         <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">{error}</p>
       )}
 
-      {/* Profile / card photo picker */}
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
         <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-ink bg-ink/10">
           {avatarUrl ? (
@@ -367,7 +373,6 @@ function VehicleCard({
 
   return (
     <li className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
-      {/* Hero photo + title */}
       <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="relative min-h-[200px] bg-ink/10">
           {hero?.url ? (
@@ -442,7 +447,6 @@ function VehicleCard({
         </div>
       </div>
 
-      {/* Photo library strip */}
       <div className="border-t-2 border-ink/10 px-4 py-3">
         <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-ink/50">
           {lang === "af" ? "Foto-biblioteek" : "Photo library"} · {v.photos.length}/8
@@ -451,11 +455,7 @@ function VehicleCard({
           {v.photos.map((p: GaragePhoto) => (
             <div key={p.id} className="group relative">
               {p.url ? (
-                <img
-                  src={p.url}
-                  alt=""
-                  className="h-20 w-20 rounded border-2 border-ink object-cover"
-                />
+                <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded border-2 border-dashed border-ink/30 text-[9px] text-ink/40">
                   no url
@@ -492,7 +492,7 @@ function VehicleCard({
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 multiple
                 className="hidden"
                 disabled={busy}

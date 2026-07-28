@@ -61,10 +61,10 @@
 :root {
   --radius: 0.625rem;
 
-  /* Just Wheels palette (from logo) */
-  --ink: oklch(0.18 0 0);
-  --paper: oklch(0.98 0.005 90);
-  --steel: oklch(0.72 0.01 260);
+  /* Just Wheels palette — neutral paper (no warm/brown cast) */
+  --ink: oklch(0.14 0 0);
+  --paper: oklch(1 0 0);
+  --steel: oklch(0.72 0 0);
   --rust: oklch(0.55 0.15 45);
 
   --background: var(--paper);
@@ -75,47 +75,47 @@
   --popover-foreground: var(--ink);
   --primary: oklch(0.58 0.22 27); /* Just Wheels Red */
   --primary-foreground: var(--paper);
-  --secondary: oklch(0.95 0.005 90);
+  --secondary: oklch(0.96 0 0);
   --secondary-foreground: var(--ink);
-  --muted: oklch(0.95 0.005 90);
-  --muted-foreground: oklch(0.5 0.01 260);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.5 0 0);
   --accent: var(--rust);
   --accent-foreground: var(--paper);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: var(--paper);
-  --border: oklch(0.88 0.01 90);
-  --input: oklch(0.88 0.01 90);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.88 0 0);
   --ring: oklch(0.58 0.22 27);
 
   --chart-1: oklch(0.58 0.22 27);
   --chart-2: oklch(0.55 0.15 45);
-  --chart-3: oklch(0.72 0.01 260);
-  --chart-4: oklch(0.4 0.05 260);
-  --chart-5: oklch(0.18 0 0);
+  --chart-3: oklch(0.72 0 0);
+  --chart-4: oklch(0.4 0 0);
+  --chart-5: oklch(0.14 0 0);
 
   --sidebar: var(--paper);
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--ink);
   --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.95 0.005 90);
+  --sidebar-accent: oklch(0.96 0 0);
   --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: oklch(0.88 0.01 90);
+  --sidebar-border: oklch(0.88 0 0);
   --sidebar-ring: oklch(0.58 0.22 27);
 }
 
 .dark {
   --background: var(--ink);
   --foreground: var(--paper);
-  --card: oklch(0.24 0 0);
+  --card: oklch(0.2 0 0);
   --card-foreground: var(--paper);
-  --popover: oklch(0.24 0 0);
+  --popover: oklch(0.2 0 0);
   --popover-foreground: var(--paper);
   --primary: oklch(0.62 0.22 27);
   --primary-foreground: var(--paper);
-  --secondary: oklch(0.28 0 0);
+  --secondary: oklch(0.24 0 0);
   --secondary-foreground: var(--paper);
-  --muted: oklch(0.28 0 0);
-  --muted-foreground: oklch(0.72 0.01 260);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.72 0 0);
   --accent: var(--rust);
   --accent-foreground: var(--paper);
   --destructive: oklch(0.62 0.22 27);
@@ -123,11 +123,11 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.62 0.22 27);
-  --sidebar: oklch(0.24 0 0);
+  --sidebar: oklch(0.2 0 0);
   --sidebar-foreground: var(--paper);
   --sidebar-primary: oklch(0.62 0.22 27);
   --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.28 0 0);
+  --sidebar-accent: oklch(0.24 0 0);
   --sidebar-accent-foreground: var(--paper);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.62 0.22 27);

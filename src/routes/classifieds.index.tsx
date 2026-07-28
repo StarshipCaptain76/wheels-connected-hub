@@ -84,6 +84,7 @@ function ClassifiedsPage() {
             {signedIn ? (
               <Link
                 to="/classifieds/new"
+                search={{ from: "browse" }}
                 className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
               >
                 {t("classifieds.postCta")}
@@ -151,11 +152,7 @@ function ListingCard({ listing, lang }: { listing: PublicListing; lang: "en" | "
   const cover = listing.photos[0]?.url;
   return (
     <li className="group overflow-hidden rounded-lg border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:-translate-y-1">
-      <Link
-        to="/classifieds/$id"
-        params={{ id: listing.id }}
-        className="block"
-      >
+      <Link to="/classifieds/$id" params={{ id: listing.id }} className="block">
         {cover ? (
           <img
             src={cover}
@@ -178,9 +175,7 @@ function ListingCard({ listing, lang }: { listing: PublicListing; lang: "en" | "
             <Tag className="h-3.5 w-3.5" />
             {listing.category}
           </div>
-          <h2 className="mt-2 font-display text-xl tracking-wide text-ink line-clamp-2">
-            {title}
-          </h2>
+          <h2 className="mt-2 font-display text-xl tracking-wide text-ink line-clamp-2">{title}</h2>
           {listing.price_zar != null ? (
             <p className="mt-2 font-display text-lg text-ink">
               R {listing.price_zar.toLocaleString("en-ZA")}
@@ -190,9 +185,7 @@ function ListingCard({ listing, lang }: { listing: PublicListing; lang: "en" | "
               {lang === "af" ? "Prys op aanvraag" : "Price on request"}
             </p>
           )}
-          {listing.location ? (
-            <p className="mt-1 text-xs text-ink/60">{listing.location}</p>
-          ) : null}
+          {listing.location ? <p className="mt-1 text-xs text-ink/60">{listing.location}</p> : null}
         </div>
       </Link>
     </li>

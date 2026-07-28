@@ -71,7 +71,7 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/members", replace: true });
+        navigate({ to: redirectTo, replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

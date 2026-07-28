@@ -26,9 +26,6 @@ function ResetPasswordPage() {
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    // Supabase recovery links open here with a session already established
-    // (either via URL hash tokens or a code exchange handled by the client).
-    // We just need to confirm a session exists before allowing an update.
     let mounted = true;
 
     const check = async () => {
@@ -45,7 +42,6 @@ function ResetPasswordPage() {
     });
 
     void check();
-    // Give Supabase a moment to hydrate the recovery session from the URL.
     const timeout = setTimeout(() => {
       if (mounted && ready === "checking") void check();
     }, 800);
@@ -93,7 +89,7 @@ function ResetPasswordPage() {
               </p>
               <Link
                 to="/auth"
-                className="inline-block rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
+                className="inline-block w-full rounded-md border-2 border-ink bg-primary px-4 py-2.5 text-center text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)]"
               >
                 {t("auth.backToSignIn")}
               </Link>
@@ -110,7 +106,7 @@ function ResetPasswordPage() {
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
+                  className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
                   autoComplete="new-password"
                   disabled={ready !== "ok"}
                 />
@@ -125,7 +121,7 @@ function ResetPasswordPage() {
                   minLength={6}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"
+                  className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
                   autoComplete="new-password"
                   disabled={ready !== "ok"}
                 />
@@ -145,7 +141,7 @@ function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || ready !== "ok"}
-                className="w-full rounded-md border-2 border-ink bg-primary px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-60"
+                className="w-full rounded-md border-2 border-ink bg-primary px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-60"
               >
                 {loading ? "…" : t("auth.updatePassword")}
               </button>

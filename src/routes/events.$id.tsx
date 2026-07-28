@@ -51,10 +51,10 @@ export const Route = createFileRoute("/events/$id")({
         { property: "og:description", content: ev?.description ?? "" },
         { property: "og:type", content: "article" },
         { property: "og:url", content: `${SITE_ORIGIN}/events/${params.id}` },
-        ...(ev?.hero_image_url || ev?.cover_url
+        ...(ev?.cover_url
           ? [
-              { property: "og:image", content: (ev.hero_image_url ?? ev.cover_url)! },
-              { name: "twitter:image", content: (ev.hero_image_url ?? ev.cover_url)! },
+              { property: "og:image", content: ev.cover_url },
+              { name: "twitter:image", content: ev.cover_url },
             ]
           : []),
         { name: "twitter:card", content: "summary_large_image" },
@@ -127,6 +127,7 @@ function EventDetailPage() {
       : null;
 
   const isPast = new Date(data.starts_at).getTime() < Date.now();
+  const iconUrl = data.cover_url || null;
 
   const waypointCoords = data.waypoints
     .filter((w) => w.lat != null && w.lng != null)
@@ -157,20 +158,6 @@ function EventDetailPage() {
 
   return (
     <SiteLayout>
-      {(data.hero_image_url || data.cover_url) && (
-        <div className="relative h-64 w-full overflow-hidden border-b-2 border-ink sm:h-80">
-          <img
-            src={(data.hero_image_url ?? data.cover_url)!}
-            alt=""
-            className="h-full w-full object-cover"
-          />
-          {isPast && (
-            <span className="absolute left-4 top-4 rounded-full border-2 border-paper bg-ink/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-paper">
-              {lang === "af" ? "Vorige byeenkoms" : "Past event"}
-            </span>
-          )}
-        </div>
-      )}
       <section className="mx-auto max-w-4xl px-4 py-10">
         <Link
           to="/events"
@@ -179,19 +166,37 @@ function EventDetailPage() {
           <ArrowLeft className="h-4 w-4" />{" "}
           {lang === "af" ? "Terug na byeenkomste" : "Back to events"}
         </Link>
-        <h1 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">{title}</h1>
-        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/70">
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-4 w-4 text-primary" />
-            {fmtDate(data.starts_at, lang)}
-          </span>
-          {data.location && (
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="h-4 w-4 text-primary" />
-              {data.location}
-            </span>
+
+        <div className="flex flex-wrap items-start gap-4">
+          {iconUrl && (
+            <img
+              src={iconUrl}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-lg border-2 border-ink object-cover shadow-[3px_3px_0_0_var(--color-ink)] sm:h-20 sm:w-20"
+            />
           )}
+          <div className="min-w-0 flex-1">
+            {isPast && (
+              <span className="mb-2 inline-block rounded-full border border-ink/30 bg-ink/5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
+                {lang === "af" ? "Vorige byeenkoms" : "Past event"}
+              </span>
+            )}
+            <h1 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">{title}</h1>
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/70">
+              <span className="inline-flex items-center gap-1">
+                <Calendar className="h-4 w-4 text-primary" />
+                {fmtDate(data.starts_at, lang)}
+              </span>
+              {data.location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {data.location}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
         {description && <p className="mt-4 text-lg text-ink/80">{description}</p>}
 
         {destination && (
@@ -215,7 +220,7 @@ function EventDetailPage() {
               rel="noreferrer"
               className="mt-3 inline-flex items-center gap-1 text-sm text-primary underline"
             >
-              {lang === "af" ? "Open in Google Maps" : "Open in Google Maps"}
+              Open in Google Maps
               <ExternalLink className="h-3 w-3" />
             </a>
           </section>
@@ -305,10 +310,8 @@ function EventDetailPage() {
           </p>
         </section>
 
-        {/* RSVP only for upcoming; past events skip to photos */}
         {!isPast && <RsvpSection eventId={data.id} />}
 
-        {/* Member photos — works for live and past events */}
         <EventPhotosGallery eventId={data.id} lang={lang} />
       </section>
     </SiteLayout>

@@ -2,8 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-
-
 export type AdminMember = {
   user_id: string;
   display_name: string | null;
@@ -22,7 +20,15 @@ export const listAllMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminMember[]> => {
     const { supabase, userId } = context;
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) {
+      console.error("[admin members] has_role", roleErr);
+      throw new Error(`Role check failed: ${roleErr.message}`);
+    }
     if (!isAdmin) throw new Error("Forbidden");
 
     const { data: profiles, error } = await supabase
@@ -31,34 +37,51 @@ export const listAllMembers = createServerFn({ method: "GET" })
         "id, display_name, phone, town, favourite_ride, member_number, membership_status, joined_at, is_featured",
       )
       .order("member_number", { ascending: true });
-    if (error) throw error;
+    if (error) {
+      console.error("[admin members] profiles", error);
+      throw new Error(`Could not load members: ${error.message}`);
+    }
 
-    const { data: adminRows } = await supabase
+    const { data: adminRows, error: rolesErr } = await supabase
       .from("user_roles")
       .select("user_id")
       .eq("role", "admin");
-    const adminSet = new Set((adminRows ?? []).map((r) => r.user_id));
+    if (rolesErr) {
+      console.error("[admin members] user_roles", rolesErr);
+    }
+    const adminSet = new Set((adminRows ?? []).map((r: { user_id: string }) => r.user_id));
 
-    // Fetch emails via admin API (server-only).
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Emails via service-role admin API — optional (page still works without them)
     const emailById = new Map<string, string | null>();
-    const { data: usersPage } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
-    for (const u of usersPage?.users ?? []) emailById.set(u.id, u.email ?? null);
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: usersPage, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (usersErr) {
+        console.error("[admin members] listUsers", usersErr);
+      } else {
+        for (const u of usersPage?.users ?? []) {
+          emailById.set(u.id, u.email ?? null);
+        }
+      }
+    } catch (e) {
+      // Missing SUPABASE_SERVICE_ROLE_KEY or other admin-API failure must not blank the page
+      console.error("[admin members] email lookup skipped", e);
+    }
 
     return (profiles ?? []).map((p) => ({
-      user_id: p.id,
-      display_name: p.display_name,
-      email: emailById.get(p.id) ?? null,
-      phone: p.phone,
-      town: p.town,
-      favourite_ride: p.favourite_ride,
-      member_number: p.member_number,
-      membership_status: p.membership_status,
-      joined_at: p.joined_at,
-      is_admin: adminSet.has(p.id),
+      user_id: p.id as string,
+      display_name: p.display_name as string | null,
+      email: emailById.get(p.id as string) ?? null,
+      phone: p.phone as string | null,
+      town: p.town as string | null,
+      favourite_ride: p.favourite_ride as string | null,
+      member_number: Number(p.member_number),
+      membership_status: String(p.membership_status ?? "pending"),
+      joined_at: String(p.joined_at ?? ""),
+      is_admin: adminSet.has(p.id as string),
       is_featured: Boolean(p.is_featured),
     }));
   });
@@ -77,7 +100,7 @@ export const updateMemberStatus = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    const { error } = await context.supabase
+    const { error } = await supabase
       .from("profiles")
       .update({ membership_status: data.status })
       .eq("id", data.userId);
@@ -94,10 +117,10 @@ export const setAdminRole = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    if (data.userId === context.userId && !data.isAdmin) {
+    if (data.userId === userId && !data.isAdmin) {
       throw new Error("You cannot remove your own admin role.");
     }
-    
+
     if (data.isAdmin) {
       const { error } = await supabase
         .from("user_roles")
@@ -129,7 +152,6 @@ export const setFeaturedMember = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    // Clear existing featured first (unique partial index enforces one).
     const { error: clearErr } = await supabase
       .from("profiles")
       .update({ is_featured: false })

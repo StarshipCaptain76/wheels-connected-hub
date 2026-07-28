@@ -37,7 +37,6 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
-  /* Just Wheels palette — theme-aware */
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-steel: var(--steel);
@@ -61,66 +60,66 @@
 :root {
   --radius: 0.625rem;
 
-  /* DAY — pure white paper, pure black ink */
-  --ink: #0a0a0a;
+  /* DAY — 100% white surfaces, black text */
+  --ink: #000000;
   --paper: #ffffff;
-  --steel: #b8b8b8;
+  --steel: #b0b0b0;
   --rust: oklch(0.55 0.15 45);
 
-  --background: var(--paper);
-  --foreground: var(--ink);
+  --background: #ffffff;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: var(--ink);
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: var(--ink);
-  --primary: oklch(0.58 0.22 27); /* Just Wheels Red — stays */
+  --popover-foreground: #000000;
+  --primary: oklch(0.58 0.22 27); /* Just Wheels Red */
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f4;
-  --secondary-foreground: var(--ink);
-  --muted: #f4f4f4;
-  --muted-foreground: #6b6b6b;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #000000;
+  --muted: #f5f5f5;
+  --muted-foreground: #666666;
   --accent: var(--rust);
   --accent-foreground: #ffffff;
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: #ffffff;
-  --border: #e0e0e0;
-  --input: #e0e0e0;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
   --ring: oklch(0.58 0.22 27);
 
   --chart-1: oklch(0.58 0.22 27);
   --chart-2: oklch(0.55 0.15 45);
-  --chart-3: #b8b8b8;
+  --chart-3: #b0b0b0;
   --chart-4: #666666;
-  --chart-5: #0a0a0a;
+  --chart-5: #000000;
 
-  --sidebar: var(--paper);
-  --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--ink);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: #f4f4f4;
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: #e0e0e0;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e5e5e5;
   --sidebar-ring: oklch(0.58 0.22 27);
 }
 
-/* NIGHT — pure black paper, pure white ink; red accents unchanged */
+/* NIGHT — 100% black surfaces, white text; red unchanged */
 .dark {
-  --ink: #f5f5f5;
-  --paper: #0a0a0a;
-  --steel: #6b6b6b;
+  --ink: #ffffff;
+  --paper: #000000;
+  --steel: #666666;
   --rust: oklch(0.55 0.15 45);
 
-  --background: var(--paper);
-  --foreground: var(--ink);
-  --card: #141414;
-  --card-foreground: var(--ink);
-  --popover: #141414;
-  --popover-foreground: var(--ink);
-  --primary: oklch(0.62 0.22 27); /* red stays */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #000000;
+  --card-foreground: #ffffff;
+  --popover: #000000;
+  --popover-foreground: #ffffff;
+  --primary: oklch(0.62 0.22 27);
   --primary-foreground: #ffffff;
-  --secondary: #1a1a1a;
-  --secondary-foreground: var(--ink);
-  --muted: #1a1a1a;
+  --secondary: #111111;
+  --secondary-foreground: #ffffff;
+  --muted: #111111;
   --muted-foreground: #a3a3a3;
   --accent: var(--rust);
   --accent-foreground: #ffffff;
@@ -132,16 +131,16 @@
 
   --chart-1: oklch(0.62 0.22 27);
   --chart-2: oklch(0.55 0.15 45);
-  --chart-3: #6b6b6b;
+  --chart-3: #666666;
   --chart-4: #a3a3a3;
-  --chart-5: #f5f5f5;
+  --chart-5: #ffffff;
 
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: var(--ink);
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
   --sidebar-primary: oklch(0.62 0.22 27);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: var(--ink);
+  --sidebar-accent: #111111;
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #2a2a2a;
   --sidebar-ring: oklch(0.62 0.22 27);
 }
@@ -164,13 +163,6 @@
   }
 }
 
-/* Structural black band — always pure black (hero, footer, night-safe strips) */
-@utility band-black {
-  background-color: #000000;
-  color: #ffffff;
-}
-
-/* Grain texture overlay utility */
 @utility grain {
   position: relative;
   &::after {

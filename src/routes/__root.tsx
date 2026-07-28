@@ -12,6 +12,12 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteLayout } from "../components/SiteLayout";
+import { I18nProvider } from "../i18n/I18nProvider";
+import { supabase } from "@/integrations/supabase/client";
+import { registerPwa } from "../lib/pwa-register";
+import { InstallPrompt } from "../components/InstallPrompt";
+import { OfflineBanner } from "../components/OfflineBanner";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -136,6 +142,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/** Shell wraps ALL route UI including error/404 — must provide I18n here. */
 function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
@@ -143,19 +150,12 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <I18nProvider>{children}</I18nProvider>
         <Scripts />
       </body>
     </html>
   );
 }
-
-import { I18nProvider } from "../i18n/I18nProvider";
-import { supabase } from "@/integrations/supabase/client";
-import { registerPwa } from "../lib/pwa-register";
-import { InstallPrompt } from "../components/InstallPrompt";
-import { OfflineBanner } from "../components/OfflineBanner";
-import { Toaster } from "../components/ui/sonner";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -173,13 +173,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <OfflineBanner />
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <InstallPrompt />
-        <Toaster position="top-center" richColors closeButton />
-      </I18nProvider>
+      <OfflineBanner />
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
+      <InstallPrompt />
+      <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   );
 }

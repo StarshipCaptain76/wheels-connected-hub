@@ -20,7 +20,7 @@ const MAX_PHOTO_MB = 6;
 function storageErrorMessage(msg: string): string {
   if (msg.includes("Bucket not found")) return "Bucket 'garage' missing — run the SQL setup";
   if (msg.includes("row-level security") || msg.includes("policy") || msg.includes("403"))
-    return "Upload blocked by storage policy — re-run the garage SQL policies";
+    return "Upload blocked by storage policy — re-run the permissive garage storage SQL";
   if (msg.includes("mime") || msg.includes("not allowed"))
     return "File type not allowed — use JPG, PNG or WebP";
   return msg;
@@ -28,12 +28,41 @@ function storageErrorMessage(msg: string): string {
 
 async function publicOrSignedUrl(path: string): Promise<string> {
   const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
-  if (pub?.publicUrl) return pub.publicUrl;
+  if (pub?.publicUrl) {
+    // Prefer signed URL — more reliable if bucket is not fully public
+    const { data: signed } = await supabase.storage
+      .from("garage")
+      .createSignedUrl(path, 60 * 60 * 24 * 365);
+    return signed?.signedUrl ?? pub.publicUrl;
+  }
   const { data: signed, error } = await supabase.storage
     .from("garage")
     .createSignedUrl(path, 60 * 60 * 24 * 365);
   if (error) console.warn("sign url", error);
-  return signed?.signedUrl ?? pub?.publicUrl ?? "";
+  return signed?.signedUrl ?? "";
+}
+
+/** Open OS file picker without relying on hidden <label> clicks. */
+function pickImageFiles(multiple: boolean): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp,image/gif,image/*";
+    input.multiple = multiple;
+    input.style.display = "none";
+    document.body.appendChild(input);
+    input.addEventListener("change", () => {
+      const files = input.files ? Array.from(input.files) : [];
+      document.body.removeChild(input);
+      resolve(files);
+    });
+    // Cancel path (some browsers)
+    input.addEventListener("cancel", () => {
+      document.body.removeChild(input);
+      resolve([]);
+    });
+    input.click();
+  });
 }
 
 export function GarageManager({
@@ -60,6 +89,7 @@ export function GarageManager({
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["garage", "me"] });
@@ -82,13 +112,17 @@ export function GarageManager({
     }
   }
 
-  async function uploadAvatar(file: File) {
+  async function uploadAvatar() {
     setAvatarBusy(true);
     setError(null);
     setOkMsg(null);
+    setStatus(lang === "af" ? "Kies foto…" : "Choose photo…");
     try {
-      if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|gif|heic)$/i.test(file.name)) {
-        throw new Error(lang === "af" ? "Kies 'n beeldlêer" : "Choose an image file");
+      const files = await pickImageFiles(false);
+      const file = files[0];
+      if (!file) {
+        setStatus(null);
+        return;
       }
       if (file.size > 5 * 1024 * 1024) {
         throw new Error(lang === "af" ? "Maks 5MB" : "Max 5MB");
@@ -98,8 +132,10 @@ export function GarageManager({
       if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
 
       const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-      const path = `${userId}/avatar-${crypto.randomUUID()}.${ext}`;
+      // Match path style that already worked for your existing avatar
+      const path = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
 
+      setStatus(lang === "af" ? "Laai op…" : "Uploading…");
       const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
         cacheControl: "3600",
         upsert: true,
@@ -108,12 +144,16 @@ export function GarageManager({
       if (upErr) throw new Error(storageErrorMessage(upErr.message));
 
       const url = await publicOrSignedUrl(path);
-      if (!url) throw new Error("Upload ok but could not resolve public URL");
+      if (!url) throw new Error("Upload ok but could not resolve URL");
       await avatarFn({ data: { avatar_url: url } });
       await refresh();
-      setOkMsg(lang === "af" ? "Foto gelaai" : "Photo uploaded");
+      setOkMsg(lang === "af" ? "Profielfoto gelaai" : "Profile photo uploaded");
+      setStatus(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Avatar upload failed");
+      console.error(e);
+      const msg = e instanceof Error ? e.message : "Avatar upload failed";
+      setError(msg);
+      setStatus(null);
     } finally {
       setAvatarBusy(false);
     }
@@ -158,13 +198,19 @@ export function GarageManager({
     }
   }
 
-  /** Client-side storage + DB insert — avoids silent server-fn failures. */
-  async function uploadPhotos(vehicleId: string, files: FileList | null) {
-    if (!files?.length) return;
+  async function uploadPhotos(vehicleId: string) {
     setBusy(true);
     setError(null);
     setOkMsg(null);
+    setStatus(lang === "af" ? "Kies foto(s)…" : "Choose photo(s)…");
     try {
+      const files = await pickImageFiles(true);
+      if (!files.length) {
+        setStatus(null);
+        setBusy(false);
+        return;
+      }
+
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
       if (!userId) throw new Error(lang === "af" ? "Nie aangemeld nie" : "Not signed in");
@@ -172,13 +218,14 @@ export function GarageManager({
       let uploaded = 0;
       const failures: string[] = [];
 
-      for (const file of Array.from(files).slice(0, 8)) {
-        const isImage =
-          file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|heic)$/i.test(file.name);
-        if (!isImage) {
-          failures.push(`${file.name}: not an image`);
-          continue;
-        }
+      for (let i = 0; i < Math.min(files.length, 8); i++) {
+        const file = files[i];
+        setStatus(
+          lang === "af"
+            ? `Laai op ${i + 1}/${files.length}: ${file.name}`
+            : `Uploading ${i + 1}/${files.length}: ${file.name}`,
+        );
+
         if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
           failures.push(`${file.name}: max ${MAX_PHOTO_MB}MB`);
           continue;
@@ -186,20 +233,22 @@ export function GarageManager({
 
         const ext =
           (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        const path = `${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
+        // Same root folder style as the working avatar: avatars/{userId}/...
+        // Vehicles: vehicles/{userId}/{vehicleId}/{uuid}.ext
+        const path = `vehicles/${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
 
+        console.log("[garage] uploading", path, file.type, file.size);
         const { error: upErr } = await supabase.storage.from("garage").upload(path, file, {
           cacheControl: "3600",
           upsert: false,
           contentType: file.type || "image/jpeg",
         });
         if (upErr) {
-          console.error("garage upload", upErr);
+          console.error("[garage] storage error", upErr);
           failures.push(`${file.name}: ${storageErrorMessage(upErr.message)}`);
           continue;
         }
 
-        // Insert photo row directly (RLS must allow owner insert)
         const { data: row, error: dbErr } = await supabase
           .from("garage_vehicle_photos")
           .insert({
@@ -212,11 +261,8 @@ export function GarageManager({
           .single();
 
         if (dbErr || !row) {
-          console.error("garage_vehicle_photos insert", dbErr);
-          failures.push(
-            `${file.name}: DB ${dbErr?.message ?? "insert failed — check table RLS"}`,
-          );
-          // Best-effort cleanup of orphaned storage object
+          console.error("[garage] db error", dbErr);
+          failures.push(`${file.name}: DB ${dbErr?.message ?? "insert failed"}`);
           await supabase.storage.from("garage").remove([path]);
           continue;
         }
@@ -226,9 +272,7 @@ export function GarageManager({
 
       await refresh();
 
-      if (failures.length && uploaded === 0) {
-        throw new Error(failures.join(" · "));
-      }
+      if (failures.length && uploaded === 0) throw new Error(failures.join(" · "));
       if (failures.length) {
         setError(
           (lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") +
@@ -237,14 +281,14 @@ export function GarageManager({
       }
       if (uploaded > 0) {
         setOkMsg(
-          lang === "af"
-            ? `${uploaded} foto(s) gelaai`
-            : `${uploaded} photo(s) uploaded`,
+          lang === "af" ? `${uploaded} foto(s) gelaai` : `${uploaded} photo(s) uploaded`,
         );
       }
+      setStatus(null);
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : "Photo upload failed");
+      setStatus(null);
     } finally {
       setBusy(false);
     }
@@ -256,7 +300,6 @@ export function GarageManager({
       await delPhotoFn({ data: { id } });
       await refresh();
     } catch (e) {
-      // Client fallback delete
       const { error: dbErr } = await supabase.from("garage_vehicle_photos").delete().eq("id", id);
       if (dbErr) setError(e instanceof Error ? e.message : "Could not remove photo");
       else await refresh();
@@ -303,6 +346,11 @@ export function GarageManager({
       {okMsg && (
         <p className="rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">{okMsg}</p>
       )}
+      {status && (
+        <p className="flex items-center gap-2 rounded border-2 border-ink/20 bg-paper px-3 py-2 text-sm text-ink/70">
+          <Loader2 className="h-4 w-4 animate-spin" /> {status}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
         <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-ink bg-ink/10">
@@ -323,21 +371,15 @@ export function GarageManager({
               ? "Hierdie foto verskyn op jou lidkaart. Laai op of kies uit jou garage hieronder."
               : "This photo appears on your member card. Upload here or choose from your garage below."}
           </p>
-          <label className="mt-2 inline-flex cursor-pointer items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-ink/5">
+          <button
+            type="button"
+            disabled={avatarBusy}
+            onClick={() => void uploadAvatar()}
+            className="mt-2 inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-ink/5 disabled:opacity-50"
+          >
             {avatarBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             {lang === "af" ? "Laai foto" : "Upload photo"}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={avatarBusy}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void uploadAvatar(f);
-                e.target.value = "";
-              }}
-            />
-          </label>
+          </button>
         </div>
       </div>
 
@@ -361,7 +403,7 @@ export function GarageManager({
               cardPhotoUrl={avatarUrl}
               onEdit={() => setEditing(v)}
               onDelete={() => void removeVehicle(v.id)}
-              onUpload={(files) => void uploadPhotos(v.id, files)}
+              onUpload={() => void uploadPhotos(v.id)}
               onRemovePhoto={(id) => void removePhoto(id)}
               onSetCardPhoto={(url) => void setAsCardPhoto(url)}
             />
@@ -401,7 +443,7 @@ function VehicleCard({
   cardPhotoUrl: string | null;
   onEdit: () => void;
   onDelete: () => void;
-  onUpload: (files: FileList | null) => void;
+  onUpload: () => void;
   onRemovePhoto: (id: string) => void;
   onSetCardPhoto: (url: string) => void;
 }) {
@@ -414,7 +456,14 @@ function VehicleCard({
       <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="relative min-h-[200px] bg-ink/10">
           {hero?.url ? (
-            <img src={hero.url} alt={title} className="absolute inset-0 h-full w-full object-cover" />
+            <img
+              src={hero.url}
+              alt={title}
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
           ) : (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-ink/30">
               <ImageIcon className="h-10 w-10" />
@@ -493,7 +542,14 @@ function VehicleCard({
           {v.photos.map((p: GaragePhoto) => (
             <div key={p.id} className="group relative">
               {p.url ? (
-                <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
+                <img
+                  src={p.url}
+                  alt=""
+                  className="h-20 w-20 rounded border-2 border-ink object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.opacity = "0.3";
+                  }}
+                />
               ) : (
                 <div className="flex h-20 w-20 items-center justify-center rounded border-2 border-dashed border-ink/30 text-[9px] text-ink/40">
                   no url
@@ -518,28 +574,20 @@ function VehicleCard({
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-              {cardPhotoUrl && p.url === cardPhotoUrl && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 text-[8px] font-bold uppercase text-paper">
-                  card
-                </span>
-              )}
             </div>
           ))}
           {v.photos.length < 8 && (
-            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/40 hover:border-ink hover:text-ink">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onUpload}
+              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/50 hover:border-ink hover:text-ink disabled:opacity-50"
+            >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                multiple
-                className="hidden"
-                disabled={busy}
-                onChange={(e) => {
-                  onUpload(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
+              <span className="text-[9px] font-bold uppercase">
+                {lang === "af" ? "Laai" : "Upload"}
+              </span>
+            </button>
           )}
         </div>
         <p className="mt-2 text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB</p>

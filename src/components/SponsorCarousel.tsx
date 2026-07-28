@@ -19,20 +19,20 @@ export function SponsorCarousel() {
   const durationSec = Math.max(20, sponsors.length * 6);
 
   return (
-    <section className="border-y-2 border-black bg-black py-10 text-white">
+    <section className="border-y-2 border-ink bg-paper py-10 text-ink">
       <div className="mx-auto max-w-6xl px-4">
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/50">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-ink/50">
               {t("sponsors.kicker")}
             </p>
-            <h2 className="font-display text-3xl tracking-wide text-white sm:text-4xl">
+            <h2 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">
               {t("sponsors.title")}
             </h2>
           </div>
           <Link
             to="/sponsors"
-            className="hidden shrink-0 rounded-full border-2 border-white/50 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white transition hover:border-primary hover:text-primary sm:inline-flex"
+            className="hidden shrink-0 rounded-full border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink transition hover:bg-ink hover:text-paper sm:inline-flex"
           >
             {t("sponsors.becomeCta")}
           </Link>
@@ -46,7 +46,7 @@ export function SponsorCarousel() {
             {loop.map((s, i) => {
               const tagline = lang === "af" ? s.tagline_af ?? s.tagline : s.tagline;
               const inner = (
-                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-white/20 bg-white p-3 shadow-[3px_3px_0_0_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5">
+                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-ink bg-card p-3 shadow-[3px_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5">
                   <img
                     src={s.logo_url}
                     alt={s.name}
@@ -54,7 +54,7 @@ export function SponsorCarousel() {
                     className="max-h-12 max-w-full object-contain"
                   />
                   {tagline && (
-                    <p className="mt-1 line-clamp-1 text-[10px] uppercase tracking-wider text-black/60">
+                    <p className="mt-1 line-clamp-1 text-[10px] uppercase tracking-wider text-ink/60">
                       {tagline}
                     </p>
                   )}
@@ -82,7 +82,7 @@ export function SponsorCarousel() {
         <div className="mt-6 flex justify-center sm:hidden">
           <Link
             to="/sponsors"
-            className="inline-flex items-center gap-2 rounded-full border-2 border-white/50 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white"
+            className="inline-flex items-center gap-2 rounded-full border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink"
           >
             <Handshake className="h-4 w-4" /> {t("sponsors.becomeCta")}
           </Link>

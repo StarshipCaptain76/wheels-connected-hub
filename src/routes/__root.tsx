@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SiteLayout } from "../components/SiteLayout";
 import { I18nProvider } from "../i18n/I18nProvider";
+import { ThemeProvider, THEME_INIT_SCRIPT } from "../lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { registerPwa } from "../lib/pwa-register";
 import { InstallPrompt } from "../components/InstallPrompt";
@@ -98,7 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "theme-color", content: "#c22" },
+      { name: "theme-color", content: "#ffffff" },
       { name: "author", content: "Just Wheels Hessequa" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Just Wheels Hessequa" },
@@ -142,15 +143,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-/** Shell wraps ALL route UI including error/404 — must provide I18n here. */
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
-        <I18nProvider>{children}</I18nProvider>
+        <ThemeProvider>
+          <I18nProvider>{children}</I18nProvider>
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>
@@ -174,7 +177,6 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <OfflineBanner />
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
       <InstallPrompt />
       <Toaster position="top-center" richColors closeButton />

@@ -17,7 +17,7 @@ const nextEventQuery = queryOptions({
 const featuredQuery = queryOptions({
   queryKey: ["featured-member"],
   queryFn: () => getCurrentFeaturedMember(),
-  staleTime: 60_000, // refresh often enough that random garage thumb can vary
+  staleTime: 60_000,
 });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
@@ -183,23 +183,18 @@ function Index() {
       <SponsorCarousel />
 
       {featured && (
-        <section className="border-b border-ink/15 bg-paper">
+        <section className="border-b-2 border-ink bg-ink text-paper">
           <div className="mx-auto max-w-6xl px-4 py-8">
-            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-ink/20 bg-card/60 sm:flex-row sm:items-stretch">
-              {/* Random garage photo thumbnail */}
+            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border-2 border-paper/20 bg-paper/5 sm:flex-row sm:items-stretch">
               {garageThumb && (
-                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-ink/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
-                  <img
-                    src={garageThumb}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-paper/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
+                  <img src={garageThumb} alt="" className="h-full w-full object-cover" />
                 </div>
               )}
 
               <div className="flex flex-1 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
                 <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-paper bg-ink sm:h-20 sm:w-20">
                     {faceSrc ? (
                       <img
                         src={faceSrc}
@@ -216,7 +211,7 @@ function Index() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                       {lang === "af" ? "Lid in die kollig" : "Featured member"}
                     </p>
-                    <p className="font-display text-xl leading-tight text-ink">
+                    <p className="font-display text-xl leading-tight text-paper">
                       {featured.display_name ?? "—"}
                     </p>
                   </div>
@@ -226,16 +221,16 @@ function Index() {
                   <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:block">
                     {lang === "af" ? "Lid in die kollig" : "Featured member"}
                   </p>
-                  <p className="hidden font-display text-2xl leading-tight text-ink sm:block">
+                  <p className="hidden font-display text-2xl leading-tight text-paper sm:block">
                     {featured.display_name ?? "—"}
                   </p>
-                  <p className="mt-0.5 text-sm text-ink/65">
+                  <p className="mt-0.5 text-sm text-paper/70">
                     #{String(featured.member_number).padStart(4, "0")}
                     {featured.town ? ` · ${featured.town}` : ""}
                     {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
                   </p>
                   {featured.featured_bio && (
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-paper/75">
                       {featured.featured_bio}
                     </p>
                   )}
@@ -244,7 +239,7 @@ function Index() {
                 <Link
                   to="/members/$number"
                   params={{ number: String(featured.member_number) }}
-                  className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
+                  className="shrink-0 self-start rounded-md border border-paper/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper/80 hover:border-paper hover:text-paper sm:self-center"
                 >
                   {lang === "af" ? "Bekyk" : "View"} →
                 </Link>
@@ -277,16 +272,17 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-t-2 border-ink bg-secondary">
+      {/* Black band — matches footer */}
+      <section className="border-t-2 border-ink bg-ink text-paper">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
-          <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
+          <h2 className="font-display text-4xl tracking-wide text-paper sm:text-5xl">
             {t("home.aboutTitle")}
           </h2>
           <div>
-            <p className="text-lg text-ink/80">{t("home.aboutBody")}</p>
+            <p className="text-lg text-paper/80">{t("home.aboutBody")}</p>
             <Link
               to="/about"
-              className="mt-6 inline-flex items-center rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              className="mt-6 inline-flex items-center rounded-md border-2 border-paper bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
             >
               {t("nav.about")} →
             </Link>

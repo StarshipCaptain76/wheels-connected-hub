@@ -1,11 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { EventMap } from "@/components/EventMap";
+import { EventPhotosGallery } from "@/components/EventPhotosGallery";
 import { useI18n } from "@/i18n/I18nProvider";
-import { getEventDetail, listEventAttendees, getMyRsvp, upsertMyRsvp, deleteMyRsvp, type EventDetail } from "@/lib/events-detail.functions";
+import {
+  getEventDetail,
+  listEventAttendees,
+  getMyRsvp,
+  upsertMyRsvp,
+  deleteMyRsvp,
+  type EventDetail,
+} from "@/lib/events-detail.functions";
 import { distancesFromOrigins, computeRoute } from "@/lib/maps.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, MapPin, ArrowLeft, Users, ExternalLink } from "lucide-react";
@@ -48,7 +56,9 @@ export const Route = createFileRoute("/events/$id")({
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl">Event not found</h1>
-        <Link to="/events" className="mt-4 inline-block text-primary underline">Back to events</Link>
+        <Link to="/events" className="mt-4 inline-block text-primary underline">
+          Back to events
+        </Link>
       </div>
     </SiteLayout>
   ),
@@ -82,7 +92,9 @@ function EventDetailPage() {
       <SiteLayout>
         <div className="mx-auto max-w-2xl px-4 py-20 text-center">
           <h1 className="font-display text-3xl">Not published</h1>
-          <Link to="/events" className="mt-4 inline-block text-primary underline">Back to events</Link>
+          <Link to="/events" className="mt-4 inline-block text-primary underline">
+            Back to events
+          </Link>
         </div>
       </SiteLayout>
     );
@@ -90,11 +102,14 @@ function EventDetailPage() {
 
   const title = lang === "af" && data.title_af ? data.title_af : data.title;
   const details = lang === "af" && data.details_af_md ? data.details_af_md : data.details_md;
-  const description = lang === "af" && data.description_af ? data.description_af : data.description;
+  const description =
+    lang === "af" && data.description_af ? data.description_af : data.description;
   const destination =
     data.destination_lat != null && data.destination_lng != null
       ? { lat: data.destination_lat, lng: data.destination_lng }
       : null;
+
+  const isPast = new Date(data.starts_at).getTime() < Date.now();
 
   const waypointCoords = data.waypoints
     .filter((w) => w.lat != null && w.lng != null)
@@ -132,25 +147,41 @@ function EventDetailPage() {
             alt=""
             className="h-full w-full object-cover"
           />
+          {isPast && (
+            <span className="absolute left-4 top-4 rounded-full border-2 border-paper bg-ink/80 px-3 py-1 text-xs font-bold uppercase tracking-wider text-paper">
+              {lang === "af" ? "Vorige byeenkoms" : "Past event"}
+            </span>
+          )}
         </div>
       )}
       <section className="mx-auto max-w-4xl px-4 py-10">
-        <Link to="/events" className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary">
-          <ArrowLeft className="h-4 w-4" /> {lang === "af" ? "Terug na byeenkomste" : "Back to events"}
+        <Link
+          to="/events"
+          className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />{" "}
+          {lang === "af" ? "Terug na byeenkomste" : "Back to events"}
         </Link>
         <h1 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">{title}</h1>
         <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink/70">
-          <span className="inline-flex items-center gap-1"><Calendar className="h-4 w-4 text-primary" />{fmtDate(data.starts_at, lang)}</span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar className="h-4 w-4 text-primary" />
+            {fmtDate(data.starts_at, lang)}
+          </span>
           {data.location && (
-            <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4 text-primary" />{data.location}</span>
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-4 w-4 text-primary" />
+              {data.location}
+            </span>
           )}
         </div>
         {description && <p className="mt-4 text-lg text-ink/80">{description}</p>}
 
-        {/* Destination map + route */}
         {destination && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl text-ink">{lang === "af" ? "Kaart en roete" : "Map & route"}</h2>
+            <h2 className="font-display text-2xl text-ink">
+              {lang === "af" ? "Kaart en roete" : "Map & route"}
+            </h2>
             {data.destination_address && (
               <p className="mt-1 text-sm text-ink/60">{data.destination_address}</p>
             )}
@@ -173,10 +204,11 @@ function EventDetailPage() {
           </section>
         )}
 
-        {/* Meetup stops */}
         {data.waypoints.length > 0 && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl text-ink">{lang === "af" ? "Bymekaarkomstoppe" : "Meetup stops"}</h2>
+            <h2 className="font-display text-2xl text-ink">
+              {lang === "af" ? "Bymekaarkomstoppe" : "Meetup stops"}
+            </h2>
             <ol className="mt-3 space-y-2">
               {data.waypoints.map((w, i) => {
                 const wLabel = lang === "af" && w.label_af ? w.label_af : w.label;
@@ -207,7 +239,6 @@ function EventDetailPage() {
           </section>
         )}
 
-        {/* Distances from towns */}
         {destination && distancesQuery.data && distancesQuery.data.length > 0 && (
           <section className="mt-8">
             <h2 className="font-display text-2xl text-ink">
@@ -215,10 +246,14 @@ function EventDetailPage() {
             </h2>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {distancesQuery.data.map((d) => (
-                <li key={d.originKey} className="flex items-center justify-between rounded-lg border-2 border-ink bg-card px-3 py-2">
+                <li
+                  key={d.originKey}
+                  className="flex items-center justify-between rounded-lg border-2 border-ink bg-card px-3 py-2"
+                >
                   <span className="font-bold text-ink">{d.label}</span>
                   <span className="text-sm text-ink/70">
-                    {(d.distanceMeters / 1000).toFixed(0)} km · {Math.round(d.durationSeconds / 60)} min
+                    {(d.distanceMeters / 1000).toFixed(0)} km · {Math.round(d.durationSeconds / 60)}{" "}
+                    min
                   </span>
                 </li>
               ))}
@@ -226,7 +261,6 @@ function EventDetailPage() {
           </section>
         )}
 
-        {/* Details markdown */}
         {details && (
           <section className="mt-8">
             <h2 className="font-display text-2xl text-ink">
@@ -238,21 +272,26 @@ function EventDetailPage() {
           </section>
         )}
 
-        {/* Counts (public) */}
         <section className="mt-8 rounded-lg border-2 border-ink bg-paper p-4">
           <p className="text-xs font-bold uppercase tracking-wider text-primary">
             {lang === "af" ? "Wie kom" : "Who's coming"}
           </p>
           <p className="mt-1 text-ink/80">
-            <span className="font-bold">{data.counts.going}</span> {lang === "af" ? "gaan" : "going"}
+            <span className="font-bold">{data.counts.going}</span>{" "}
+            {lang === "af" ? "gaan" : "going"}
             {" · "}
-            <span className="font-bold">{data.counts.going_party_total}</span> {lang === "af" ? "mense in totaal" : "people total"}
+            <span className="font-bold">{data.counts.going_party_total}</span>{" "}
+            {lang === "af" ? "mense in totaal" : "people total"}
             {" · "}
-            <span className="font-bold">{data.counts.maybe}</span> {lang === "af" ? "dalk" : "maybe"}
+            <span className="font-bold">{data.counts.maybe}</span>{" "}
+            {lang === "af" ? "dalk" : "maybe"}
           </p>
         </section>
 
         <RsvpSection eventId={data.id} />
+
+        {/* Member photos — works for live and past events */}
+        <EventPhotosGallery eventId={data.id} lang={lang} />
       </section>
     </SiteLayout>
   );
@@ -274,7 +313,9 @@ function RsvpSection({ eventId }: { eventId: string }) {
     return (
       <section className="mt-6 rounded-lg border-2 border-dashed border-ink/40 bg-card p-6 text-center">
         <p className="text-ink/80">
-          {lang === "af" ? "Teken in as lid om jou RSVP te wys en die byrys-lys te sien." : "Sign in as a member to RSVP and see who's attending."}
+          {lang === "af"
+            ? "Teken in as lid om jou RSVP te wys en die byrys-lys te sien."
+            : "Sign in as a member to RSVP and see who's attending."}
         </p>
         <Link
           to="/auth"
@@ -329,16 +370,32 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
 
   return (
     <section className="mt-6 rounded-lg border-2 border-ink bg-card p-6">
-      <h3 className="font-display text-xl text-ink">{lang === "af" ? "Sal jy daar wees?" : "Are you going?"}</h3>
+      <h3 className="font-display text-xl text-ink">
+        {lang === "af" ? "Sal jy daar wees?" : "Are you going?"}
+      </h3>
       <div className="mt-3 flex flex-wrap gap-2">
         {(["going", "maybe", "not_going"] as const).map((s) => (
           <button
             key={s}
             type="button"
             onClick={() => submit(s)}
-            className={`rounded-md border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider ${current === s ? "bg-primary text-paper" : "bg-paper text-ink hover:bg-ink hover:text-paper"}`}
+            className={`rounded-md border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider ${
+              current === s
+                ? "bg-primary text-paper"
+                : "bg-paper text-ink hover:bg-ink hover:text-paper"
+            }`}
           >
-            {s === "going" ? (lang === "af" ? "Ja" : "Yes") : s === "maybe" ? (lang === "af" ? "Dalk" : "Maybe") : (lang === "af" ? "Nee" : "No")}
+            {s === "going"
+              ? lang === "af"
+                ? "Ja"
+                : "Yes"
+              : s === "maybe"
+                ? lang === "af"
+                  ? "Dalk"
+                  : "Maybe"
+                : lang === "af"
+                  ? "Nee"
+                  : "No"}
           </button>
         ))}
         {current && (
@@ -396,7 +453,13 @@ function AttendeeList({
   lang,
 }: {
   title: string;
-  rows: Array<{ user_id: string; display_name: string | null; member_number: number; town: string | null; party_size: number }>;
+  rows: Array<{
+    user_id: string;
+    display_name: string | null;
+    member_number: number;
+    town: string | null;
+    party_size: number;
+  }>;
   lang: "en" | "af";
 }) {
   return (

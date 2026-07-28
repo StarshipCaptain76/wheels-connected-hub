@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { listSponsors, type Sponsor } from "@/lib/sponsors.functions";
@@ -13,31 +12,14 @@ export function SponsorCarousel() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const trackRef = useRef<HTMLDivElement>(null);
-  const [paused, setPaused] = useState(false);
-
-  // Duplicate list for seamless marquee loop
-  const loop: Sponsor[] = sponsors.length > 0 ? [...sponsors, ...sponsors] : [];
-
-  useEffect(() => {
-    const el = trackRef.current;
-    if (!el || loop.length === 0 || paused) return;
-    let raf = 0;
-    let last = performance.now();
-    const speed = 30; // px/sec
-    const step = (now: number) => {
-      const dt = (now - last) / 1000;
-      last = now;
-      el.scrollLeft += speed * dt;
-      // Reset when we've scrolled past half (the duplicate midpoint)
-      if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft = 0;
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [loop.length, paused]);
-
   if (sponsors.length === 0) return null;
+
+  // Enough copies so the track is always wider than the viewport for a smooth loop
+  const copies = Math.max(2, Math.ceil(8 / Math.max(sponsors.length, 1)));
+  const loop: Sponsor[] = Array.from({ length: copies }, () => sponsors).flat();
+
+  // ~35px/s based on approximate card width (224px + gap)
+  const durationSec = Math.max(20, sponsors.length * 6);
 
   return (
     <section className="border-y-2 border-ink bg-steel/10 py-10">
@@ -60,47 +42,47 @@ export function SponsorCarousel() {
         </div>
 
         <div
-          ref={trackRef}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-          onTouchStart={() => setPaused(true)}
-          onTouchEnd={() => setPaused(false)}
-          className="flex gap-6 overflow-x-hidden"
+          className="group/marquee relative overflow-hidden"
           aria-label={t("sponsors.title")}
         >
-          {loop.map((s, i) => {
-            const tagline = lang === "af" ? s.tagline_af ?? s.tagline : s.tagline;
-            const inner = (
-              <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_hsl(var(--ink))] transition hover:-translate-y-0.5">
-                <img
-                  src={s.logo_url}
-                  alt={s.name}
-                  loading="lazy"
-                  className="max-h-12 max-w-full object-contain"
-                />
-                {tagline && (
-                  <p className="mt-1 line-clamp-1 text-[10px] uppercase tracking-wider text-ink/60">
-                    {tagline}
-                  </p>
-                )}
-              </div>
-            );
-            return s.website_url ? (
-              <a
-                key={`${s.id}-${i}`}
-                href={s.website_url}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                aria-label={s.name}
-              >
-                {inner}
-              </a>
-            ) : (
-              <div key={`${s.id}-${i}`} aria-label={s.name}>
-                {inner}
-              </div>
-            );
-          })}
+          <div
+            className="flex w-max gap-6 animate-sponsor-marquee group-hover/marquee:[animation-play-state:paused]"
+            style={{ animationDuration: `${durationSec}s` }}
+          >
+            {loop.map((s, i) => {
+              const tagline = lang === "af" ? s.tagline_af ?? s.tagline : s.tagline;
+              const inner = (
+                <div className="flex h-24 w-56 shrink-0 flex-col items-center justify-center rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_hsl(var(--ink))] transition hover:-translate-y-0.5">
+                  <img
+                    src={s.logo_url}
+                    alt={s.name}
+                    loading="lazy"
+                    className="max-h-12 max-w-full object-contain"
+                  />
+                  {tagline && (
+                    <p className="mt-1 line-clamp-1 text-[10px] uppercase tracking-wider text-ink/60">
+                      {tagline}
+                    </p>
+                  )}
+                </div>
+              );
+              return s.website_url ? (
+                <a
+                  key={`${s.id}-${i}`}
+                  href={s.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  aria-label={s.name}
+                >
+                  {inner}
+                </a>
+              ) : (
+                <div key={`${s.id}-${i}`} aria-label={s.name}>
+                  {inner}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-6 flex justify-center sm:hidden">
@@ -112,6 +94,23 @@ export function SponsorCarousel() {
           </Link>
         </div>
       </div>
+
+      <style>{`
+        @keyframes sponsor-marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .animate-sponsor-marquee {
+          animation-name: sponsor-marquee;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-sponsor-marquee {
+            animation: none;
+          }
+        }
+      `}</style>
     </section>
   );
 }

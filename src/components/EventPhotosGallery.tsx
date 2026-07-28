@@ -13,6 +13,27 @@ import { Camera, Loader2, Upload, X } from "lucide-react";
 
 const MAX_MB = 6;
 
+function pickFiles(): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp,image/gif,image/*";
+    input.multiple = true;
+    input.style.display = "none";
+    document.body.appendChild(input);
+    input.addEventListener("change", () => {
+      const files = input.files ? Array.from(input.files) : [];
+      document.body.removeChild(input);
+      resolve(files);
+    });
+    input.addEventListener("cancel", () => {
+      document.body.removeChild(input);
+      resolve([]);
+    });
+    input.click();
+  });
+}
+
 export function EventPhotosGallery({
   eventId,
   lang = "en",
@@ -29,6 +50,7 @@ export function EventPhotosGallery({
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<EventPhoto | null>(null);
 
   useEffect(() => {
@@ -53,11 +75,18 @@ export function EventPhotosGallery({
     await qc.invalidateQueries({ queryKey: ["event-photos", eventId] });
   }
 
-  async function onUpload(files: FileList | null) {
-    if (!files?.length) return;
+  async function startUpload() {
     setBusy(true);
     setError(null);
+    setStatus(lang === "af" ? "Kies foto(s)…" : "Choose photo(s)…");
     try {
+      const files = await pickFiles();
+      if (!files.length) {
+        setStatus(null);
+        setBusy(false);
+        return;
+      }
+
       const { data: session } = await supabase.auth.getSession();
       const uid = session.session?.user.id;
       if (!uid) throw new Error(lang === "af" ? "Teken eers in" : "Sign in first");
@@ -65,7 +94,14 @@ export function EventPhotosGallery({
       let ok = 0;
       const fails: string[] = [];
 
-      for (const file of Array.from(files).slice(0, 12)) {
+      for (let i = 0; i < Math.min(files.length, 12); i++) {
+        const file = files[i];
+        setStatus(
+          lang === "af"
+            ? `Laai op ${i + 1}/${files.length}: ${file.name}`
+            : `Uploading ${i + 1}/${files.length}: ${file.name}`,
+        );
+
         if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
           fails.push(`${file.name}: not an image`);
           continue;
@@ -89,26 +125,44 @@ export function EventPhotosGallery({
               upErr.message.includes("Bucket not found")
                 ? "events bucket missing — run SQL"
                 : upErr.message.includes("policy") || upErr.message.includes("row-level")
-                  ? "storage policy blocked upload — run SQL"
+                  ? "storage policy blocked — run events bucket SQL"
                   : upErr.message
             }`,
           );
           continue;
         }
 
+        // Prefer server fn; fall back to direct insert
         try {
           await addFn({ data: { eventId, storage_path: path, caption: null } });
           ok += 1;
         } catch (e) {
-          fails.push(`${file.name}: ${e instanceof Error ? e.message : "DB failed"}`);
+          const { error: dbErr } = await supabase.from("event_photos").insert({
+            event_id: eventId,
+            user_id: uid,
+            storage_path: path,
+            caption: null,
+          });
+          if (dbErr) {
+            fails.push(`${file.name}: ${dbErr.message}`);
+            await supabase.storage.from("events").remove([path]);
+          } else {
+            ok += 1;
+          }
         }
       }
 
       await refresh();
+      setStatus(null);
       if (fails.length && ok === 0) throw new Error(fails.join(" · "));
       if (fails.length) setError(fails.join(" · "));
+      if (ok > 0) {
+        setStatus(lang === "af" ? `${ok} foto(s) gelaai` : `${ok} photo(s) uploaded`);
+        setTimeout(() => setStatus(null), 3000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
+      setStatus(null);
     } finally {
       setBusy(false);
     }
@@ -121,7 +175,9 @@ export function EventPhotosGallery({
       await delFn({ data: { id } });
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      const { error: dbErr } = await supabase.from("event_photos").delete().eq("id", id);
+      if (dbErr) setError(e instanceof Error ? e.message : "Delete failed");
+      else await refresh();
     } finally {
       setBusy(false);
     }
@@ -141,21 +197,15 @@ export function EventPhotosGallery({
           </p>
         </div>
         {signedIn ? (
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void startUpload()}
+            className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper disabled:opacity-60"
+          >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {lang === "af" ? "Laai fotos" : "Add photos"}
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              multiple
-              className="hidden"
-              disabled={busy}
-              onChange={(e) => {
-                void onUpload(e.target.files);
-                e.target.value = "";
-              }}
-            />
-          </label>
+          </button>
         ) : signedIn === false ? (
           <Link
             to="/auth"
@@ -171,6 +221,12 @@ export function EventPhotosGallery({
       {error && (
         <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
           {error}
+        </p>
+      )}
+      {status && (
+        <p className="mt-3 flex items-center gap-2 rounded border-2 border-ink/20 bg-paper px-3 py-2 text-sm text-ink/70">
+          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {status}
         </p>
       )}
 
@@ -191,10 +247,18 @@ export function EventPhotosGallery({
       ) : (
         <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {photos.map((p) => (
-            <li key={p.id} className="group relative overflow-hidden rounded-lg border-2 border-ink bg-ink/5">
+            <li
+              key={p.id}
+              className="group relative overflow-hidden rounded-lg border-2 border-ink bg-ink/5"
+            >
               <button type="button" className="block w-full" onClick={() => setLightbox(p)}>
                 {p.url ? (
-                  <img src={p.url} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                  <img
+                    src={p.url}
+                    alt=""
+                    className="aspect-square w-full object-cover"
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="flex aspect-square items-center justify-center text-xs text-ink/40">
                     …
@@ -204,7 +268,7 @@ export function EventPhotosGallery({
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/80 to-transparent px-2 pb-1.5 pt-6 text-[10px] text-paper opacity-0 transition-opacity group-hover:opacity-100">
                 {p.display_name ?? (p.member_number != null ? `#${p.member_number}` : "Member")}
               </div>
-              {userId && (p.user_id === userId) && (
+              {userId && p.user_id === userId && (
                 <button
                   type="button"
                   onClick={() => void onDelete(p.id)}

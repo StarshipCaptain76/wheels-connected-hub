@@ -17,7 +17,7 @@ const nextEventQuery = queryOptions({
 const featuredQuery = queryOptions({
   queryKey: ["featured-member"],
   queryFn: () => getCurrentFeaturedMember(),
-  staleTime: 120_000,
+  staleTime: 60_000, // refresh often enough that random garage thumb can vary
 });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
@@ -106,11 +106,12 @@ function Index() {
     ? [nextMeta, nextDesc].filter(Boolean).join(" — ")
     : t("home.tbaBody");
 
-  // Prefer member profile picture; optional admin featured override; then initials
   const faceSrc =
     featured?.avatar_url?.trim() ||
     featured?.featured_photo_url?.trim() ||
     null;
+
+  const garageThumb = featured?.garage_thumb_url?.trim() || null;
 
   return (
     <SiteLayout>
@@ -184,57 +185,70 @@ function Index() {
       {featured && (
         <section className="border-b border-ink/15 bg-paper">
           <div className="mx-auto max-w-6xl px-4 py-8">
-            <div className="flex flex-col gap-4 rounded-xl border border-ink/20 bg-card/60 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
-              <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-                <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
-                  {faceSrc ? (
-                    <img
-                      src={faceSrc}
-                      alt={featured.display_name ?? "Featured member"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">
-                      {initials(featured.display_name)}
-                    </div>
-                  )}
+            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border border-ink/20 bg-card/60 sm:flex-row sm:items-stretch">
+              {/* Random garage photo thumbnail */}
+              {garageThumb && (
+                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-ink/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
+                  <img
+                    src={garageThumb}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-                <div className="min-w-0 sm:hidden">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              )}
+
+              <div className="flex flex-1 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
+                <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
+                    {faceSrc ? (
+                      <img
+                        src={faceSrc}
+                        alt={featured.display_name ?? "Featured member"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">
+                        {initials(featured.display_name)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 sm:hidden">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                      {lang === "af" ? "Lid in die kollig" : "Featured member"}
+                    </p>
+                    <p className="font-display text-xl leading-tight text-ink">
+                      {featured.display_name ?? "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:block">
                     {lang === "af" ? "Lid in die kollig" : "Featured member"}
                   </p>
-                  <p className="font-display text-xl leading-tight text-ink">
+                  <p className="hidden font-display text-2xl leading-tight text-ink sm:block">
                     {featured.display_name ?? "—"}
                   </p>
-                </div>
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:block">
-                  {lang === "af" ? "Lid in die kollig" : "Featured member"}
-                </p>
-                <p className="hidden font-display text-2xl leading-tight text-ink sm:block">
-                  {featured.display_name ?? "—"}
-                </p>
-                <p className="mt-0.5 text-sm text-ink/65">
-                  #{String(featured.member_number).padStart(4, "0")}
-                  {featured.town ? ` · ${featured.town}` : ""}
-                  {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
-                </p>
-                {featured.featured_bio && (
-                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
-                    {featured.featured_bio}
+                  <p className="mt-0.5 text-sm text-ink/65">
+                    #{String(featured.member_number).padStart(4, "0")}
+                    {featured.town ? ` · ${featured.town}` : ""}
+                    {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
                   </p>
-                )}
-              </div>
+                  {featured.featured_bio && (
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
+                      {featured.featured_bio}
+                    </p>
+                  )}
+                </div>
 
-              <Link
-                to="/members/$number"
-                params={{ number: String(featured.member_number) }}
-                className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
-              >
-                {lang === "af" ? "Bekyk" : "View"} →
-              </Link>
+                <Link
+                  to="/members/$number"
+                  params={{ number: String(featured.member_number) }}
+                  className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
+                >
+                  {lang === "af" ? "Bekyk" : "View"} →
+                </Link>
+              </div>
             </div>
           </div>
         </section>

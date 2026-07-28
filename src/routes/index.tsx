@@ -115,8 +115,8 @@ function Index() {
 
   return (
     <SiteLayout>
-      {/* Pure black hero — same day & night */}
-      <section className="border-b-2 border-black bg-black text-white">
+      {/* Theme surface: white in day, black in night */}
+      <section className="border-b-2 border-ink bg-paper text-ink">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
           <div>
             <div className="mb-4 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
@@ -127,17 +127,17 @@ function Index() {
               <br />
               <span className="text-primary">HESSEQUA</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-white/80">{t("home.heroSubtitle")}</p>
+            <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 to="/join"
-                className="inline-flex items-center rounded-md border-2 border-white bg-primary px-6 py-3 font-bold uppercase tracking-wider text-white shadow-[4px_4px_0_0_#fff] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
               >
                 {t("cta.becomeMember")}
               </Link>
               <Link
                 to="/events"
-                className="inline-flex items-center rounded-md border-2 border-white/60 px-6 py-3 font-bold uppercase tracking-wider text-white/80 hover:border-white hover:text-white"
+                className="inline-flex items-center rounded-md border-2 border-ink/40 px-6 py-3 font-bold uppercase tracking-wider text-ink/80 hover:border-ink hover:text-ink"
               >
                 {t("cta.viewEvents")}
               </Link>
@@ -148,15 +148,16 @@ function Index() {
             <img
               src={LOGO_URL}
               alt="Just Wheels Hessequa club badge"
-              className="h-64 w-64 -rotate-6 rounded-full border-4 border-white object-cover shadow-2xl md:h-80 md:w-80"
+              className="h-64 w-64 -rotate-6 rounded-full border-4 border-ink object-cover shadow-2xl md:h-80 md:w-80"
             />
           </div>
         </div>
       </section>
 
+      {/* Red accent strip stays red in both modes */}
       <Link
         to={nextEvent ? `/events/${nextEvent.id}` : "/events"}
-        className="block border-b-2 border-black bg-primary text-white transition-colors hover:bg-primary/90"
+        className="block border-b-2 border-ink bg-primary text-white transition-colors hover:bg-primary/90"
       >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
           <div className="min-w-0 flex-1">
@@ -173,18 +174,18 @@ function Index() {
       <SponsorCarousel />
 
       {featured && (
-        <section className="border-b-2 border-black bg-black text-white">
+        <section className="border-b-2 border-ink bg-paper text-ink">
           <div className="mx-auto max-w-6xl px-4 py-8">
-            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border-2 border-white/20 bg-white/5 sm:flex-row sm:items-stretch">
+            <div className="flex flex-col gap-4 overflow-hidden rounded-xl border-2 border-ink/20 bg-card sm:flex-row sm:items-stretch">
               {garageThumb && (
-                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-white/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
+                <div className="relative h-28 w-full shrink-0 overflow-hidden border-b border-ink/15 sm:h-auto sm:w-36 sm:border-b-0 sm:border-r">
                   <img src={garageThumb} alt="" className="h-full w-full object-cover" />
                 </div>
               )}
 
               <div className="flex flex-1 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
                 <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-                  <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-white bg-black sm:h-20 sm:w-20">
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink sm:h-20 sm:w-20">
                     {faceSrc ? (
                       <img
                         src={faceSrc}
@@ -192,7 +193,7 @@ function Index() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-white sm:text-2xl">
+                      <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">
                         {initials(featured.display_name)}
                       </div>
                     )}
@@ -201,7 +202,7 @@ function Index() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                       {lang === "af" ? "Lid in die kollig" : "Featured member"}
                     </p>
-                    <p className="font-display text-xl leading-tight text-white">
+                    <p className="font-display text-xl leading-tight text-ink">
                       {featured.display_name ?? "—"}
                     </p>
                   </div>
@@ -211,16 +212,16 @@ function Index() {
                   <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:block">
                     {lang === "af" ? "Lid in die kollig" : "Featured member"}
                   </p>
-                  <p className="hidden font-display text-2xl leading-tight text-white sm:block">
+                  <p className="hidden font-display text-2xl leading-tight text-ink sm:block">
                     {featured.display_name ?? "—"}
                   </p>
-                  <p className="mt-0.5 text-sm text-white/70">
+                  <p className="mt-0.5 text-sm text-ink/65">
                     #{String(featured.member_number).padStart(4, "0")}
                     {featured.town ? ` · ${featured.town}` : ""}
                     {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
                   </p>
                   {featured.featured_bio && (
-                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/75">
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
                       {featured.featured_bio}
                     </p>
                   )}
@@ -229,7 +230,7 @@ function Index() {
                 <Link
                   to="/members/$number"
                   params={{ number: String(featured.member_number) }}
-                  className="shrink-0 self-start rounded-md border border-white/40 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-white/80 hover:border-white hover:text-white sm:self-center"
+                  className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
                 >
                   {lang === "af" ? "Bekyk" : "View"} →
                 </Link>
@@ -262,16 +263,16 @@ function Index() {
         </div>
       </section>
 
-      <section className="border-t-2 border-black bg-black text-white">
+      <section className="border-t-2 border-ink bg-paper text-ink">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
-          <h2 className="font-display text-4xl tracking-wide text-white sm:text-5xl">
+          <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
             {t("home.aboutTitle")}
           </h2>
           <div>
-            <p className="text-lg text-white/80">{t("home.aboutBody")}</p>
+            <p className="text-lg text-ink/80">{t("home.aboutBody")}</p>
             <Link
               to="/about"
-              className="mt-6 inline-flex items-center rounded-md border-2 border-white bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-black shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              className="mt-6 inline-flex items-center rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
             >
               {t("nav.about")} →
             </Link>

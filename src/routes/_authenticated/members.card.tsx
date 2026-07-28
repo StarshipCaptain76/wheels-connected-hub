@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMyProfile, type MemberProfile } from "@/lib/profile.functions";
+import { listMyGarage, type GarageVehicle } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import logoAsset from "@/assets/justwheels-logo.jpeg.asset.json";
-import { Download, WifiOff, IdCard } from "lucide-react";
+import { Download, WifiOff } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
   head: () => ({
@@ -33,9 +34,23 @@ function readCache(): MemberProfile | null {
   }
 }
 
+/** Prefer primary vehicle photo, else first garage photo with a URL. */
+function pickCarPhoto(vehicles: GarageVehicle[]): string | null {
+  const ordered = [
+    ...vehicles.filter((v) => v.is_primary),
+    ...vehicles.filter((v) => !v.is_primary),
+  ];
+  for (const v of ordered) {
+    const hit = v.photos.find((p) => p.url);
+    if (hit?.url) return hit.url;
+  }
+  return null;
+}
+
 function MemberCardPage() {
   const { t, lang } = useI18n();
   const fetchProfile = useServerFn(getMyProfile);
+  const fetchGarage = useServerFn(listMyGarage);
   const [cached, setCached] = useState<MemberProfile | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -61,6 +76,13 @@ function MemberCardPage() {
     retry: false,
   });
 
+  const garageQuery = useQuery({
+    queryKey: ["garage", "me"],
+    queryFn: () => fetchGarage(),
+    enabled: isOnline,
+    retry: false,
+  });
+
   useEffect(() => {
     if (query.data) {
       try {
@@ -73,12 +95,14 @@ function MemberCardPage() {
   }, [query.data]);
 
   const profile = query.data ?? cached;
+  const carPhoto = pickCarPhoto(garageQuery.data ?? []);
+  const profilePhoto = profile?.avatar_url ?? null;
 
   async function downloadCard() {
     if (!profile || downloading) return;
     setDownloading(true);
     try {
-      await downloadLandscapeCard(profile, lang === "af");
+      await downloadLandscapeCard(profile, carPhoto, profilePhoto, lang === "af");
     } catch (e) {
       console.error(e);
       alert(lang === "af" ? "Aflaai het misluk" : "Download failed");
@@ -125,15 +149,27 @@ function MemberCardPage() {
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"
-            ? "Landskap lidkaart · kies jou foto in My Garage · laai af teen volle CR80-grootte (85.6×54 mm) om te lamineer."
-            : "Landscape member card · pick your photo in My Garage · download at full CR80 size (85.6×54 mm) ready to laminate."}
+            ? "Agtergrond = motor uit jou garage · sirkel regs onder = jou profielfoto · laai af teen CR80 (85.6×54 mm) om te lamineer."
+            : "Background = car from your garage · bottom-right circle = your profile photo · download at CR80 (85.6×54 mm) to laminate."}
         </p>
 
         {!profile ? (
           <p className="text-ink/60">{t("card.needSync")}</p>
         ) : (
           <div className="mx-auto w-full max-w-2xl">
-            <MemberCard ref={cardRef} profile={profile} />
+            <MemberCard
+              ref={cardRef}
+              profile={profile}
+              carPhoto={carPhoto}
+              profilePhoto={profilePhoto}
+            />
+            {!carPhoto && (
+              <p className="mt-3 text-center text-xs text-ink/50">
+                {lang === "af"
+                  ? "Geen garage-foto nie — laai 'n motorfoto in My Garage op vir die agtergrond."
+                  : "No garage photo yet — upload a car photo in My Garage for the background."}
+              </p>
+            )}
           </div>
         )}
       </section>
@@ -143,15 +179,22 @@ function MemberCardPage() {
 
 function MemberCard({
   profile,
+  carPhoto,
+  profilePhoto,
   ref,
 }: {
   profile: MemberProfile;
+  carPhoto: string | null;
+  profilePhoto: string | null;
   ref?: React.Ref<HTMLElement>;
 }) {
   const { t, lang } = useI18n();
   const year = new Date(profile.joined_at).getFullYear();
   const number = String(profile.member_number).padStart(4, "0");
-  const photo = profile.avatar_url;
+  // Full-bleed background: garage car preferred
+  const bg = carPhoto || null;
+  // Bottom-right circle: profile face
+  const face = profilePhoto || null;
 
   return (
     <article
@@ -159,10 +202,9 @@ function MemberCard({
       aria-label="Just Wheels Hessequa member card"
       className="relative aspect-[85.6/53.98] w-full overflow-hidden rounded-2xl border-4 border-ink bg-ink text-paper shadow-[8px_8px_0_0_var(--color-primary)]"
     >
-      {/* Background photo or gradient */}
-      {photo ? (
+      {bg ? (
         <img
-          src={photo}
+          src={bg}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
           crossOrigin="anonymous"
@@ -171,11 +213,10 @@ function MemberCard({
         <div className="absolute inset-0 bg-gradient-to-br from-ink via-[#1a1210] to-[#2a1512]" />
       )}
 
-      {/* Dark gradient for legibility */}
-      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/75 to-ink/25" />
+      {/* Dark gradient for legibility over the car */}
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/70 to-ink/20" />
       <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/90 to-transparent" />
 
-      {/* Content */}
       <div className="relative flex h-full flex-col justify-between p-4 sm:p-5">
         <header className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -197,7 +238,7 @@ function MemberCard({
           </span>
         </header>
 
-        <div className="mt-auto max-w-[65%]">
+        <div className="mt-auto max-w-[62%]">
           <p className="font-display text-[10px] tracking-[0.25em] text-primary sm:text-xs">
             {t("card.number")}
           </p>
@@ -217,15 +258,35 @@ function MemberCard({
           </div>
         </div>
 
-        {/* Circular logo badge overlaid on photo side */}
+        {/* Bottom-right: profile photo with small JW logo badge */}
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
-          <div className="relative h-16 w-16 rounded-full border-[3px] border-paper bg-paper shadow-[0_4px_12px_rgba(0,0,0,0.45)] sm:h-20 sm:w-20">
-            <img
-              src={logoAsset.url}
-              alt="Just Wheels"
-              className="h-full w-full rounded-full object-cover"
-              crossOrigin="anonymous"
-            />
+          <div className="relative h-16 w-16 sm:h-20 sm:w-20">
+            <div className="h-full w-full overflow-hidden rounded-full border-[3px] border-paper bg-ink shadow-[0_4px_12px_rgba(0,0,0,0.45)]">
+              {face ? (
+                <img
+                  src={face}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <img
+                  src={logoAsset.url}
+                  alt="Just Wheels"
+                  className="h-full w-full object-cover"
+                  crossOrigin="anonymous"
+                />
+              )}
+            </div>
+            {/* Small club logo overlay on the profile circle */}
+            <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 overflow-hidden rounded-full border-2 border-paper bg-paper shadow sm:h-8 sm:w-8">
+              <img
+                src={logoAsset.url}
+                alt=""
+                className="h-full w-full object-cover"
+                crossOrigin="anonymous"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -233,8 +294,12 @@ function MemberCard({
   );
 }
 
-/** Draw a print-ready landscape CR80 card to canvas and trigger PNG download. */
-async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
+async function downloadLandscapeCard(
+  profile: MemberProfile,
+  carPhoto: string | null,
+  profilePhoto: string | null,
+  af: boolean,
+) {
   const canvas = document.createElement("canvas");
   canvas.width = PRINT_W;
   canvas.height = PRINT_H;
@@ -246,27 +311,22 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
   const name = profile.display_name ?? "—";
   const ride = profile.favourite_ride || (af ? "Geen ry gelys nie" : "No ride listed");
 
-  // Background
   ctx.fillStyle = "#140e0c";
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
-  // Member photo
-  if (profile.avatar_url) {
+  // Background = garage car
+  if (carPhoto) {
     try {
-      const img = await loadImage(profile.avatar_url);
-      // cover-fit
+      const img = await loadImage(carPhoto);
       const scale = Math.max(PRINT_W / img.width, PRINT_H / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
-      const x = (PRINT_W - w) / 2;
-      const y = (PRINT_H - h) / 2;
-      ctx.drawImage(img, x, y, w, h);
+      ctx.drawImage(img, (PRINT_W - w) / 2, (PRINT_H - h) / 2, w, h);
     } catch {
-      /* keep solid bg */
+      /* solid bg */
     }
   }
 
-  // Left dark wash
   const grad = ctx.createLinearGradient(0, 0, PRINT_W * 0.75, 0);
   grad.addColorStop(0, "rgba(20,14,12,0.96)");
   grad.addColorStop(0.55, "rgba(20,14,12,0.72)");
@@ -274,14 +334,12 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
-  // Bottom fade
   const bot = ctx.createLinearGradient(0, PRINT_H * 0.45, 0, PRINT_H);
   bot.addColorStop(0, "rgba(20,14,12,0)");
   bot.addColorStop(1, "rgba(20,14,12,0.88)");
   ctx.fillStyle = bot;
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
-  // Header logo circle
   try {
     const logo = await loadImage(logoAsset.url);
     drawCircleImage(ctx, logo, 48, 48, 36);
@@ -296,7 +354,6 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
   ctx.font = "600 14px Barlow, sans-serif";
   ctx.fillText("HESSEQUA", 100, 74);
 
-  // Badge
   ctx.strokeStyle = "rgba(245,240,232,0.45)";
   ctx.lineWidth = 2;
   roundRect(ctx, PRINT_W - 140, 28, 110, 28, 14);
@@ -307,7 +364,6 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
   ctx.fillText(af ? "LIDKAART" : "MEMBER", PRINT_W - 85, 47);
   ctx.textAlign = "left";
 
-  // Member number + name
   ctx.fillStyle = "#cc2222";
   ctx.font = "600 14px Barlow, sans-serif";
   ctx.fillText(af ? "LIDNOMMER" : "MEMBER NO.", 48, PRINT_H - 200);
@@ -321,21 +377,16 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
   ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 58);
   ctx.font = "600 14px Barlow, sans-serif";
   ctx.fillStyle = "rgba(245,240,232,0.65)";
-  const meta = [
-    `${af ? "Sedert" : "Since"} ${year}`,
-    profile.membership_status,
-    profile.town,
-  ]
+  const meta = [`${af ? "Sedert" : "Since"} ${year}`, profile.membership_status, profile.town]
     .filter(Boolean)
     .join("  ·  ");
   ctx.fillText(meta, 48, PRINT_H - 28);
 
-  // Large circular logo badge bottom-right
+  // Bottom-right profile face + small logo badge
+  const cx = PRINT_W - 90;
+  const cy = PRINT_H - 90;
+  const r = 62;
   try {
-    const logo = await loadImage(logoAsset.url);
-    const cx = PRINT_W - 90;
-    const cy = PRINT_H - 90;
-    const r = 62;
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
@@ -344,13 +395,28 @@ async function downloadLandscapeCard(profile: MemberProfile, af: boolean) {
     ctx.strokeStyle = "#140e0c";
     ctx.lineWidth = 4;
     ctx.stroke();
-    drawCircleImage(ctx, logo, cx, cy, r);
+    const faceSrc = profilePhoto || logoAsset.url;
+    const face = await loadImage(faceSrc);
+    drawCircleImage(ctx, face, cx, cy, r);
     ctx.restore();
+
+    // Mini logo badge
+    const logo = await loadImage(logoAsset.url);
+    const br = 22;
+    const bx = cx + r * 0.65;
+    const by = cy + r * 0.65;
+    ctx.beginPath();
+    ctx.arc(bx, by, br + 2, 0, Math.PI * 2);
+    ctx.fillStyle = "#f5f0e8";
+    ctx.fill();
+    ctx.strokeStyle = "#140e0c";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    drawCircleImage(ctx, logo, bx, by, br);
   } catch {
     /* skip */
   }
 
-  // Outer border
   ctx.strokeStyle = "#140e0c";
   ctx.lineWidth = 10;
   ctx.strokeRect(5, 5, PRINT_W - 10, PRINT_H - 10);

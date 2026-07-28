@@ -2,10 +2,10 @@
   "version": 1,
   "asset_id": "1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa",
   "project_id": "93c070c3-b313-4b03-8f2f-5b34c2c4e0e2",
-  "url": "/justwheels-logo.jpeg",
-  "r2_key": "public/justwheels-logo.jpeg",
+  "url": "/apple-touch-icon.png",
+  "r2_key": "public/apple-touch-icon.png",
   "original_filename": "justwheels-logo.jpeg",
-  "size": 258631,
-  "content_type": "image/jpeg",
+  "size": 58544,
+  "content_type": "image/png",
   "created_at": "2026-07-27T09:08:36Z"
 }

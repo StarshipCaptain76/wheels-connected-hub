@@ -203,22 +203,21 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      {/* Always pure black — independent of day/night tokens */}
-      <footer className="mt-16 border-t-2 border-black bg-black text-white">
+      <footer className="mt-16 border-t-2 border-ink bg-paper text-ink">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <img
                 src={LOGO_URL}
                 alt=""
-                className="h-12 w-12 rounded-full border-2 border-white object-cover"
+                className="h-12 w-12 rounded-full border-2 border-ink object-cover"
               />
               <div className="font-display text-2xl leading-none">
                 JUST WHEELS
                 <div className="text-xs tracking-[0.25em] text-primary">HESSEQUA</div>
               </div>
             </div>
-            <p className="mt-4 max-w-xs text-sm text-white/70">{t("footer.tagline")}</p>
+            <p className="mt-4 max-w-xs text-sm text-ink/70">{t("footer.tagline")}</p>
           </div>
 
           <div>
@@ -226,7 +225,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <ul className="space-y-2 text-sm">
               {navItems.map((item) => (
                 <li key={item.to}>
-                  <Link to={item.to} className="text-white/80 hover:text-white">
+                  <Link to={item.to} className="text-ink/80 hover:text-ink">
                     {item.label}
                   </Link>
                 </li>
@@ -241,7 +240,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp Hugo van Dyk"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-white/40 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white hover:border-primary hover:text-primary"
+              className="inline-flex items-center gap-2 rounded-full border-2 border-ink/40 px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink hover:border-primary hover:text-primary"
             >
               <MessageCircle className="h-4 w-4" /> WhatsApp Hugo
             </a>
@@ -251,8 +250,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <NewsletterSignup />
           </div>
         </div>
-        <div className="border-t border-white/10">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-white/50">
+        <div className="border-t border-ink/10">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-ink/50">
             <span>© {new Date().getFullYear()} Just Wheels Hessequa. {t("footer.rights")}</span>
             <span>{t("footer.built")}</span>
           </div>

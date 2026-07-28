@@ -1,16 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
-import { Calendar, IdCard, Users } from "lucide-react";
+import { Calendar, IdCard, Users, Star } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
+import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 
 const nextEventQuery = queryOptions({
   queryKey: ["events", "next"],
   queryFn: () => getNextEvent(),
   staleTime: 60_000,
+});
+
+const featuredQuery = queryOptions({
+  queryKey: ["featured-member"],
+  queryFn: () => getCurrentFeaturedMember(),
+  staleTime: 120_000,
 });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
@@ -50,7 +57,12 @@ export const Route = createFileRoute("/")({
       },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(nextEventQuery),
+  loader: async ({ context }) => {
+    await Promise.all([
+      context.queryClient.ensureQueryData(nextEventQuery),
+      context.queryClient.ensureQueryData(featuredQuery),
+    ]);
+  },
   component: Index,
 });
 
@@ -65,6 +77,7 @@ function formatDate(iso: string, lang: "en" | "af") {
 function Index() {
   const { t, lang } = useI18n();
   const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
+  const { data: featured } = useQuery(featuredQuery);
 
   const nextTitle = nextEvent
     ? lang === "af" && nextEvent.title_af
@@ -149,13 +162,71 @@ function Index() {
             <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
             {nextMeta && <p className="mt-1 text-sm font-semibold text-paper/85">{nextMeta}</p>}
           </div>
-          <p className="max-w-md text-sm text-paper/90 line-clamp-3">
-            {nextDesc || nextBody}
-          </p>
+          <p className="max-w-md text-sm text-paper/90 line-clamp-3">{nextDesc || nextBody}</p>
         </div>
       </Link>
 
       <SponsorCarousel />
+
+      {/* Featured member — compact, only when set */}
+      {featured && (
+        <section className="border-b border-ink/15 bg-paper">
+          <div className="mx-auto max-w-6xl px-4 py-8">
+            <div className="flex flex-col gap-4 rounded-xl border border-ink/20 bg-card/60 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5">
+              <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+                <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink/10 sm:h-20 sm:w-20">
+                  {featured.featured_photo_url ? (
+                    <img
+                      src={featured.featured_photo_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-ink text-paper">
+                      <Star className="h-6 w-6 text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 sm:hidden">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                    {lang === "af" ? "Lid in die kollig" : "Featured member"}
+                  </p>
+                  <p className="font-display text-xl leading-tight text-ink">
+                    {featured.display_name ?? "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="hidden text-[10px] font-bold uppercase tracking-[0.2em] text-primary sm:block">
+                  {lang === "af" ? "Lid in die kollig" : "Featured member"}
+                </p>
+                <p className="hidden font-display text-2xl leading-tight text-ink sm:block">
+                  {featured.display_name ?? "—"}
+                </p>
+                <p className="mt-0.5 text-sm text-ink/65">
+                  #{String(featured.member_number).padStart(4, "0")}
+                  {featured.town ? ` · ${featured.town}` : ""}
+                  {featured.favourite_ride ? ` · ${featured.favourite_ride}` : ""}
+                </p>
+                {featured.featured_bio && (
+                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink/75">
+                    {featured.featured_bio}
+                  </p>
+                )}
+              </div>
+
+              <Link
+                to="/members/$number"
+                params={{ number: String(featured.member_number) }}
+                className="shrink-0 self-start rounded-md border border-ink/30 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink/70 hover:border-ink hover:text-ink sm:self-center"
+              >
+                {lang === "af" ? "Bekyk" : "View"} →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">

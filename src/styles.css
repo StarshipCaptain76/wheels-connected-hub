@@ -37,7 +37,7 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
-  /* Just Wheels palette */
+  /* Just Wheels palette — theme-aware */
   --color-ink: var(--ink);
   --color-paper: var(--paper);
   --color-steel: var(--steel);
@@ -61,75 +61,88 @@
 :root {
   --radius: 0.625rem;
 
-  /* Just Wheels palette — neutral paper (no warm/brown cast) */
-  --ink: oklch(0.14 0 0);
-  --paper: oklch(1 0 0);
-  --steel: oklch(0.72 0 0);
+  /* DAY — pure white paper, pure black ink */
+  --ink: #0a0a0a;
+  --paper: #ffffff;
+  --steel: #b8b8b8;
   --rust: oklch(0.55 0.15 45);
 
   --background: var(--paper);
   --foreground: var(--ink);
-  --card: oklch(1 0 0);
+  --card: #ffffff;
   --card-foreground: var(--ink);
-  --popover: oklch(1 0 0);
+  --popover: #ffffff;
   --popover-foreground: var(--ink);
-  --primary: oklch(0.58 0.22 27); /* Just Wheels Red */
-  --primary-foreground: var(--paper);
-  --secondary: oklch(0.96 0 0);
+  --primary: oklch(0.58 0.22 27); /* Just Wheels Red — stays */
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f4;
   --secondary-foreground: var(--ink);
-  --muted: oklch(0.96 0 0);
-  --muted-foreground: oklch(0.5 0 0);
+  --muted: #f4f4f4;
+  --muted-foreground: #6b6b6b;
   --accent: var(--rust);
-  --accent-foreground: var(--paper);
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: var(--paper);
-  --border: oklch(0.88 0 0);
-  --input: oklch(0.88 0 0);
+  --destructive-foreground: #ffffff;
+  --border: #e0e0e0;
+  --input: #e0e0e0;
   --ring: oklch(0.58 0.22 27);
 
   --chart-1: oklch(0.58 0.22 27);
   --chart-2: oklch(0.55 0.15 45);
-  --chart-3: oklch(0.72 0 0);
-  --chart-4: oklch(0.4 0 0);
-  --chart-5: oklch(0.14 0 0);
+  --chart-3: #b8b8b8;
+  --chart-4: #666666;
+  --chart-5: #0a0a0a;
 
   --sidebar: var(--paper);
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--ink);
   --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent: #f4f4f4;
   --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: oklch(0.88 0 0);
+  --sidebar-border: #e0e0e0;
   --sidebar-ring: oklch(0.58 0.22 27);
 }
 
+/* NIGHT — pure black paper, pure white ink; red accents unchanged */
 .dark {
-  --background: var(--ink);
-  --foreground: var(--paper);
-  --card: oklch(0.2 0 0);
-  --card-foreground: var(--paper);
-  --popover: oklch(0.2 0 0);
-  --popover-foreground: var(--paper);
-  --primary: oklch(0.62 0.22 27);
-  --primary-foreground: var(--paper);
-  --secondary: oklch(0.24 0 0);
-  --secondary-foreground: var(--paper);
-  --muted: oklch(0.24 0 0);
-  --muted-foreground: oklch(0.72 0 0);
+  --ink: #f5f5f5;
+  --paper: #0a0a0a;
+  --steel: #6b6b6b;
+  --rust: oklch(0.55 0.15 45);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #141414;
+  --card-foreground: var(--ink);
+  --popover: #141414;
+  --popover-foreground: var(--ink);
+  --primary: oklch(0.62 0.22 27); /* red stays */
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: var(--ink);
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
   --accent: var(--rust);
-  --accent-foreground: var(--paper);
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.62 0.22 27);
-  --destructive-foreground: var(--paper);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
   --ring: oklch(0.62 0.22 27);
-  --sidebar: oklch(0.2 0 0);
-  --sidebar-foreground: var(--paper);
+
+  --chart-1: oklch(0.62 0.22 27);
+  --chart-2: oklch(0.55 0.15 45);
+  --chart-3: #6b6b6b;
+  --chart-4: #a3a3a3;
+  --chart-5: #f5f5f5;
+
+  --sidebar: #0a0a0a;
+  --sidebar-foreground: var(--ink);
   --sidebar-primary: oklch(0.62 0.22 27);
-  --sidebar-primary-foreground: var(--paper);
-  --sidebar-accent: oklch(0.24 0 0);
-  --sidebar-accent-foreground: var(--paper);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: #2a2a2a;
   --sidebar-ring: oklch(0.62 0.22 27);
 }
 
@@ -151,6 +164,12 @@
   }
 }
 
+/* Structural black band — always pure black (hero, footer, night-safe strips) */
+@utility band-black {
+  background-color: #000000;
+  color: #ffffff;
+}
+
 /* Grain texture overlay utility */
 @utility grain {
   position: relative;
@@ -165,7 +184,6 @@
   }
 }
 
-/* Hide scrollbar on horizontal scrollers (mobile nav) */
 @utility scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;

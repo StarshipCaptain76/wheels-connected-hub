@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { processExpiredSponsors } from "@/lib/sponsors.functions";
 
 /**
  * Daily job: hide sponsors past billing_ends_at and email admin once.
@@ -25,6 +24,7 @@ export const Route = createFileRoute("/api/cron/sponsors-expiry")({
         }
 
         try {
+          const { processExpiredSponsors } = await import("@/lib/sponsors-expiry.server");
           const result = await processExpiredSponsors();
           return new Response(JSON.stringify({ ok: true, ...result }), {
             status: 200,

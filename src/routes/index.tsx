@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { LOGO_URL } from "@/lib/brand";
+import { LOGO_URL, LOGO_URL_HERO } from "@/lib/brand";
 import { Calendar, IdCard, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
@@ -146,8 +146,10 @@ function Index() {
 
           <div className="flex items-center justify-center">
             <img
-              src={LOGO_URL}
+              src={LOGO_URL_HERO}
               alt="Just Wheels Hessequa club badge"
+              width={320}
+              height={320}
               className="h-64 w-64 -rotate-6 rounded-full border-4 border-ink object-cover shadow-2xl md:h-80 md:w-80"
             />
           </div>

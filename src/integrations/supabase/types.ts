@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          event_id: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_photos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_photos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           created_at: string
@@ -594,7 +636,10 @@ export type Database = {
       }
       sponsors: {
         Row: {
+          billing_ends_at: string | null
+          billing_starts_at: string | null
           created_at: string
+          expiry_notified_at: string | null
           id: string
           is_active: boolean
           logo_path: string
@@ -606,7 +651,10 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          billing_ends_at?: string | null
+          billing_starts_at?: string | null
           created_at?: string
+          expiry_notified_at?: string | null
           id?: string
           is_active?: boolean
           logo_path: string
@@ -618,7 +666,10 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          billing_ends_at?: string | null
+          billing_starts_at?: string | null
           created_at?: string
+          expiry_notified_at?: string | null
           id?: string
           is_active?: boolean
           logo_path?: string

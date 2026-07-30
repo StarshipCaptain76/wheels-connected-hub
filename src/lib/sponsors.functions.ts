@@ -167,11 +167,17 @@ export const upsertSponsor = createServerFn({ method: "POST" })
     }
 
     if (id) {
-      const { error } = await supabase.from("sponsors").update(values).eq("id", id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await supabase.from("sponsors").update(values as any).eq("id", id);
       if (error) throw error;
       return { id };
     }
-    const { data: row, error } = await supabase.from("sponsors").insert(values).select("id").single();
+    const { data: row, error } = await supabase
+      .from("sponsors")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .insert(values as any)
+      .select("id")
+      .single();
     if (error) throw error;
     return { id: row.id as string };
   });

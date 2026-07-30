@@ -190,7 +190,8 @@ export const setFeaturedMember = createServerFn({ method: "POST" })
       if (data.bio !== undefined) patch.featured_bio = data.bio;
       if (data.photoUrl !== undefined) patch.featured_photo_url = data.photoUrl;
 
-      const { error } = await client.from("profiles").update(patch).eq("id", data.userId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await client.from("profiles").update(patch as any).eq("id", data.userId);
       if (error) throw error;
     }
     return { ok: true };

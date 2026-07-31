@@ -4,13 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { LOGO_URL } from "@/lib/brand";
 import { getPublicListing, getListing } from "@/lib/listings.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, MapPin, Phone, Mail, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Phone, Mail } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
-const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
+const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
 
 const publicListingQuery = (id: string) =>
   queryOptions({
@@ -18,16 +17,6 @@ const publicListingQuery = (id: string) =>
     queryFn: () => getPublicListing({ data: { id } }),
     staleTime: 30_000,
   });
-
-function phoneDigits(raw: string): string {
-  return raw.replace(/\D/g, "");
-}
-
-function waLink(phone: string): string {
-  let d = phoneDigits(phone);
-  if (d.startsWith("0") && d.length >= 10) d = "27" + d.slice(1);
-  return `https://wa.me/${d}`;
-}
 
 export const Route = createFileRoute("/classifieds/$id")({
   loader: async ({ params, context }) => {
@@ -96,7 +85,7 @@ export const Route = createFileRoute("/classifieds/$id")({
 });
 
 function ListingDetail() {
-  const { t, lang } = useI18n();
+  const { lang } = useI18n();
   const params = Route.useParams();
   const { data: listing } = useSuspenseQuery(publicListingQuery(params.id));
   const [revealEmail, setRevealEmail] = useState(false);
@@ -127,14 +116,13 @@ function ListingDetail() {
   const [emailUser, emailDomain] = contact?.contact_email
     ? contact.contact_email.split("@")
     : ["", ""];
-  const phone = contact?.contact_phone?.trim() || "";
 
   return (
     <SiteLayout>
       <div className="mx-auto max-w-5xl px-4 py-10">
         <Link
           to="/classifieds"
-          className="inline-flex min-h-11 items-center gap-1 text-base text-ink/70 hover:text-ink"
+          className="inline-flex items-center gap-1 text-sm text-ink/70 hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" /> {lang === "af" ? "Terug" : "Back"}
         </Link>
@@ -163,7 +151,7 @@ function ListingDetail() {
           </div>
 
           <div>
-            <div className="text-sm font-bold uppercase tracking-wider text-primary">
+            <div className="text-xs font-bold uppercase tracking-wider text-primary">
               {display.category} · {display.condition}
             </div>
             <h1 className="mt-2 font-display text-4xl tracking-wide text-ink">{title}</h1>
@@ -172,56 +160,46 @@ function ListingDetail() {
                 R {display.price_zar.toLocaleString("en-ZA")}
               </p>
             ) : (
-              <p className="mt-3 text-lg italic text-ink/70">
+              <p className="mt-3 italic text-ink/70">
                 {lang === "af" ? "Prys op aanvraag" : "Price on request"}
               </p>
             )}
             {display.location ? (
-              <p className="mt-2 inline-flex items-center gap-1 text-base text-ink/70">
+              <p className="mt-2 inline-flex items-center gap-1 text-sm text-ink/70">
                 <MapPin className="h-4 w-4" /> {display.location}
               </p>
             ) : null}
 
-            <div className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink/80">
+            <div className="prose mt-6 max-w-none whitespace-pre-wrap text-ink/80">
               {description}
             </div>
 
             <div className="mt-8 rounded-lg border-2 border-ink bg-card p-5 shadow-[4px_4px_0_0_var(--color-ink)]">
-              <div className="font-display text-xl tracking-wide text-ink">
+              <div className="font-display text-lg tracking-wide text-ink">
                 {lang === "af" ? "Kontak verkoper" : "Contact seller"}
               </div>
-              <p className="mt-1 text-sm text-ink/60">
+              <p className="mt-1 text-xs text-ink/60">
                 {lang === "af"
                   ? "Betaling word direk met die verkoper hanteer. Die klub is nie betrokke nie."
                   : "Payment is arranged directly with the seller. The club is not involved."}
               </p>
               {contact ? (
                 <>
-                  <p className="mt-4 text-lg font-semibold">{contact.contact_name}</p>
-                  {phone ? (
-                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                      <a
-                        href={`tel:${phone}`}
-                        className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-3 text-lg font-bold text-white shadow-[3px_3px_0_0_var(--color-ink)]"
-                      >
-                        <Phone className="h-5 w-5" /> {t("classifieds.call")}
+                  <p className="mt-3 font-semibold">{contact.contact_name}</p>
+                  {contact.contact_phone ? (
+                    <p className="mt-1 inline-flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4" />
+                      <a href={`tel:${contact.contact_phone}`} className="hover:underline">
+                        {contact.contact_phone}
                       </a>
-                      <a
-                        href={waLink(phone)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex min-h-14 flex-1 items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-3 text-lg font-bold text-ink shadow-[3px_3px_0_0_var(--color-ink)]"
-                      >
-                        <MessageCircle className="h-5 w-5" /> {t("classifieds.whatsapp")}
-                      </a>
-                    </div>
+                    </p>
                   ) : null}
-                  <p className="mt-4 inline-flex items-center gap-2 text-base">
+                  <p className="mt-1 inline-flex items-center gap-2 text-sm">
                     <Mail className="h-4 w-4" />
                     {revealEmail ? (
                       <a
                         href={`mailto:${emailUser}@${emailDomain}`}
-                        className="underline"
+                        className="hover:underline"
                       >
                         {emailUser}@{emailDomain}
                       </a>
@@ -229,23 +207,23 @@ function ListingDetail() {
                       <button
                         type="button"
                         onClick={() => setRevealEmail(true)}
-                        className="font-semibold text-primary underline"
+                        className="text-primary underline"
                       >
-                        {t("classifieds.showEmail")}
+                        {lang === "af" ? "Wys e-pos" : "Show email"}
                       </button>
                     )}
                   </p>
                 </>
               ) : session ? (
-                <div className="mt-3 text-base text-ink/70">
+                <div className="mt-3 text-sm text-ink/70">
                   <p>
                     {lang === "af"
-                      ? "Slegs die verkoper en admins kan die kontakbesonderhede sien."
-                      : "Only the seller and admins can see the contact details."}
+                      ? "Slegs die verkoper en admins kan die kontakbesonderhede sien. Kontak die klub as jy dringend die verkoper wil bereik."
+                      : "Only the seller and admins can see the contact details. Reach out to the club if you need to contact the seller urgently."}
                   </p>
                 </div>
               ) : (
-                <div className="mt-3 text-base text-ink/70">
+                <div className="mt-3 text-sm text-ink/70">
                   <p>
                     {lang === "af"
                       ? "Teken in om die verkoper se kontakbesonderhede te sien."
@@ -253,7 +231,7 @@ function ListingDetail() {
                   </p>
                   <Link
                     to="/auth"
-                    className="mt-3 inline-flex min-h-12 items-center rounded-md border-2 border-ink bg-primary px-5 py-3 text-base font-bold text-white"
+                    className="mt-2 inline-block rounded border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
                   >
                     {lang === "af" ? "Teken in" : "Sign in"}
                   </Link>

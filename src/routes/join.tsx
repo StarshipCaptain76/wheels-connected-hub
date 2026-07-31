@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
+import { LOGO_URL } from "@/lib/brand";
 import { Check, MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
-const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
 const WA_HUGO = "https://wa.me/27836869237";
 
 export const Route = createFileRoute("/join")({
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/join")({
       {
         name: "description",
         content:
-          "Membership is free. Create an account, fill in your garage and WhatsApp Hugo to be added to the group.",
+          "Membership is free. Create an account with Google or email, then WhatsApp Hugo to join the group.",
       },
       { property: "og:title", content: "Join Just Wheels Hessequa | Free Membership" },
       {
@@ -43,28 +44,29 @@ function Join() {
 
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-4xl px-4 py-16">
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
         <h1 className="font-display text-5xl tracking-wide text-ink sm:text-6xl">{t("join.title")}</h1>
         <p className="mt-3 text-lg text-ink/70">{t("join.subtitle")}</p>
 
-        <div className="mt-8 rounded-lg border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
+        <div className="mt-8 rounded-lg border-2 border-ink bg-ink p-6 text-paper shadow-[4px_4px_0_0_var(--color-primary)] sm:p-8">
           <div className="font-display text-xs tracking-[0.3em] text-primary">FREE</div>
           <div className="mt-1 font-display text-4xl tracking-wide">{t("join.freeTitle")}</div>
-          <p className="mt-2 text-sm text-paper/70">{t("join.freeBody")}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <p className="mt-2 text-base text-paper/80">{t("join.freeBody")}</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               to="/auth"
-              className="rounded-md border-2 border-paper bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper transition-transform hover:-translate-y-0.5"
+              search={{ mode: "signup" }}
+              className="inline-flex min-h-12 items-center justify-center rounded-md border-2 border-paper bg-primary px-6 py-3 text-base font-bold text-paper"
             >
-              {t("join.signup")}
+              {t("join.google")} / {t("join.signup")}
             </Link>
             <a
               href={WA_HUGO}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md border-2 border-paper bg-transparent px-6 py-3 font-bold uppercase tracking-wider text-paper transition-transform hover:-translate-y-0.5"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border-2 border-paper bg-transparent px-6 py-3 text-base font-bold text-paper"
             >
-              <MessageCircle className="h-4 w-4" /> {t("join.whatsapp")}
+              <MessageCircle className="h-5 w-5" /> {t("join.whatsapp")}
             </a>
           </div>
         </div>
@@ -78,12 +80,12 @@ function Join() {
                   key={s.title}
                   className="flex items-start gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
                 >
-                  <span className="mt-0.5 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-primary font-display text-paper">
+                  <span className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-full bg-primary font-display text-lg text-paper">
                     {i + 1}
                   </span>
                   <div>
-                    <div className="font-display text-lg text-ink">{s.title}</div>
-                    <p className="text-sm text-ink/70">{s.body}</p>
+                    <div className="font-display text-xl text-ink">{s.title}</div>
+                    <p className="mt-1 text-base text-ink/70">{s.body}</p>
                   </div>
                 </li>
               ))}
@@ -96,10 +98,10 @@ function Join() {
                 key={b}
                 className="flex items-start gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
               >
-                <span className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-primary text-paper">
+                <span className="mt-0.5 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary text-paper">
                   <Check className="h-4 w-4" />
                 </span>
-                <span className="font-medium text-ink">{b}</span>
+                <span className="text-base font-medium text-ink">{b}</span>
               </li>
             ))}
           </ul>

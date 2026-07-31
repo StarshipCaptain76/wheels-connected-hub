@@ -236,29 +236,34 @@ function MembersPage() {
                 )}
               </form>
 
-              <aside className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
-                {profile.avatar_url && (
-                  <img
-                    src={profile.avatar_url}
-                    alt=""
-                    className="mb-4 h-20 w-20 rounded-full border-2 border-paper object-cover"
-                  />
-                )}
-                <p className="font-display text-xs tracking-[0.3em] text-primary">
-                  {t("members.summary")}
-                </p>
-                <div className="mt-2 font-display text-3xl leading-none">
-                  #{String(profile.member_number).padStart(4, "0")}
+              <aside className="space-y-4">
+                <MemberCard
+                  profile={profile}
+                  carPhoto={carPhoto}
+                  facePhoto={facePhoto}
+                  compact
+                />
+                <Link
+                  to="/members/card"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
+                >
+                  <IdCard className="h-4 w-4" /> {t("members.viewCard")}
+                </Link>
+                <div className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
+                  <p className="font-display text-xs tracking-[0.3em] text-primary">
+                    {t("members.summary")}
+                  </p>
+                  <dl className="mt-3 space-y-2 text-sm">
+                    <SummaryRow label={t("members.status")} value={profile.membership_status} />
+                    <SummaryRow label={t("members.email")} value={profile.email ?? "—"} />
+                    <SummaryRow
+                      label={t("members.joined")}
+                      value={new Date(profile.joined_at).toLocaleDateString()}
+                    />
+                  </dl>
                 </div>
-                <dl className="mt-4 space-y-2 text-sm">
-                  <SummaryRow label={t("members.status")} value={profile.membership_status} />
-                  <SummaryRow label={t("members.email")} value={profile.email ?? "—"} />
-                  <SummaryRow
-                    label={t("members.joined")}
-                    value={new Date(profile.joined_at).toLocaleDateString()}
-                  />
-                </dl>
               </aside>
+
             </div>
 
             <GarageManager avatarUrl={profile.avatar_url} lang={lang} />

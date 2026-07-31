@@ -47,6 +47,7 @@ const updateSchema = z.object({
   favourite_ride: z.string().trim().max(120).nullable().optional(),
   preferred_lang: z.enum(["en", "af"]).nullable().optional(),
   directory_visible: z.boolean().optional(),
+  featured_bio: z.string().trim().max(600).nullable().optional(),
 });
 
 export const updateMyProfile = createServerFn({ method: "POST" })

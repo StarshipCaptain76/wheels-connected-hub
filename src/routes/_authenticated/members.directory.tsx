@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { MemberCard, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   listDirectoryMembers,
@@ -10,7 +11,7 @@ import {
   type DirectoryMember,
   type DirectorySort,
 } from "@/lib/directory.functions";
-import { ArrowLeft, Car, Search, Star, Users } from "lucide-react";
+import { ArrowLeft, Search, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/directory")({
   head: () => ({
@@ -22,19 +23,13 @@ export const Route = createFileRoute("/_authenticated/members/directory")({
   component: DirectoryPage,
 });
 
-function vehicleLine(m: DirectoryMember): string {
+function rideLine(m: DirectoryMember): string | null {
+  if (m.favourite_ride?.trim()) return m.favourite_ride.trim();
   const v = m.primary_vehicle;
-  if (!v) return "";
+  if (!v) return null;
   const parts = [v.year, v.make, v.model].filter(Boolean).join(" ");
   if (v.nickname && parts) return `${v.nickname} · ${parts}`;
-  return v.nickname || parts || "";
-}
-
-function initials(name: string | null | undefined): string {
-  if (!name?.trim()) return "?";
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return v.nickname || parts || null;
 }
 
 function DirectoryPage() {
@@ -74,7 +69,7 @@ function DirectoryPage() {
 
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-5xl px-4 py-10">
+      <section className="mx-auto max-w-6xl px-4 py-10">
         <Link
           to="/members"
           className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary"
@@ -172,59 +167,35 @@ function DirectoryPage() {
           </div>
         ) : (
           <ul
-            className={`mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
+            className={`mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-3 ${
               isFetching ? "opacity-70" : ""
             }`}
           >
             {members.map((m) => {
-              const car = vehicleLine(m);
+              const carPhoto = m.car_photo_url;
+              const facePhoto = pickFacePhoto(m.avatar_url, carPhoto);
+              const ride = rideLine(m);
               return (
                 <li key={m.user_id}>
                   <Link
                     to="/members/$number"
                     params={{ number: String(m.member_number) }}
-                    className="group flex h-full flex-col rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                    className="block transition-transform hover:translate-x-0.5 hover:translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+                    aria-label={m.display_name ?? `Member #${m.member_number}`}
                   >
-                    <div className="flex items-start gap-3">
-                      {m.avatar_url ? (
-                        <img
-                          src={m.avatar_url}
-                          alt=""
-                          className="h-14 w-14 shrink-0 rounded-full border-2 border-ink object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-ink font-display text-lg text-paper">
-                          {initials(m.display_name)}
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <h2 className="truncate font-display text-xl tracking-wide text-ink group-hover:text-primary">
-                            {m.display_name ?? `#${m.member_number}`}
-                          </h2>
-                          {m.is_featured && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
-                              <Star className="h-2.5 w-2.5" /> Featured
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-ink/55">
-                          #{String(m.member_number).padStart(4, "0")}
-                          {m.town ? ` · ${m.town}` : ""}
-                        </p>
-                      </div>
-                    </div>
-
-                    {car ? (
-                      <p className="mt-3 flex items-start gap-1.5 text-sm text-ink/80">
-                        <Car className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                        <span className="line-clamp-2">{car}</span>
-                      </p>
-                    ) : m.favourite_ride ? (
-                      <p className="mt-3 line-clamp-2 text-sm text-ink/70">{m.favourite_ride}</p>
-                    ) : (
-                      <p className="mt-3 text-sm text-ink/40">{t("directory.noVehicle")}</p>
-                    )}
+                    <MemberCard
+                      profile={{
+                        display_name: m.display_name,
+                        member_number: m.member_number,
+                        town: m.town,
+                        favourite_ride: ride,
+                        joined_at: m.joined_at,
+                        membership_status: m.membership_status,
+                      }}
+                      carPhoto={carPhoto}
+                      facePhoto={facePhoto}
+                      compact
+                    />
                   </Link>
                 </li>
               );

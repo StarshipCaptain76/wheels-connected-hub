@@ -1,7 +1,16 @@
 import { useI18n } from "@/i18n/I18nProvider";
-import type { MemberProfile } from "@/lib/profile.functions";
 import type { GarageVehicle } from "@/lib/garage.functions";
 import { LOGO_URL } from "@/lib/brand";
+
+/** Fields the physical membership card needs to render. */
+export type MemberCardProfile = {
+  display_name: string | null;
+  member_number: number;
+  town: string | null;
+  favourite_ride: string | null;
+  joined_at: string;
+  membership_status: string;
+};
 
 /** Prefer primary vehicle photo, else first garage photo with a URL. */
 export function pickCarPhoto(vehicles: GarageVehicle[]): string | null {
@@ -40,10 +49,10 @@ export function MemberCard({
   compact = false,
   ref,
 }: {
-  profile: MemberProfile;
+  profile: MemberCardProfile;
   carPhoto: string | null;
   facePhoto: string | null;
-  /** Smaller type scale for sidebar previews */
+  /** Smaller type scale for sidebar / directory previews */
   compact?: boolean;
   ref?: React.Ref<HTMLElement>;
 }) {

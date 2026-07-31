@@ -19,6 +19,8 @@ export type DirectoryMember = {
   } | null;
   /** Oldest vehicle year across garage (for age sort); null if no years */
   oldest_year: number | null;
+  /** Newest vehicle year across garage */
+  newest_year: number | null;
 };
 
 export type DirectorySort =
@@ -110,6 +112,7 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
         null;
       const years = garage.map((g) => g.year).filter((y): y is number => y != null);
       const oldest_year = years.length ? Math.min(...years) : null;
+      const newest_year = years.length ? Math.max(...years) : null;
 
       return {
         user_id: p.id,
@@ -129,6 +132,7 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
             }
           : null,
         oldest_year,
+        newest_year,
       };
     });
 
@@ -178,12 +182,9 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
           return (a.display_name ?? "").localeCompare(b.display_name ?? "");
         }
         case "vehicle_newest": {
-          const ay = a.oldest_year ?? 0;
-          const by = b.oldest_year ?? 0;
-          // Use newest year among vehicles when sorting newest-first
-          const aYears = a.primary_vehicle?.year ?? a.oldest_year ?? 0;
-          const bYears = b.primary_vehicle?.year ?? b.oldest_year ?? 0;
-          if (aYears !== bYears) return bYears - aYears;
+          const ay = a.newest_year ?? 0;
+          const by = b.newest_year ?? 0;
+          if (ay !== by) return by - ay;
           return (a.display_name ?? "").localeCompare(b.display_name ?? "");
         }
         case "town": {
@@ -213,9 +214,7 @@ export const listDirectoryTowns = createServerFn({ method: "GET" })
       .neq("membership_status", "suspended")
       .not("town", "is", null);
     if (error) throw error;
-    const set = new Set<
-      string
-    >();
+    const set = new Set<string>();
     for (const row of data ?? []) {
       const t = (row.town ?? "").trim();
       if (t) set.add(t);

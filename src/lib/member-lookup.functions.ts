@@ -36,14 +36,8 @@ export const getMemberByNumber = createServerFn({ method: "GET" })
     const isSelf = p.id === userId;
     const visible =
       p.directory_visible !== false && p.membership_status !== "suspended";
-    if (!isSelf && !visible) {
-      // Check admin
-      const { data: isAdmin } = await supabase.rpc("has_role", {
-        _user_id: userId,
-        _role: "admin",
-      });
-      if (!isAdmin) return null;
-    }
+    // Hidden members are only visible to themselves (admins use the admin portal)
+    if (!isSelf && !visible) return null;
 
     const nowIso = new Date().toISOString();
     const { data: rsvps } = await supabase

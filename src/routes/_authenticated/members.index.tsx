@@ -93,6 +93,7 @@ function MembersPage() {
           phone: data.phone || null,
           town: data.town || null,
           favourite_ride: data.favourite_ride || null,
+          featured_bio: data.featured_bio || null,
           preferred_lang: data.preferred_lang,
           directory_visible: data.directory_visible,
         },

@@ -72,7 +72,7 @@
   --card-foreground: #000000;
   --popover: #ffffff;
   --popover-foreground: #000000;
-  --primary: oklch(0.58 0.22 27); /* Just Wheels Red */
+  --primary: oklch(0.58 0.22 27);
   --primary-foreground: #ffffff;
   --secondary: #f5f5f5;
   --secondary-foreground: #000000;
@@ -154,12 +154,39 @@
     background-color: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
     font-feature-settings: "ss01", "cv01";
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     letter-spacing: 0.01em;
+  }
+
+  /* Comfortable controls for older eyes / fingers */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+    min-height: 48px;
+    line-height: 1.4;
+  }
+
+  textarea {
+    min-height: 6rem;
+  }
+
+  button,
+  a[role="button"],
+  [type="submit"],
+  [type="button"] {
+    min-height: 44px;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 

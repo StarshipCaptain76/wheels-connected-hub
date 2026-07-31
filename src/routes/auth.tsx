@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
-import { Mail } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 
 function safePath(value: unknown): string {
   if (typeof value !== "string") return "/members";
@@ -15,6 +15,7 @@ function safePath(value: unknown): string {
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     redirect: safePath(search.redirect),
+    mode: search.mode === "signup" ? ("signup" as const) : undefined,
   }),
   head: () => ({
     meta: [
@@ -30,15 +31,18 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const { redirect: redirectTo } = Route.useSearch();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const search = Route.useSearch();
+  const redirectTo = search.redirect;
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(
+    search.mode === "signup" ? "signup" : "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
-  /** After signup / reset — show a dedicated confirmation panel */
   const [awaitingEmail, setAwaitingEmail] = useState(false);
 
   useEffect(() => {
@@ -106,134 +110,201 @@ function AuthPage() {
     setMode("signin");
   }
 
+  const inputClass =
+    "w-full rounded-md border-2 border-ink bg-paper px-3 py-3 text-base text-ink focus:outline-none focus:ring-2 focus:ring-primary";
+
   return (
     <SiteLayout>
-      <section className="mx-auto max-w-md px-4 py-16">
-        <div className="rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_var(--color-ink)]">
+      <section className="mx-auto max-w-md px-4 py-12 sm:py-16">
+        <div className="rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_var(--color-ink)] sm:p-8">
           {awaitingEmail ? (
             <div className="text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-primary">
-                <Mail className="h-7 w-7" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary bg-primary/10 text-primary">
+                <Mail className="h-8 w-8" />
               </div>
               <h1 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">
                 {mode === "forgot" ? t("auth.resetSent") : t("auth.checkEmail")}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-ink/70">
+              <p className="mt-4 text-base leading-relaxed text-ink/80">
                 {email
                   ? mode === "forgot"
-                    ? `We sent a reset link to ${email}. Open it, then come back here to sign in.`
-                    : `We sent a confirmation link to ${email}. Open that email and click the link to activate your account, then sign in.`
+                    ? `We sent a reset link to ${email}. Open that email, set a new password, then come back here to sign in.`
+                    : `We sent a confirmation link to ${email}. Open that email and tap the link to activate your account, then sign in.`
                   : info}
               </p>
               <button
                 type="button"
                 onClick={backToSignIn}
-                className="mt-8 w-full rounded-md border-2 border-ink bg-primary px-4 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                className="mt-8 w-full rounded-md border-2 border-ink bg-primary px-4 py-3.5 text-base font-bold text-white shadow-[3px_3px_0_0_var(--color-ink)]"
               >
                 {t("auth.backToSignIn")}
               </button>
-              <p className="mt-4 text-xs text-ink/50">
-                Didn't get it? Check spam, or try signing up again.
+              <p className="mt-4 text-sm text-ink/50">
+                Didn't get it? Check spam, or try again in a few minutes.
               </p>
             </div>
+          ) : mode === "forgot" ? (
+            <>
+              <h1 className="font-display text-3xl tracking-wide text-ink sm:text-4xl">
+                {t("auth.forgotTitle")}
+              </h1>
+              <p className="mt-2 text-base text-ink/70">{t("auth.forgotSubtitle")}</p>
+              <form onSubmit={handleEmail} className="mt-6 space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-bold text-ink/80">{t("auth.email")}</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                    autoComplete="email"
+                  />
+                </div>
+                {error && (
+                  <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-base text-primary">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3.5 text-base font-bold text-white shadow-[3px_3px_0_0_var(--color-ink)] disabled:opacity-60"
+                >
+                  {loading ? "…" : t("auth.sendReset")}
+                </button>
+              </form>
+              <p className="mt-5 text-center text-base">
+                <button type="button" className="font-bold text-primary underline" onClick={backToSignIn}>
+                  {t("auth.backToSignIn")}
+                </button>
+              </p>
+            </>
           ) : (
             <>
-              <h1 className="font-display text-4xl tracking-wide text-ink">
-                {mode === "signin"
-                  ? t("auth.signInTitle")
-                  : mode === "signup"
-                    ? t("auth.signUpTitle")
-                    : t("auth.forgotTitle")}
+              {/* Big tabs */}
+              <div className="grid grid-cols-2 gap-1 rounded-xl border-2 border-ink bg-ink/5 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signin");
+                    setError(null);
+                  }}
+                  className={`rounded-lg px-3 py-3 text-base font-bold transition ${
+                    mode === "signin" ? "bg-ink text-paper" : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  {t("auth.tabSignIn")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signup");
+                    setError(null);
+                  }}
+                  className={`rounded-lg px-3 py-3 text-base font-bold transition ${
+                    mode === "signup" ? "bg-ink text-paper" : "text-ink/60 hover:text-ink"
+                  }`}
+                >
+                  {t("auth.tabSignUp")}
+                </button>
+              </div>
+
+              <h1 className="mt-6 font-display text-3xl tracking-wide text-ink sm:text-4xl">
+                {mode === "signin" ? t("auth.signInTitle") : t("auth.signUpTitle")}
               </h1>
-              <p className="mt-1 text-sm text-ink/70">
-                {mode === "signin"
-                  ? t("auth.signInSubtitle")
-                  : mode === "signup"
-                    ? t("auth.signUpSubtitle")
-                    : t("auth.forgotSubtitle")}
+              <p className="mt-1 text-base text-ink/70">
+                {mode === "signin" ? t("auth.signInSubtitle") : t("auth.signUpSubtitle")}
               </p>
 
-              {mode !== "forgot" && (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleGoogle}
-                    disabled={loading}
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
-                  >
-                    <GoogleIcon /> {t("auth.google")}
-                  </button>
+              {/* Google first */}
+              <button
+                type="button"
+                onClick={handleGoogle}
+                disabled={loading}
+                className="mt-6 flex w-full items-center justify-center gap-3 rounded-md border-2 border-ink bg-paper px-4 py-3.5 text-base font-bold text-ink shadow-[3px_3px_0_0_var(--color-ink)] disabled:opacity-50"
+              >
+                <GoogleIcon /> {t("auth.google")}
+              </button>
 
-                  <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-ink/50">
-                    <span className="h-px flex-1 bg-ink/20" />
-                    <span>{t("auth.or")}</span>
-                    <span className="h-px flex-1 bg-ink/20" />
-                  </div>
-                </>
-              )}
+              <div className="my-5 flex items-center gap-3 text-sm uppercase tracking-widest text-ink/50">
+                <span className="h-px flex-1 bg-ink/20" />
+                <span>{t("auth.or")}</span>
+                <span className="h-px flex-1 bg-ink/20" />
+              </div>
 
-              <form onSubmit={handleEmail} className="mt-6 space-y-3">
+              <form onSubmit={handleEmail} className="space-y-4">
                 {mode === "signup" && (
                   <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
+                    <label className="mb-1.5 block text-sm font-bold text-ink/80">
                       {t("auth.displayName")}
                     </label>
                     <input
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
+                      className={inputClass}
                       autoComplete="name"
                     />
                   </div>
                 )}
                 <div>
-                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
-                    {t("auth.email")}
-                  </label>
+                  <label className="mb-1.5 block text-sm font-bold text-ink/80">{t("auth.email")}</label>
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
+                    className={inputClass}
                     autoComplete="email"
                   />
                 </div>
-                {mode !== "forgot" && (
-                  <div>
-                    <div className="mb-1 flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-ink/70">
-                        {t("auth.password")}
-                      </label>
-                      {mode === "signin" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setError(null);
-                            setInfo(null);
-                            setMode("forgot");
-                          }}
-                          className="text-xs font-bold text-primary hover:underline"
-                        >
-                          {t("auth.forgotLink")}
-                        </button>
-                      )}
-                    </div>
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                    <label className="text-sm font-bold text-ink/80">{t("auth.password")}</label>
+                    {mode === "signin" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setError(null);
+                          setMode("forgot");
+                        }}
+                        className="text-sm font-bold text-primary underline"
+                      >
+                        {t("auth.forgotLink")}
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
                     <input
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       required
                       minLength={6}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm text-ink"
+                      className={`${inputClass} pr-24`}
                       autoComplete={mode === "signup" ? "new-password" : "current-password"}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded px-2 py-1 text-sm font-semibold text-ink/60 hover:text-ink"
+                    >
+                      {showPassword ? (
+                        <>
+                          <EyeOff className="h-4 w-4" /> {t("auth.hidePassword")}
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4" /> {t("auth.showPassword")}
+                        </>
+                      )}
+                    </button>
                   </div>
-                )}
+                </div>
 
                 {error && (
-                  <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
+                  <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-base text-primary">
                     {error}
                   </p>
                 )}
@@ -241,47 +312,14 @@ function AuthPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-md border-2 border-ink bg-primary px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-60"
+                  className="w-full rounded-md border-2 border-ink bg-primary px-4 py-3.5 text-base font-bold text-white shadow-[3px_3px_0_0_var(--color-ink)] disabled:opacity-60"
                 >
-                  {loading
-                    ? "…"
-                    : mode === "signin"
-                      ? t("auth.signIn")
-                      : mode === "signup"
-                        ? t("auth.signUp")
-                        : t("auth.sendReset")}
+                  {loading ? "…" : mode === "signin" ? t("auth.signIn") : t("auth.signUp")}
                 </button>
               </form>
 
-              {mode === "forgot" ? (
-                <p className="mt-5 text-center text-sm text-ink/70">
-                  <button
-                    type="button"
-                    className="font-bold text-primary underline underline-offset-2"
-                    onClick={backToSignIn}
-                  >
-                    {t("auth.backToSignIn")}
-                  </button>
-                </p>
-              ) : (
-                <p className="mt-5 text-center text-sm text-ink/70">
-                  {mode === "signin" ? t("auth.needAccount") : t("auth.haveAccount")}{" "}
-                  <button
-                    type="button"
-                    className="font-bold text-primary underline underline-offset-2"
-                    onClick={() => {
-                      setError(null);
-                      setInfo(null);
-                      setMode(mode === "signin" ? "signup" : "signin");
-                    }}
-                  >
-                    {mode === "signin" ? t("auth.signUp") : t("auth.signIn")}
-                  </button>
-                </p>
-              )}
-
-              <p className="mt-2 text-center text-xs text-ink/50">
-                <Link to="/join" className="hover:text-ink">
+              <p className="mt-5 text-center text-sm text-ink/50">
+                <Link to="/join" className="hover:text-ink hover:underline">
                   {t("auth.learnMore")}
                 </Link>
               </p>
@@ -295,7 +333,7 @@ function AuthPage() {
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.75 3.28-8.09Z"

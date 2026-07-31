@@ -53,11 +53,35 @@ function vehicleLabel(v: {
   return v.nickname || parts || "";
 }
 
+/** Admin accounts stay out of the public club directory. */
+async function loadAdminUserIds(): Promise<Set<string>> {
+  const ids = new Set<string>();
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (error) {
+      console.error("[directory] admin role lookup failed", error);
+      return ids;
+    }
+    for (const row of data ?? []) {
+      if (row.user_id) ids.add(String(row.user_id));
+    }
+  } catch (e) {
+    console.error("[directory] admin role lookup skipped", e);
+  }
+  return ids;
+}
+
 export const listDirectoryMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => listSchema.parse(i ?? {}))
   .handler(async ({ context, data }): Promise<DirectoryMember[]> => {
     const { supabase } = context;
+
+    const adminIds = await loadAdminUserIds();
 
     const { data: profiles, error } = await supabase
       .from("profiles")
@@ -71,7 +95,10 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
     if (error) throw error;
     if (!profiles?.length) return [];
 
-    const ids = profiles.map((p) => p.id);
+    const visibleProfiles = profiles.filter((p) => !adminIds.has(String(p.id)));
+    if (!visibleProfiles.length) return [];
+
+    const ids = visibleProfiles.map((p) => p.id);
     const { data: vehicles, error: vErr } = await supabase
       .from("garage_vehicles")
       .select("user_id, year, make, model, nickname, is_primary, sort")
@@ -104,7 +131,7 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
       byUser.set(v.user_id, list);
     }
 
-    let rows: DirectoryMember[] = profiles.map((p) => {
+    let rows: DirectoryMember[] = visibleProfiles.map((p) => {
       const garage = byUser.get(p.id) ?? [];
       const primary =
         garage.find((g) => g.is_primary) ??
@@ -207,15 +234,19 @@ export const listDirectoryTowns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<string[]> => {
     const { supabase } = context;
+
+    const adminIds = await loadAdminUserIds();
+
     const { data, error } = await supabase
       .from("profiles")
-      .select("town")
+      .select("id, town")
       .eq("directory_visible", true)
       .neq("membership_status", "suspended")
       .not("town", "is", null);
     if (error) throw error;
     const set = new Set<string>();
     for (const row of data ?? []) {
+      if (adminIds.has(String(row.id))) continue;
       const t = (row.town ?? "").trim();
       if (t) set.add(t);
     }

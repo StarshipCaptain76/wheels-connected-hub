@@ -13,7 +13,9 @@ function safePath(value: unknown): string {
 }
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { redirect?: string; mode?: "signup" } => ({
     redirect: safePath(search.redirect),
     mode: search.mode === "signup" ? ("signup" as const) : undefined,
   }),

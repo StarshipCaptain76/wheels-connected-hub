@@ -30,6 +30,7 @@ import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
 import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
@@ -149,6 +150,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedMembersDirectoryRoute =
+  AuthenticatedMembersDirectoryRouteImport.update({
+    id: '/directory',
+    path: '/directory',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
 const AuthenticatedMembersCardRoute =
   AuthenticatedMembersCardRouteImport.update({
     id: '/card',
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
+  '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/classifieds/new': typeof AuthenticatedClassifiedsNewRoute
   '/_authenticated/members/$number': typeof AuthenticatedMembersNumberRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
+  '/_authenticated/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/classifieds/new'
     | '/members/$number'
     | '/members/card'
+    | '/members/directory'
     | '/admin/'
     | '/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/classifieds/new'
     | '/members/$number'
     | '/members/card'
+    | '/members/directory'
     | '/admin'
     | '/members'
     | '/api/public/newsletter/unsubscribe'
@@ -430,6 +442,7 @@ export interface FileRouteTypes {
     | '/_authenticated/classifieds/new'
     | '/_authenticated/members/$number'
     | '/_authenticated/members/card'
+    | '/_authenticated/members/directory'
     | '/_authenticated/admin/'
     | '/_authenticated/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/members/directory': {
+      id: '/_authenticated/members/directory'
+      path: '/directory'
+      fullPath: '/members/directory'
+      preLoaderRoute: typeof AuthenticatedMembersDirectoryRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
     '/_authenticated/members/card': {
       id: '/_authenticated/members/card'
       path: '/card'
@@ -728,12 +748,14 @@ const AuthenticatedAdminRouteRouteWithChildren =
 interface AuthenticatedMembersRouteChildren {
   AuthenticatedMembersNumberRoute: typeof AuthenticatedMembersNumberRoute
   AuthenticatedMembersCardRoute: typeof AuthenticatedMembersCardRoute
+  AuthenticatedMembersDirectoryRoute: typeof AuthenticatedMembersDirectoryRoute
   AuthenticatedMembersIndexRoute: typeof AuthenticatedMembersIndexRoute
 }
 
 const AuthenticatedMembersRouteChildren: AuthenticatedMembersRouteChildren = {
   AuthenticatedMembersNumberRoute: AuthenticatedMembersNumberRoute,
   AuthenticatedMembersCardRoute: AuthenticatedMembersCardRoute,
+  AuthenticatedMembersDirectoryRoute: AuthenticatedMembersDirectoryRoute,
   AuthenticatedMembersIndexRoute: AuthenticatedMembersIndexRoute,
 }
 
@@ -803,3 +825,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

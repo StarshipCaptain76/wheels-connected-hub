@@ -18,11 +18,10 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
-      .from("profiles")
+      .from("featured_member_public")
       .select(
         "id, display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, avatar_url, featured_since",
       )
-      .eq("is_featured", true)
       .maybeSingle();
     if (error || !data) return null;
 

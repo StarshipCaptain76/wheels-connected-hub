@@ -156,9 +156,8 @@ export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
     const { data: p } = await supabase
-      .from("profiles")
+      .from("featured_member_public")
       .select("id, display_name, member_number, town, avatar_url, featured_bio")
-      .eq("is_featured", true)
       .maybeSingle();
     if (!p) return null;
     const { data: rows } = await supabase

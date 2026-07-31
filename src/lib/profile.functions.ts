@@ -15,10 +15,11 @@ export type MemberProfile = {
   joined_at: string;
   email: string | null;
   directory_visible: boolean;
+  featured_bio: string | null;
 };
 
 const PROFILE_COLS =
-  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at, directory_visible";
+  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at, directory_visible, featured_bio";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -46,6 +47,7 @@ const updateSchema = z.object({
   favourite_ride: z.string().trim().max(120).nullable().optional(),
   preferred_lang: z.enum(["en", "af"]).nullable().optional(),
   directory_visible: z.boolean().optional(),
+  featured_bio: z.string().trim().max(600).nullable().optional(),
 });
 
 export const updateMyProfile = createServerFn({ method: "POST" })

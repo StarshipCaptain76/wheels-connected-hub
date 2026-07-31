@@ -11,7 +11,7 @@ import { getMyProfile, updateMyProfile, type MemberProfile } from "@/lib/profile
 import { getMyRoles } from "@/lib/roles.functions";
 import { listMyGarage } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
-import { IdCard, LogOut, Shield } from "lucide-react";
+import { IdCard, LogOut, Shield, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/")({
   head: () => ({
@@ -67,6 +67,7 @@ function MembersPage() {
     town: "",
     favourite_ride: "",
     preferred_lang: "en" as "en" | "af",
+    directory_visible: true,
   });
 
   useEffect(() => {
@@ -77,6 +78,7 @@ function MembersPage() {
         town: profile.town ?? "",
         favourite_ride: profile.favourite_ride ?? "",
         preferred_lang: profile.preferred_lang === "af" ? "af" : "en",
+        directory_visible: profile.directory_visible !== false,
       });
     }
   }, [profile]);
@@ -90,6 +92,7 @@ function MembersPage() {
           town: data.town || null,
           favourite_ride: data.favourite_ride || null,
           preferred_lang: data.preferred_lang,
+          directory_visible: data.directory_visible,
         },
       }),
     onSuccess: (updated) => {
@@ -97,6 +100,7 @@ function MembersPage() {
       if (updated.preferred_lang === "en" || updated.preferred_lang === "af") {
         setLang(updated.preferred_lang);
       }
+      void qc.invalidateQueries({ queryKey: ["directory"] });
     },
   });
 
@@ -124,7 +128,13 @@ function MembersPage() {
               {t("members.title")}
             </h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/members/directory"
+              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+            >
+              <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
+            </Link>
             <Link
               to="/members/card"
               className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
@@ -211,14 +221,18 @@ function MembersPage() {
                     <button
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, preferred_lang: "en" }))}
-                      className={`rounded-full px-3 py-1.5 ${form.preferred_lang === "en" ? "bg-ink text-paper" : "text-ink/60"}`}
+                      className={`rounded-full px-3 py-1.5 ${
+                        form.preferred_lang === "en" ? "bg-ink text-paper" : "text-ink/60"
+                      }`}
                     >
                       English
                     </button>
                     <button
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, preferred_lang: "af" }))}
-                      className={`rounded-full px-3 py-1.5 ${form.preferred_lang === "af" ? "bg-ink text-paper" : "text-ink/60"}`}
+                      className={`rounded-full px-3 py-1.5 ${
+                        form.preferred_lang === "af" ? "bg-ink text-paper" : "text-ink/60"
+                      }`}
                     >
                       Afrikaans
                     </button>
@@ -228,6 +242,36 @@ function MembersPage() {
                       ? "Die app oop en hardloop in hierdie taal vir jou."
                       : "The app opens and runs in this language for you."}
                   </p>
+                </div>
+
+                <div className="rounded-xl border-2 border-ink/15 bg-ink/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                        {t("directory.privacyLabel")}
+                      </p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-ink/50">
+                        {t("directory.privacyHint")}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={form.directory_visible}
+                      onClick={() =>
+                        setForm((f) => ({ ...f, directory_visible: !f.directory_visible }))
+                      }
+                      className={`relative h-7 w-12 shrink-0 rounded-full border-2 border-ink transition-colors ${
+                        form.directory_visible ? "bg-primary" : "bg-paper"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-5 w-5 rounded-full border-2 border-ink bg-paper transition-transform ${
+                          form.directory_visible ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -258,6 +302,12 @@ function MembersPage() {
                 >
                   <IdCard className="h-4 w-4" /> {t("members.viewCard")}
                 </Link>
+                <Link
+                  to="/members/directory"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
+                >
+                  <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
+                </Link>
                 <div className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
                   <p className="font-display text-xs tracking-[0.3em] text-primary">
                     {t("members.summary")}
@@ -272,7 +322,6 @@ function MembersPage() {
                   </dl>
                 </div>
               </aside>
-
             </div>
 
             <GarageManager avatarUrl={profile.avatar_url} lang={lang} />

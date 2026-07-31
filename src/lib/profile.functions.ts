@@ -15,10 +15,11 @@ export type MemberProfile = {
   joined_at: string;
   email: string | null;
   directory_visible: boolean;
+  featured_bio: string | null;
 };
 
 const PROFILE_COLS =
-  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at, directory_visible";
+  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at, directory_visible, featured_bio";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

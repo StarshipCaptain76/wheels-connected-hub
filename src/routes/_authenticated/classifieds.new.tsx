@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { createListing } from "@/lib/listings.functions";
 import { TranslateButton } from "@/components/TranslateButton";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, X, Upload } from "lucide-react";
+import { ArrowLeft, X, Upload, ChevronDown } from "lucide-react";
 
 const searchSchema = z.object({
   from: z.enum(["browse", "mine"]).optional(),
@@ -23,8 +23,10 @@ export const Route = createFileRoute("/_authenticated/classifieds/new")({
 
 type Photo = { path: string; url: string };
 
-/** Preview signed URLs valid for 12 hours (long form sessions). */
 const PREVIEW_TTL_SEC = 60 * 60 * 12;
+
+const fieldClass =
+  "w-full rounded-md border-2 border-ink bg-paper px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary";
 
 function NewListingPage() {
   const { t, lang } = useI18n();
@@ -36,6 +38,7 @@ function NewListingPage() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAf, setShowAf] = useState(false);
 
   const [title, setTitle] = useState("");
   const [titleAf, setTitleAf] = useState("");
@@ -78,11 +81,10 @@ function NewListingPage() {
 
   async function removePhoto(path: string) {
     setPhotos((prev) => prev.filter((p) => p.path !== path));
-    // Best-effort: delete orphan from storage (D2)
     try {
       await supabase.storage.from("listings").remove([path]);
     } catch {
-      /* ignore — file may already be gone */
+      /* ignore */
     }
   }
 
@@ -121,14 +123,14 @@ function NewListingPage() {
       <div className="mx-auto max-w-2xl px-4 py-10">
         <Link
           to={backTo}
-          className="inline-flex items-center gap-1 text-sm text-ink/70 hover:text-ink"
+          className="inline-flex min-h-11 items-center gap-1 text-base text-ink/70 hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" /> {t("members.back")}
         </Link>
         <h1 className="mt-4 font-display text-4xl tracking-wide text-ink">
           {lang === "af" ? "Plaas advertensie" : "Post a listing"}
         </h1>
-        <p className="mt-2 text-sm text-ink/60">
+        <p className="mt-2 text-base text-ink/60">
           {lang === "af"
             ? "'n Admin sal jou advertensie hersien voor dit publiek verskyn."
             : "An admin will review your listing before it goes live."}
@@ -136,29 +138,15 @@ function NewListingPage() {
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink">
-                {lang === "af" ? "Titel (EN)" : "Title (EN)"} <span className="text-primary">*</span>
-              </span>
-              <TranslateButton source={titleAf} from="af" to="en" onResult={setTitle} />
-            </div>
+            <label className="mb-1.5 block text-sm font-bold text-ink">
+              {lang === "af" ? "Titel" : "Title"} <span className="text-primary">*</span>
+            </label>
             <input
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink">Title (AF)</span>
-              <TranslateButton source={title} from="en" to="af" onResult={setTitleAf} />
-            </div>
-            <input
-              value={titleAf}
-              onChange={(e) => setTitleAf(e.target.value)}
-              className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className={fieldClass}
+              placeholder={lang === "af" ? "bv. 1967 Mini Cooper" : "e.g. 1967 Mini Cooper"}
             />
           </div>
 
@@ -189,55 +177,38 @@ function NewListingPage() {
           </div>
 
           <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink">
-                {lang === "af" ? "Beskrywing (EN)" : "Description (EN)"}{" "}
-                <span className="text-primary">*</span>
-              </span>
-              <TranslateButton source={descriptionAf} from="af" to="en" onResult={setDescription} />
-            </div>
+            <label className="mb-1.5 block text-sm font-bold text-ink">
+              {lang === "af" ? "Beskrywing" : "Description"} <span className="text-primary">*</span>
+            </label>
             <textarea
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
-              className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+              className={fieldClass}
             />
           </div>
 
           <div>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <span className="text-sm font-bold uppercase tracking-wider text-ink">Description (AF)</span>
-              <TranslateButton source={description} from="en" to="af" onResult={setDescriptionAf} />
-            </div>
-            <textarea
-              value={descriptionAf}
-              onChange={(e) => setDescriptionAf(e.target.value)}
-              rows={5}
-              className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold uppercase tracking-wider text-ink">
+            <label className="mb-2 block text-sm font-bold text-ink">
               {lang === "af" ? "Fotos" : "Photos"} ({photos.length}/6)
             </label>
             <div className="mb-3 flex flex-wrap gap-2">
               {photos.map((p) => (
                 <div key={p.path} className="relative">
-                  <img src={p.url} alt="" className="h-20 w-20 rounded border-2 border-ink object-cover" />
+                  <img src={p.url} alt="" className="h-24 w-24 rounded border-2 border-ink object-cover" />
                   <button
                     type="button"
                     onClick={() => void removePhoto(p.path)}
-                    className="absolute -right-2 -top-2 rounded-full border-2 border-ink bg-primary p-0.5 text-paper"
+                    className="absolute -right-2 -top-2 rounded-full border-2 border-ink bg-primary p-1 text-paper"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
               ))}
               {photos.length < 6 ? (
-                <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded border-2 border-dashed border-ink/50 text-ink/60 hover:border-ink hover:text-ink">
-                  <Upload className="h-5 w-5" />
+                <label className="flex h-24 w-24 cursor-pointer items-center justify-center rounded border-2 border-dashed border-ink/50 text-ink/60 hover:border-ink hover:text-ink">
+                  <Upload className="h-6 w-6" />
                   <input
                     type="file"
                     accept="image/*"
@@ -253,15 +224,48 @@ function NewListingPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={lang === "af" ? "Kontaknaam" : "Contact name"} name="contact_name" required />
-            <Field label={lang === "af" ? "Foon" : "Phone"} name="contact_phone" />
+            <Field label={lang === "af" ? "Foon (bel / WhatsApp)" : "Phone (call / WhatsApp)"} name="contact_phone" />
           </div>
           <Field label={lang === "af" ? "E-pos" : "Email"} name="contact_email" type="email" required />
 
-          {error ? <p className="text-sm text-primary">{error}</p> : null}
+          <button
+            type="button"
+            onClick={() => setShowAf((s) => !s)}
+            className="flex w-full items-center justify-between rounded-md border-2 border-ink/30 bg-ink/5 px-4 py-3 text-left text-base font-semibold text-ink/80"
+          >
+            <span>{lang === "af" ? "Afrikaans / vertaling (opsioneel)" : "Afrikaans / translation (optional)"}</span>
+            <ChevronDown className={`h-5 w-5 transition ${showAf ? "rotate-180" : ""}`} />
+          </button>
+
+          {showAf && (
+            <div className="space-y-4 rounded-lg border-2 border-ink/20 bg-paper p-4">
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-ink">Title (AF)</span>
+                  <TranslateButton source={title} from="en" to="af" onResult={setTitleAf} />
+                </div>
+                <input value={titleAf} onChange={(e) => setTitleAf(e.target.value)} className={fieldClass} />
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-ink">Description (AF)</span>
+                  <TranslateButton source={description} from="en" to="af" onResult={setDescriptionAf} />
+                </div>
+                <textarea
+                  value={descriptionAf}
+                  onChange={(e) => setDescriptionAf(e.target.value)}
+                  rows={4}
+                  className={fieldClass}
+                />
+              </div>
+            </div>
+          )}
+
+          {error ? <p className="text-base text-primary">{error}</p> : null}
           <button
             type="submit"
             disabled={submitting || uploading}
-            className="inline-flex rounded-md border-2 border-ink bg-primary px-5 py-2.5 font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-md border-2 border-ink bg-primary px-5 py-3.5 text-base font-bold text-white shadow-[3px_3px_0_0_var(--color-ink)] disabled:opacity-50 sm:w-auto"
           >
             {submitting
               ? lang === "af"
@@ -290,7 +294,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-bold uppercase tracking-wider text-ink">
+      <span className="mb-1.5 block text-sm font-bold text-ink">
         {label}
         {required ? <span className="text-primary"> *</span> : null}
       </span>
@@ -299,7 +303,7 @@ function Field({
         name={name}
         required={required}
         step={type === "number" ? "0.01" : undefined}
-        className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+        className={fieldClass}
       />
     </label>
   );
@@ -316,11 +320,8 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-bold uppercase tracking-wider text-ink">{label}</span>
-      <select
-        name={name}
-        className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-      >
+      <span className="mb-1.5 block text-sm font-bold text-ink">{label}</span>
+      <select name={name} className={fieldClass}>
         {options.map(([v, l]) => (
           <option key={v} value={v}>
             {l}

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ORIGINS } from "./origins";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GATEWAY = "https://connector-gateway.lovable.dev/google_maps";
 
@@ -50,6 +51,7 @@ export type PlaceSuggestion = {
 };
 
 export const placesAutocomplete = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => autocompleteInput.parse(i))
   .handler(async ({ data }): Promise<PlaceSuggestion[]> => {
     const key = `ac:${data.query.toLowerCase()}`;
@@ -104,6 +106,7 @@ export type PlaceDetails = {
 } | null;
 
 export const placeDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => placeDetailsInput.parse(i))
   .handler(async ({ data }): Promise<PlaceDetails> => {
     const key = `pd:${data.placeId}`;
@@ -155,6 +158,7 @@ export type GeocodeResult = {
 } | null;
 
 export const geocodeAddress = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => geocodeInput.parse(i))
   .handler(async ({ data }): Promise<GeocodeResult> => {
     const key = `geo:${data.query.toLowerCase()}`;

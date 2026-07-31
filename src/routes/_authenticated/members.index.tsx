@@ -4,10 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
+import { MemberCard, pickCarPhoto, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyProfile, updateMyProfile, type MemberProfile } from "@/lib/profile.functions";
 import { getMyRoles } from "@/lib/roles.functions";
+import { listMyGarage } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import { IdCard, LogOut, Shield } from "lucide-react";
 
@@ -28,6 +30,7 @@ function MembersPage() {
   const fetchProfile = useServerFn(getMyProfile);
   const saveProfile = useServerFn(updateMyProfile);
   const fetchRoles = useServerFn(getMyRoles);
+  const fetchGarage = useServerFn(listMyGarage);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", "me"],
@@ -37,7 +40,13 @@ function MembersPage() {
     queryKey: ["roles", "me"],
     queryFn: () => fetchRoles(),
   });
+  const { data: garage } = useQuery({
+    queryKey: ["garage", "me"],
+    queryFn: () => fetchGarage(),
+  });
   const isAdmin = Boolean(roles?.isAdmin);
+  const carPhoto = pickCarPhoto(garage ?? []);
+  const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
 
   useEffect(() => {
     if (profile && typeof window !== "undefined") {

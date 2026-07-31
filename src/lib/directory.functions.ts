@@ -10,6 +10,7 @@ export type DirectoryMember = {
   favourite_ride: string | null;
   avatar_url: string | null;
   joined_at: string;
+  membership_status: string;
   is_featured: boolean;
   primary_vehicle: {
     year: number | null;
@@ -17,6 +18,8 @@ export type DirectoryMember = {
     model: string | null;
     nickname: string | null;
   } | null;
+  /** Primary (or first) car photo URL for membership-card background */
+  car_photo_url: string | null;
   /** Oldest vehicle year across garage (for age sort); null if no years */
   oldest_year: number | null;
   /** Newest vehicle year across garage */
@@ -75,6 +78,37 @@ async function loadAdminUserIds(): Promise<Set<string>> {
   return ids;
 }
 
+async function resolveGarageUrls(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  paths: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const unique = [...new Set(paths.filter(Boolean))];
+  for (const path of unique) {
+    try {
+      const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
+      if (pub?.publicUrl) map.set(path, pub.publicUrl);
+    } catch {
+      /* ignore */
+    }
+  }
+  const missing = unique.filter((p) => !map.get(p));
+  if (missing.length > 0) {
+    try {
+      const { data } = await supabase.storage
+        .from("garage")
+        .createSignedUrls(missing, 60 * 60 * 24 * 7);
+      for (const row of data ?? []) {
+        if (row?.path && row?.signedUrl) map.set(row.path, row.signedUrl);
+      }
+    } catch (e) {
+      console.error("[directory] garage sign failed", e);
+    }
+  }
+  return map;
+}
+
 export const listDirectoryMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => listSchema.parse(i ?? {}))
@@ -101,26 +135,29 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
     const ids = visibleProfiles.map((p) => p.id);
     const { data: vehicles, error: vErr } = await supabase
       .from("garage_vehicles")
-      .select("user_id, year, make, model, nickname, is_primary, sort")
+      .select("id, user_id, year, make, model, nickname, is_primary, sort")
       .in("user_id", ids)
       .order("sort", { ascending: true });
 
     if (vErr) throw vErr;
 
-    const byUser = new Map<
-      string,
-      Array<{
-        year: number | null;
-        make: string | null;
-        model: string | null;
-        nickname: string | null;
-        is_primary: boolean;
-        sort: number;
-      }>
-    >();
-    for (const v of vehicles ?? []) {
+    type VRow = {
+      id: string;
+      user_id: string;
+      year: number | null;
+      make: string | null;
+      model: string | null;
+      nickname: string | null;
+      is_primary: boolean;
+      sort: number;
+    };
+
+    const byUser = new Map<string, VRow[]>();
+    for (const v of (vehicles ?? []) as VRow[]) {
       const list = byUser.get(v.user_id) ?? [];
       list.push({
+        id: v.id,
+        user_id: v.user_id,
         year: v.year,
         make: v.make,
         model: v.model,
@@ -131,15 +168,45 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
       byUser.set(v.user_id, list);
     }
 
+    // Primary (or first) vehicle id per user → first photo
+    const vehicleIdByUser = new Map<string, string>();
+    for (const [userId, garage] of byUser) {
+      const primary = garage.find((g) => g.is_primary) ?? garage[0];
+      if (primary) vehicleIdByUser.set(userId, primary.id);
+    }
+
+    const vehicleIds = [...vehicleIdByUser.values()];
+    const photoPathByVehicle = new Map<string, string>();
+    if (vehicleIds.length > 0) {
+      const { data: photos } = await supabase
+        .from("garage_vehicle_photos")
+        .select("vehicle_id, storage_path, sort")
+        .in("vehicle_id", vehicleIds)
+        .order("sort", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      for (const p of photos ?? []) {
+        if (!photoPathByVehicle.has(p.vehicle_id) && p.storage_path) {
+          photoPathByVehicle.set(p.vehicle_id, p.storage_path);
+        }
+      }
+    }
+
+    const urlMap = await resolveGarageUrls(supabase, [...photoPathByVehicle.values()]);
+
     let rows: DirectoryMember[] = visibleProfiles.map((p) => {
       const garage = byUser.get(p.id) ?? [];
-      const primary =
-        garage.find((g) => g.is_primary) ??
-        garage[0] ??
-        null;
+      const primary = garage.find((g) => g.is_primary) ?? garage[0] ?? null;
       const years = garage.map((g) => g.year).filter((y): y is number => y != null);
       const oldest_year = years.length ? Math.min(...years) : null;
       const newest_year = years.length ? Math.max(...years) : null;
+
+      let car_photo_url: string | null = null;
+      const vid = vehicleIdByUser.get(p.id);
+      if (vid) {
+        const path = photoPathByVehicle.get(vid);
+        if (path) car_photo_url = urlMap.get(path) ?? null;
+      }
 
       return {
         user_id: p.id,
@@ -149,6 +216,7 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
         favourite_ride: p.favourite_ride,
         avatar_url: p.avatar_url,
         joined_at: p.joined_at,
+        membership_status: String(p.membership_status ?? "active"),
         is_featured: Boolean(p.is_featured),
         primary_vehicle: primary
           ? {
@@ -158,6 +226,7 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
               nickname: primary.nickname,
             }
           : null,
+        car_photo_url,
         oldest_year,
         newest_year,
       };

@@ -361,6 +361,13 @@ export type Database = {
             foreignKeyName: "garage_vehicles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "featured_member_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_vehicles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -718,6 +725,42 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_member_public: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          favourite_ride: string | null
+          featured_bio: string | null
+          featured_photo_url: string | null
+          featured_since: string | null
+          id: string | null
+          member_number: number | null
+          town: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          favourite_ride?: string | null
+          featured_bio?: string | null
+          featured_photo_url?: string | null
+          featured_since?: string | null
+          id?: string | null
+          member_number?: number | null
+          town?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          favourite_ride?: string | null
+          featured_bio?: string | null
+          featured_photo_url?: string | null
+          featured_since?: string | null
+          id?: string | null
+          member_number?: number | null
+          town?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       grant_admin_if_allowlisted: {
@@ -731,6 +774,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_featured_user: { Args: { _id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "member"

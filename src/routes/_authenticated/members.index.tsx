@@ -66,6 +66,7 @@ function MembersPage() {
     phone: "",
     town: "",
     favourite_ride: "",
+    featured_bio: "",
     preferred_lang: "en" as "en" | "af",
     directory_visible: true,
   });
@@ -77,6 +78,7 @@ function MembersPage() {
         phone: profile.phone ?? "",
         town: profile.town ?? "",
         favourite_ride: profile.favourite_ride ?? "",
+        featured_bio: profile.featured_bio ?? "",
         preferred_lang: profile.preferred_lang === "af" ? "af" : "en",
         directory_visible: profile.directory_visible !== false,
       });

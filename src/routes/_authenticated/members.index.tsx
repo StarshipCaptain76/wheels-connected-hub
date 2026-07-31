@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -30,6 +30,7 @@ function MembersPage() {
   const fetchProfile = useServerFn(getMyProfile);
   const saveProfile = useServerFn(updateMyProfile);
   const fetchRoles = useServerFn(getMyRoles);
+  const setupStarted = useRef(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", "me"],
@@ -54,12 +55,12 @@ function MembersPage() {
     }
   }, [profile, setLang]);
 
-  const needsSetup = Boolean(
+  const incomplete = Boolean(
     profile && (!profile.display_name?.trim() || !profile.phone?.trim()),
   );
 
   const [panel, setPanel] = useState<Panel>("hub");
-  const [setupStep, setSetupStep] = useState(1);
+  const [setupStep, setSetupStep] = useState(0); // 0 = not in wizard, 1-2 = steps
   const [form, setForm] = useState({
     display_name: "",
     phone: "",
@@ -69,20 +70,21 @@ function MembersPage() {
   });
 
   useEffect(() => {
-    if (profile) {
-      setForm({
-        display_name: profile.display_name ?? "",
-        phone: profile.phone ?? "",
-        town: profile.town ?? "",
-        favourite_ride: profile.favourite_ride ?? "",
-        preferred_lang: profile.preferred_lang === "af" ? "af" : "en",
-      });
-      if (!profile.display_name?.trim() || !profile.phone?.trim()) {
-        setPanel("profile");
-        setSetupStep(1);
-      }
+    if (!profile) return;
+    setForm({
+      display_name: profile.display_name ?? "",
+      phone: profile.phone ?? "",
+      town: profile.town ?? "",
+      favourite_ride: profile.favourite_ride ?? "",
+      preferred_lang: profile.preferred_lang === "af" ? "af" : "en",
+    });
+    if (incomplete && !setupStarted.current) {
+      setupStarted.current = true;
+      setSetupStep(1);
     }
-  }, [profile]);
+  }, [profile, incomplete]);
+
+  const inWizard = setupStep === 1 || setupStep === 2;
 
   const mutation = useMutation({
     mutationFn: (data: typeof form) =>
@@ -162,8 +164,7 @@ function MembersPage() {
 
         {isLoading || !profile ? (
           <p className="mt-8 text-lg text-ink/60">{t("members.loading")}</p>
-        ) : needsSetup && setupStep <= 2 ? (
-          /* —— First-time setup wizard —— */
+        ) : inWizard ? (
           <div className="mt-8 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[4px_4px_0_0_var(--color-ink)] sm:p-8">
             <p className="text-sm font-bold uppercase tracking-wider text-primary">
               {t("members.setupStep")} {setupStep} / 2
@@ -259,7 +260,7 @@ function MembersPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSetupStep(3);
+                      setSetupStep(0);
                       setPanel("hub");
                     }}
                     className="inline-flex min-h-12 items-center rounded-md border-2 border-ink bg-paper px-5 py-3 text-base font-bold text-ink"
@@ -272,7 +273,6 @@ function MembersPage() {
           </div>
         ) : (
           <>
-            {/* Hub cards */}
             {panel === "hub" && (
               <div className="mt-8">
                 <h2 className="font-display text-2xl text-ink">{t("members.hubTitle")}</h2>

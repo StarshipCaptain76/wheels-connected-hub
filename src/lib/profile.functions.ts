@@ -14,10 +14,11 @@ export type MemberProfile = {
   membership_status: string;
   joined_at: string;
   email: string | null;
+  directory_visible: boolean;
 };
 
 const PROFILE_COLS =
-  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at";
+  "id, display_name, phone, town, favourite_ride, avatar_url, preferred_lang, member_number, membership_status, joined_at, directory_visible";
 
 export const getMyProfile = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -33,6 +34,7 @@ export const getMyProfile = createServerFn({ method: "GET" })
     return {
       ...data,
       preferred_lang: (data.preferred_lang as "en" | "af" | null) ?? null,
+      directory_visible: data.directory_visible !== false,
       email: (claims as { email?: string })?.email ?? null,
     };
   });
@@ -43,6 +45,7 @@ const updateSchema = z.object({
   town: z.string().trim().max(80).nullable().optional(),
   favourite_ride: z.string().trim().max(120).nullable().optional(),
   preferred_lang: z.enum(["en", "af"]).nullable().optional(),
+  directory_visible: z.boolean().optional(),
 });
 
 export const updateMyProfile = createServerFn({ method: "POST" })
@@ -60,6 +63,7 @@ export const updateMyProfile = createServerFn({ method: "POST" })
     return {
       ...row,
       preferred_lang: (row.preferred_lang as "en" | "af" | null) ?? null,
+      directory_visible: row.directory_visible !== false,
       email: (claims as { email?: string })?.email ?? null,
     };
   });

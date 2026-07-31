@@ -23,14 +23,14 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
         "id, display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, avatar_url, featured_since",
       )
       .maybeSingle();
-    if (error || !data) return null;
+    if (error || !data || !data.id) return null;
 
     let garage_thumb_url: string | null = null;
     try {
       const { data: vehicles } = await supabase
         .from("garage_vehicles")
         .select("id")
-        .eq("user_id", data.id);
+        .eq("user_id", data.id as string);
       const vehicleIds = (vehicles ?? []).map((v: { id: string }) => v.id);
       if (vehicleIds.length > 0) {
         const { data: photos } = await supabase
@@ -59,7 +59,7 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
 
     return {
       display_name: data.display_name,
-      member_number: data.member_number,
+      member_number: data.member_number ?? 0,
       town: data.town,
       favourite_ride: data.favourite_ride,
       featured_bio: data.featured_bio,

@@ -159,17 +159,17 @@ export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
       .from("featured_member_public")
       .select("id, display_name, member_number, town, avatar_url, featured_bio")
       .maybeSingle();
-    if (!p) return null;
+    if (!p || !p.id) return null;
     const { data: rows } = await supabase
       .from("garage_vehicles")
       .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort")
-      .eq("user_id", p.id)
+      .eq("user_id", p.id as string)
       .order("sort", { ascending: true });
     const vehicles = await hydrateVehicles(supabase, rows ?? []);
     return {
       member: {
         display_name: p.display_name,
-        member_number: p.member_number,
+        member_number: p.member_number ?? 0,
         town: p.town,
         avatar_url: p.avatar_url,
         featured_bio: p.featured_bio,

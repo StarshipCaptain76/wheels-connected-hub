@@ -218,6 +218,36 @@ function MembersPage() {
 
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
+                    {lang === "af" ? "My storie / bio" : "My bio"}
+                  </label>
+                  <textarea
+                    rows={5}
+                    maxLength={600}
+                    value={form.featured_bio}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, featured_bio: e.target.value.slice(0, 600) }))
+                    }
+                    placeholder={
+                      lang === "af"
+                        ? "Vertel die klub van jou, jou motors en jou stories…"
+                        : "Tell the club about you, your cars and your stories…"
+                    }
+                    className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm leading-relaxed"
+                  />
+                  <p className="mt-1 flex justify-between text-[11px] text-ink/45">
+                    <span>
+                      {lang === "af"
+                        ? "Verskyn op jou lidprofiel en wanneer jy die uitgestalde lid is."
+                        : "Shows on your member profile and when you're the featured member."}
+                    </span>
+                    <span>{form.featured_bio.length}/600</span>
+                  </p>
+                </div>
+
+
+
+                <div>
+                  <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">
                     {lang === "af" ? "Voorkeurtaal" : "Preferred language"}
                   </label>
                   <div className="inline-flex rounded-full border-2 border-ink bg-paper p-0.5 text-xs font-bold uppercase tracking-wider">

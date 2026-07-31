@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const inputSchema = z.object({
   text: z.string().trim().min(1).max(4000),
@@ -8,10 +9,10 @@ const inputSchema = z.object({
 });
 
 /**
- * Translate EN ↔ AF.
- * Prefer Lovable AI gateway when configured; fall back to MyMemory free API.
+ * Translate EN ↔ AF. Signed-in members only (paid AI quota).
  */
 export const translateText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => inputSchema.parse(i))
   .handler(async ({ data }): Promise<{ text: string }> => {
     if (data.from === data.to) return { text: data.text };

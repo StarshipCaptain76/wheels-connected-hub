@@ -68,7 +68,7 @@ function ClassifiedsPage() {
   return (
     <SiteLayout>
       <section className="border-b-2 border-ink bg-ink text-paper">
-        <div className="mx-auto max-w-6xl px-4 py-14">
+        <div className="mx-auto max-w-6xl px-4 py-12 sm:py-14">
           <div className="mb-3 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
             {t("nav.classifieds")}
           </div>
@@ -86,21 +86,21 @@ function ClassifiedsPage() {
                 <Link
                   to="/classifieds/new"
                   search={{ from: "browse" }}
-                  className="inline-flex rounded-md border-2 border-primary bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-paper)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                  className="inline-flex min-h-12 items-center rounded-md border-2 border-primary bg-primary px-5 py-3 text-base font-bold text-white shadow-[3px_3px_0_0_var(--color-paper)]"
                 >
                   {t("classifieds.postCta")}
                 </Link>
                 <Link
                   to="/classifieds/mine"
-                  className="inline-flex rounded-md border-2 border-paper/50 bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition-colors hover:border-paper hover:bg-paper/10"
+                  className="inline-flex min-h-12 items-center rounded-md border-2 border-paper bg-paper px-5 py-3 text-base font-bold text-ink"
                 >
-                  {lang === "af" ? "My advertensies" : "My listings"}
+                  {t("classifieds.myListings")}
                 </Link>
               </>
             ) : (
               <Link
                 to="/auth"
-                className="inline-flex rounded-md border-2 border-primary bg-transparent px-4 py-2 text-sm font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-white"
+                className="inline-flex min-h-12 items-center rounded-md border-2 border-primary bg-transparent px-5 py-3 text-base font-bold text-primary hover:bg-primary hover:text-white"
               >
                 {lang === "af" ? "Teken in om te plaas" : "Sign in to post"}
               </Link>
@@ -110,13 +110,13 @@ function ClassifiedsPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10">
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
           {CATEGORIES.map((c) => (
             <button
               key={c.value}
               type="button"
               onClick={() => setCat(c.value)}
-              className={`rounded-full border-2 border-ink px-3 py-1 text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`min-h-11 rounded-full border-2 border-ink px-4 py-2 text-sm font-bold transition-colors ${
                 cat === c.value ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-ink/5"
               }`}
             >
@@ -128,7 +128,7 @@ function ClassifiedsPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={lang === "af" ? "Soek..." : "Search..."}
-            className="ml-auto w-48 rounded-md border-2 border-ink bg-paper px-3 py-1 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+            className="ml-auto min-h-12 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-base text-ink sm:w-56"
           />
         </div>
 
@@ -137,7 +137,7 @@ function ClassifiedsPage() {
             <p className="font-display text-2xl text-ink">
               {lang === "af" ? "Geen advertensies nie." : "Nothing listed yet."}
             </p>
-            <p className="mt-2 text-ink/60">
+            <p className="mt-2 text-base text-ink/60">
               {lang === "af"
                 ? "Wees die eerste — plaas jou item."
                 : "Be the first — post something."}
@@ -179,21 +179,21 @@ function ListingCard({ listing, lang }: { listing: PublicListing; lang: "en" | "
           />
         )}
         <div className="p-5">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-primary">
             <Tag className="h-3.5 w-3.5" />
             {listing.category}
           </div>
           <h2 className="mt-2 font-display text-xl tracking-wide text-ink line-clamp-2">{title}</h2>
           {listing.price_zar != null ? (
-            <p className="mt-2 font-display text-lg text-ink">
+            <p className="mt-2 font-display text-xl text-ink">
               R {listing.price_zar.toLocaleString("en-ZA")}
             </p>
           ) : (
-            <p className="mt-2 text-sm italic text-ink/60">
+            <p className="mt-2 text-base italic text-ink/60">
               {lang === "af" ? "Prys op aanvraag" : "Price on request"}
             </p>
           )}
-          {listing.location ? <p className="mt-1 text-xs text-ink/60">{listing.location}</p> : null}
+          {listing.location ? <p className="mt-1 text-sm text-ink/60">{listing.location}</p> : null}
         </div>
       </Link>
     </li>

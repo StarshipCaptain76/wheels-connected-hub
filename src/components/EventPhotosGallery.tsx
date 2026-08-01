@@ -9,6 +9,7 @@ import {
   deleteEventPhoto,
   type EventPhoto,
 } from "@/lib/event-photos.functions";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { Camera, Loader2, Upload, X } from "lucide-react";
 
 const MAX_MB = 6;
@@ -51,7 +52,7 @@ export function EventPhotosGallery({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  const [lightbox, setLightbox] = useState<EventPhoto | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -70,6 +71,16 @@ export function EventPhotosGallery({
     queryFn: () => listFn({ data: { eventId } }),
     staleTime: 30_000,
   });
+
+  const lightboxItems = photos
+    .filter((p) => p.url)
+    .map((p) => ({
+      url: p.url,
+      caption:
+        p.caption ||
+        p.display_name ||
+        (p.member_number != null ? `#${p.member_number}` : null),
+    }));
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["event-photos", eventId] });
@@ -183,6 +194,11 @@ export function EventPhotosGallery({
     }
   }
 
+  function openPhoto(p: EventPhoto) {
+    const idx = lightboxItems.findIndex((it) => it.url === p.url);
+    if (idx >= 0) setLightboxIndex(idx);
+  }
+
   return (
     <section className="mt-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -251,7 +267,7 @@ export function EventPhotosGallery({
               key={p.id}
               className="group relative overflow-hidden rounded-lg border-2 border-ink bg-ink/5"
             >
-              <button type="button" className="block w-full" onClick={() => setLightbox(p)}>
+              <button type="button" className="block w-full" onClick={() => openPhoto(p)}>
                 {p.url ? (
                   <img
                     src={p.url}
@@ -283,25 +299,13 @@ export function EventPhotosGallery({
         </ul>
       )}
 
-      {lightbox && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4"
-          onClick={() => setLightbox(null)}
-        >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full border-2 border-paper p-2 text-paper"
-            onClick={() => setLightbox(null)}
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={lightbox.url}
-            alt=""
-            className="max-h-[85vh] max-w-full rounded border-2 border-paper object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+      {lightboxIndex != null && lightboxItems.length > 0 && (
+        <ImageLightbox
+          items={lightboxItems}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndex={setLightboxIndex}
+        />
       )}
     </section>
   );

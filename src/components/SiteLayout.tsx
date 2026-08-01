@@ -220,7 +220,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
             <button
               type="button"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper md:hidden"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper lg:hidden"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
@@ -231,7 +231,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="border-t-2 border-ink bg-paper md:hidden">
+          <div className="border-t-2 border-ink bg-paper lg:hidden">
             <nav aria-label="Primary" className="mx-auto max-w-6xl px-4 py-3">
               <p className="mb-1 px-3 text-xs font-bold uppercase tracking-wider text-ink/50">
                 {t("nav.main")}

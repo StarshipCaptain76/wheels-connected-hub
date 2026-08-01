@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
 import { listGalleryItems, type GalleryItem } from "@/lib/gallery.functions";
-import { Camera, X } from "lucide-react";
+import { Camera } from "lucide-react";
 
 const galleryQuery = queryOptions({
   queryKey: ["gallery"],
@@ -55,7 +56,19 @@ export const Route = createFileRoute("/gallery")({
 function GalleryPage() {
   const { t, lang } = useI18n();
   const { data: items } = useSuspenseQuery(galleryQuery);
-  const [open, setOpen] = useState<GalleryItem | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const lightboxItems = items
+    .filter((it) => it.image_url)
+    .map((it) => ({
+      url: it.image_url,
+      caption: it.title || it.caption || null,
+    }));
+
+  function openItem(it: GalleryItem) {
+    const idx = lightboxItems.findIndex((x) => x.url === it.image_url);
+    if (idx >= 0) setLightboxIndex(idx);
+  }
 
   return (
     <SiteLayout>
@@ -95,7 +108,7 @@ function GalleryPage() {
               <li key={it.id} className="mb-3 break-inside-avoid sm:mb-4">
                 <button
                   type="button"
-                  onClick={() => setOpen(it)}
+                  onClick={() => openItem(it)}
                   className="group block w-full overflow-hidden rounded-lg border-2 border-ink bg-card text-left shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
                 >
                   <img
@@ -121,38 +134,13 @@ function GalleryPage() {
         )}
       </section>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4"
-          onClick={() => setOpen(null)}
-          role="dialog"
-          aria-modal="true"
-        >
-          <button
-            type="button"
-            onClick={() => setOpen(null)}
-            className="absolute right-4 top-4 rounded-full border-2 border-paper p-2 text-paper"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div
-            className="max-h-[90vh] max-w-5xl overflow-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={open.image_url}
-              alt={open.title ?? open.caption ?? ""}
-              className="max-h-[80vh] w-auto max-w-full rounded border-2 border-paper object-contain"
-            />
-            {(open.title || open.caption) && (
-              <div className="mt-3 text-center text-paper">
-                {open.title && <p className="font-display text-xl">{open.title}</p>}
-                {open.caption && <p className="mt-1 text-sm text-paper/70">{open.caption}</p>}
-              </div>
-            )}
-          </div>
-        </div>
+      {lightboxIndex != null && lightboxItems.length > 0 && (
+        <ImageLightbox
+          items={lightboxItems}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndex={setLightboxIndex}
+        />
       )}
     </SiteLayout>
   );

@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMemberByNumber, type MemberGarage } from "@/lib/member-lookup.functions";
 import { listGarageForUser } from "@/lib/garage.functions";
-import { ArrowLeft, Star, Car, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Star, Car } from "lucide-react";
 
 const memberQuery = (number: number) =>
   queryOptions({
@@ -40,99 +41,6 @@ export const Route = createFileRoute("/_authenticated/members/$number")({
     </SiteLayout>
   ),
 });
-
-type LightboxItem = { url: string; caption?: string | null };
-
-function PhotoLightbox({
-  items,
-  index,
-  onClose,
-  onIndex,
-}: {
-  items: LightboxItem[];
-  index: number;
-  onClose: () => void;
-  onIndex: (i: number) => void;
-}) {
-  const item = items[index];
-  const hasMany = items.length > 1;
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft" && hasMany) onIndex((index - 1 + items.length) % items.length);
-      if (e.key === "ArrowRight" && hasMany) onIndex((index + 1) % items.length);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [index, items.length, hasMany, onClose, onIndex]);
-
-  if (!item) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/90 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute right-4 top-4 rounded-full border-2 border-paper p-2 text-paper"
-        aria-label="Close"
-      >
-        <X className="h-5 w-5" />
-      </button>
-
-      {hasMany && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onIndex((index - 1 + items.length) % items.length);
-            }}
-            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper/60 bg-ink/50 p-2 text-paper hover:border-paper sm:left-6"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onIndex((index + 1) % items.length);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper/60 bg-ink/50 p-2 text-paper hover:border-paper sm:right-6"
-            aria-label="Next"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-        </>
-      )}
-
-      <div
-        className="flex max-h-[90vh] max-w-5xl flex-col items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <img
-          src={item.url}
-          alt={item.caption ?? ""}
-          className="max-h-[80vh] w-auto max-w-full rounded border-2 border-paper object-contain"
-        />
-        <div className="mt-3 text-center text-paper">
-          {item.caption && <p className="text-sm text-paper/80">{item.caption}</p>}
-          {hasMany && (
-            <p className="mt-1 text-xs text-paper/50">
-              {index + 1} / {items.length}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function MemberPage() {
   const { number } = Route.useParams();
@@ -371,7 +279,7 @@ function MemberPage() {
       </div>
 
       {lightbox && (
-        <PhotoLightbox
+        <ImageLightbox
           items={lightbox.items}
           index={lightbox.index}
           onClose={() => setLightbox(null)}

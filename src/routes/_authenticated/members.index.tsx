@@ -195,6 +195,17 @@ function MembersPage() {
           </div>
         </div>
 
+        {profile && (
+          <ProfileCompletionBanner
+            missing={missingFields}
+            onOpen={() => setWizardOpen(true)}
+          />
+        )}
+
+        {wizardOpen && profile && (
+          <ProfileWizard profile={profile} onClose={() => setWizardOpen(false)} />
+        )}
+
         {/* Admin portal — top of page, above profile / garage */}
         {isAdmin && (
           <div className="mt-6 rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)] sm:p-6">

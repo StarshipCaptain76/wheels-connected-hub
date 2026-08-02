@@ -65,7 +65,7 @@ function AdminMembersPage() {
     [members],
   );
 
-  const filtered = useMemo(() => {
+  const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = !q
       ? members
@@ -74,12 +74,18 @@ function AdminMembersPage() {
             .filter(Boolean)
             .some((v) => String(v).toLowerCase().includes(q)),
         );
-    // Admins first, then by member number descending
-    return [...base].sort((a: AdminMember, b: AdminMember) => {
-      if (a.is_admin !== b.is_admin) return a.is_admin ? -1 : 1;
-      return b.member_number - a.member_number;
-    });
+    const byNumberDesc = (a: AdminMember, b: AdminMember) => b.member_number - a.member_number;
+    const admins = base.filter((m: AdminMember) => m.is_admin).sort(byNumberDesc);
+    const rest = base.filter((m: AdminMember) => !m.is_admin);
+    return {
+      pending: rest.filter((m) => m.membership_status === "pending").sort(byNumberDesc),
+      members: rest.filter((m) => m.membership_status !== "pending").sort(byNumberDesc),
+      admins,
+    };
   }, [members, query]);
+
+  const totalShown = groups.pending.length + groups.members.length + groups.admins.length;
+
 
   async function run(id: string, fn: () => Promise<unknown>) {
     setBusyId(id);

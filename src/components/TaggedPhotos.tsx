@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Images } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
-import { listTaggedPhotosForUser, removePhotoTag } from "@/lib/gallery-tags.functions";
+import { listTaggedPhotosForUser } from "@/lib/gallery-tags.functions";
 
 /** Gallery photos this member is tagged in, shown as a scrollable carousel. */
 export function TaggedPhotos({ userId, canUntag }: { userId: string; canUntag?: boolean }) {

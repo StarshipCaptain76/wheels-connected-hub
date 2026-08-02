@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
+import { notifyAdminNewMember } from "@/lib/member-signup.functions";
+
 import { Eye, EyeOff, Mail } from "lucide-react";
 
 function safePath(value: unknown): string {
@@ -69,8 +71,14 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        void notifyAdminNewMember({
+          data: { email, displayName: displayName || null },
+        }).catch(() => {
+          /* notification failure must not block sign-up */
+        });
         setInfo(t("auth.checkEmail"));
         setAwaitingEmail(true);
+
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,

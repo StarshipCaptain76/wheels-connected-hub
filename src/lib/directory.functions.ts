@@ -211,6 +211,16 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
       };
     });
 
+    const { signStoredUrls } = await import("./storage-urls.server");
+    const avatarSigned = await signStoredUrls(
+      supabase,
+      rows.map((r) => r.avatar_url),
+    );
+    rows = rows.map((r) => ({
+      ...r,
+      avatar_url: r.avatar_url ? (avatarSigned.get(r.avatar_url) ?? r.avatar_url) : null,
+    }));
+
     const q = (data.search ?? "").toLowerCase().trim();
     if (q) {
       rows = rows.filter((m) => {

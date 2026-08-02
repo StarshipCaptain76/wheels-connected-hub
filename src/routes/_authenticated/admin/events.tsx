@@ -171,9 +171,6 @@ function AdminEvents() {
               >
                 Edit
               </button>
-              <button
-                type="button"
-                onClick={() => remove(e.id)}
               <InviteButton eventId={e.id} published={Boolean(e.is_published)} />
               <button
                 type="button"

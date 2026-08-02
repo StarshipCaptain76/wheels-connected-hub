@@ -57,8 +57,14 @@ function GalleryPage() {
   const { t, lang } = useI18n();
   const { data: items } = useSuspenseQuery(galleryQuery);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeCat, setActiveCat] = useState<string | null>(null);
 
-  const lightboxItems = items
+  const categories = Array.from(
+    new Set(items.map((it) => it.category).filter(Boolean) as string[]),
+  ).sort();
+  const visible = activeCat ? items.filter((it) => it.category === activeCat) : items;
+
+  const lightboxItems = visible
     .filter((it) => it.image_url)
     .map((it) => ({
       url: it.image_url,
@@ -82,15 +88,43 @@ function GalleryPage() {
           </h1>
           {items.length > 0 && (
             <p className="mt-3 text-sm text-paper/60">
-              {items.length} {lang === "af" ? "fotos" : "photos"} ·{" "}
+              {visible.length} {lang === "af" ? "fotos" : "photos"} ·{" "}
               {lang === "af" ? "rol af om meer te sien" : "scroll for more"}
             </p>
           )}
         </div>
       </section>
 
+      {categories.length > 0 && (
+        <div className="border-b-2 border-ink bg-card">
+          <div className="mx-auto flex max-w-7xl snap-x gap-2 overflow-x-auto px-3 py-3 sm:px-4">
+            <button
+              type="button"
+              onClick={() => setActiveCat(null)}
+              className={`shrink-0 snap-start rounded-full border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${
+                activeCat === null ? "bg-primary text-paper" : "bg-paper text-ink"
+              }`}
+            >
+              {lang === "af" ? "Alles" : "All"}
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setActiveCat(c)}
+                className={`shrink-0 snap-start rounded-full border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wide ${
+                  activeCat === c ? "bg-primary text-paper" : "bg-paper text-ink"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <section className="mx-auto max-w-7xl px-3 py-10 sm:px-4 sm:py-14">
-        {items.length === 0 ? (
+        {visible.length === 0 ? (
           <div className="rounded-lg border-2 border-dashed border-ink/30 bg-card p-12 text-center">
             <Camera className="mx-auto h-10 w-10 text-ink/40" />
             <p className="mt-4 font-display text-2xl text-ink">
@@ -104,7 +138,7 @@ function GalleryPage() {
           </div>
         ) : (
           <ul className="columns-2 gap-3 sm:columns-3 sm:gap-4 md:columns-4 lg:columns-5 xl:columns-6">
-            {items.map((it) => (
+            {visible.map((it) => (
               <li key={it.id} className="mb-3 break-inside-avoid sm:mb-4">
                 <button
                   type="button"

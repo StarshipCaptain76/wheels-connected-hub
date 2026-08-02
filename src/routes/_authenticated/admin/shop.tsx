@@ -13,6 +13,7 @@ import { Trash2, Plus, X, Upload } from "lucide-react";
 import { TranslateButton } from "@/components/TranslateButton";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useI18n } from "@/i18n/I18nProvider";
+import { CharCounter } from "@/components/CharCounter";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -226,25 +227,37 @@ function EditModal({
         </div>
         <Row label="Name (EN)">
           <div className="flex items-start gap-2">
-            <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
+            <div className="flex-1">
+              <input required maxLength={120} value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
+              <CharCounter value={form.name} max={120} />
+            </div>
             <TranslateButton source={form.name_af ?? ""} from="af" to="en" onResult={(t) => set("name", t)} />
           </div>
         </Row>
         <Row label="Name (AF)">
           <div className="flex items-start gap-2">
-            <input value={form.name_af ?? ""} onChange={(e) => set("name_af", e.target.value)} className={input} />
+            <div className="flex-1">
+              <input maxLength={120} value={form.name_af ?? ""} onChange={(e) => set("name_af", e.target.value)} className={input} />
+              <CharCounter value={form.name_af} max={120} />
+            </div>
             <TranslateButton source={form.name ?? ""} from="en" to="af" onResult={(t) => set("name_af", t)} />
           </div>
         </Row>
         <Row label="Description (EN)">
           <div className="flex items-start gap-2">
-            <textarea rows={2} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={input} />
+            <div className="flex-1">
+              <textarea rows={2} maxLength={1000} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={input} />
+              <CharCounter value={form.description} max={1000} />
+            </div>
             <TranslateButton source={form.description_af ?? ""} from="af" to="en" onResult={(t) => set("description", t)} />
           </div>
         </Row>
         <Row label="Description (AF)">
           <div className="flex items-start gap-2">
-            <textarea rows={2} value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={input} />
+            <div className="flex-1">
+              <textarea rows={2} maxLength={1000} value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={input} />
+              <CharCounter value={form.description_af} max={1000} />
+            </div>
             <TranslateButton source={form.description ?? ""} from="en" to="af" onResult={(t) => set("description_af", t)} />
           </div>
         </Row>

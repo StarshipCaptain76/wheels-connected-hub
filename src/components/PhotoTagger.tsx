@@ -38,7 +38,13 @@ function getContactsApi(): ContactsManager | null {
 
 
 /** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
-export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
+export function PhotoTagger({
+  galleryItemId,
+  onClose,
+}: {
+  galleryItemId: string;
+  onClose?: () => void;
+}) {
   const { lang } = useI18n();
   const qc = useQueryClient();
   const af = lang === "af";
@@ -195,8 +201,8 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
 
 
   return (
-    <div className="rounded-xl border-2 border-ink bg-paper p-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex max-h-[80vh] flex-col rounded-xl border-2 border-ink bg-paper p-2 sm:p-3">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink/70">
           <Tag className="h-3.5 w-3.5 text-primary" />
           {af ? "Gemerkte lede" : "Tagged members"}
@@ -236,10 +242,21 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
           <UserPlus className="h-3.5 w-3.5" />
           {af ? "Merk lid" : "Tag member"}
         </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={af ? "Maak toe" : "Close"}
+            className="ml-auto inline-flex items-center gap-1 rounded-full border-2 border-ink bg-card px-2.5 py-1 text-xs font-bold text-ink"
+          >
+            <X className="h-3.5 w-3.5" />
+            {af ? "Toe" : "Close"}
+          </button>
+        )}
       </div>
 
       {open && (
-        <div className="mt-3 space-y-3 border-t-2 border-ink/10 pt-3">
+        <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain border-t-2 border-ink/10 pt-3">
           <div className="flex items-center gap-2 rounded-lg border-2 border-ink bg-card px-2">
             <Search className="h-4 w-4 text-ink/50" />
             <input
@@ -250,7 +267,7 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
             />
           </div>
 
-          <ul className="max-h-56 space-y-1 overflow-y-auto">
+          <ul className="max-h-40 space-y-1 overflow-y-auto sm:max-h-56">
             {membersQuery.isLoading && (
               <li className="p-2 text-xs text-ink/50">{af ? "Laai…" : "Loading…"}</li>
             )}
@@ -371,6 +388,13 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
             </p>
           </div>
 
+          <button
+            type="button"
+            onClick={() => (onClose ? onClose() : setOpen(false))}
+            className="w-full rounded-lg border-2 border-ink bg-ink px-3 py-2.5 text-sm font-bold text-paper"
+          >
+            {af ? "Maak toe" : "Close"}
+          </button>
         </div>
       )}
     </div>

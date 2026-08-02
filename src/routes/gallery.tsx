@@ -208,8 +208,12 @@ function GalleryPage() {
       )}
 
       {lightboxIndex != null && signedIn && activeItem && (
-        <div className="safe-bottom fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-3xl p-3">
-          <PhotoTagger key={activeItem.id} galleryItemId={activeItem.id} />
+        <div className="safe-bottom fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-3xl p-2 sm:p-3">
+          <PhotoTagger
+            key={activeItem.id}
+            galleryItemId={activeItem.id}
+            onClose={() => setLightboxIndex(null)}
+          />
         </div>
       )}
     </SiteLayout>

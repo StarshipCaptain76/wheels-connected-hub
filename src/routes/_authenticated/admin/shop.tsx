@@ -203,17 +203,30 @@ function EditModal({
           </button>
         </div>
         <Row label="Name (EN)">
-          <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
+          <div className="flex items-start gap-2">
+            <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
+            <TranslateButton source={form.name_af ?? ""} from="af" to="en" onResult={(t) => set("name", t)} />
+          </div>
         </Row>
         <Row label="Name (AF)">
-          <input value={form.name_af ?? ""} onChange={(e) => set("name_af", e.target.value)} className={input} />
+          <div className="flex items-start gap-2">
+            <input value={form.name_af ?? ""} onChange={(e) => set("name_af", e.target.value)} className={input} />
+            <TranslateButton source={form.name ?? ""} from="en" to="af" onResult={(t) => set("name_af", t)} />
+          </div>
         </Row>
         <Row label="Description (EN)">
-          <textarea rows={2} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={input} />
+          <div className="flex items-start gap-2">
+            <textarea rows={2} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={input} />
+            <TranslateButton source={form.description_af ?? ""} from="af" to="en" onResult={(t) => set("description", t)} />
+          </div>
         </Row>
         <Row label="Description (AF)">
-          <textarea rows={2} value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={input} />
+          <div className="flex items-start gap-2">
+            <textarea rows={2} value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={input} />
+            <TranslateButton source={form.description ?? ""} from="en" to="af" onResult={(t) => set("description_af", t)} />
+          </div>
         </Row>
+
         <div className="grid grid-cols-2 gap-3">
           <Row label="Price (ZAR)">
             <input

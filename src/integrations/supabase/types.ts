@@ -644,6 +644,62 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_applications: {
+        Row: {
+          business: string
+          contact_name: string
+          created_at: string
+          created_sponsor_id: string | null
+          email: string
+          id: string
+          message: string | null
+          phone: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          business: string
+          contact_name: string
+          created_at?: string
+          created_sponsor_id?: string | null
+          email: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          business?: string
+          contact_name?: string
+          created_at?: string
+          created_sponsor_id?: string | null
+          email?: string
+          id?: string
+          message?: string | null
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sponsor_applications_created_sponsor_id_fkey"
+            columns: ["created_sponsor_id"]
+            isOneToOne: false
+            referencedRelation: "sponsors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sponsors: {
         Row: {
           billing_ends_at: string | null
@@ -654,6 +710,7 @@ export type Database = {
           is_active: boolean
           logo_path: string
           name: string
+          owner_user_id: string | null
           sort: number
           tagline: string | null
           tagline_af: string | null
@@ -669,6 +726,7 @@ export type Database = {
           is_active?: boolean
           logo_path: string
           name: string
+          owner_user_id?: string | null
           sort?: number
           tagline?: string | null
           tagline_af?: string | null
@@ -684,6 +742,7 @@ export type Database = {
           is_active?: boolean
           logo_path?: string
           name?: string
+          owner_user_id?: string | null
           sort?: number
           tagline?: string | null
           tagline_af?: string | null

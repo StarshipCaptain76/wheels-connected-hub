@@ -24,7 +24,23 @@ export type AdminSponsor = {
   billing_starts_at: string | null;
   billing_ends_at: string | null;
   expiry_notified_at: string | null;
+  owner_user_id: string | null;
 };
+
+export type MySponsor = {
+  id: string;
+  name: string;
+  tagline: string | null;
+  tagline_af: string | null;
+  website_url: string | null;
+  logo_path: string;
+  logo_url: string;
+  is_active: boolean;
+  billing_starts_at: string | null;
+  billing_ends_at: string | null;
+  expired: boolean;
+};
+
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
@@ -99,7 +115,7 @@ export const listAllSponsors = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("sponsors")
       .select(
-        "id, name, tagline, tagline_af, website_url, logo_path, is_active, sort, billing_starts_at, billing_ends_at, expiry_notified_at",
+        "id, name, tagline, tagline_af, website_url, logo_path, is_active, sort, billing_starts_at, billing_ends_at, expiry_notified_at, owner_user_id",
       )
       .order("sort", { ascending: true })
       .order("name", { ascending: true });
@@ -118,7 +134,9 @@ export const listAllSponsors = createServerFn({ method: "GET" })
         : null,
       billing_ends_at: row.billing_ends_at ? String(row.billing_ends_at).slice(0, 10) : null,
       expiry_notified_at: (row.expiry_notified_at as string | null) ?? null,
+      owner_user_id: (row.owner_user_id as string | null) ?? null,
     }));
+
   });
 
 const upsertSchema = z.object({
@@ -140,6 +158,7 @@ const upsertSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable()
     .optional(),
+  owner_user_id: z.string().uuid().nullable().optional(),
 });
 
 export const upsertSponsor = createServerFn({ method: "POST" })
@@ -161,7 +180,9 @@ export const upsertSponsor = createServerFn({ method: "POST" })
       sort: rest.sort,
       billing_starts_at: rest.billing_starts_at ?? null,
       billing_ends_at: rest.billing_ends_at ?? null,
+      owner_user_id: rest.owner_user_id ?? null,
     };
+
     if (rest.billing_ends_at && rest.billing_ends_at >= todayISO()) {
       values.expiry_notified_at = null;
     }
@@ -244,6 +265,24 @@ export const applySponsor = createServerFn({ method: "POST" })
       table +
       "</tbody></table></div>";
 
+    // Store the application so admin can review + approve it
+    let stored = false;
+    try {
+      const sb = createPublicSupabase();
+      const { error } = await sb.from("sponsor_applications").insert({
+        business: data.business,
+        contact_name: data.contact,
+        email: data.email,
+        phone: data.phone || null,
+        website: data.website || null,
+        message: data.message || null,
+      });
+      if (error) throw error;
+      stored = true;
+    } catch (e) {
+      console.error("[sponsors] could not store application", e);
+    }
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
@@ -252,7 +291,11 @@ export const applySponsor = createServerFn({ method: "POST" })
         to: [ADMIN_EMAIL],
         reply_to: data.email,
         subject,
-        html,
+        html:
+          html +
+          (stored
+            ? '<p style="margin:16px 0 0;color:#555">Review it under Admin → Sponsors → Applications.</p>'
+            : ""),
       }),
     });
 
@@ -261,5 +304,127 @@ export const applySponsor = createServerFn({ method: "POST" })
       console.error("Resend failed [" + res.status + "]: " + body);
       throw new Error("Email send failed (" + res.status + ")");
     }
+
+    // Confirmation to the applicant
+    try {
+      const confirmation =
+        '<div style="font-family:Arial,sans-serif;color:#111;max-width:560px">' +
+        '<h2 style="margin:0 0 12px">We received your sponsorship application</h2>' +
+        '<p style="margin:0 0 12px">Hi ' +
+        escapeHtml(data.contact) +
+        ", thank you for applying to sponsor <strong>Just Wheels Hessequa</strong> as <strong>" +
+        escapeHtml(data.business) +
+        "</strong>.</p>" +
+        '<p style="margin:0 0 12px">Our committee will review your application and come back to you. Once approved you will receive a link to set up your sponsor card on the club site.</p>' +
+        '<p style="margin:0 0 12px;color:#555">Questions? Just reply to this email.</p>' +
+        '<p style="margin:24px 0 0;font-size:12px;color:#888">Just Wheels Hessequa</p></div>';
+
+      const confirmRes = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+        body: JSON.stringify({
+          from: FROM,
+          to: [data.email],
+          reply_to: ADMIN_EMAIL,
+          subject: "We received your Just Wheels sponsorship application",
+          html: confirmation,
+        }),
+      });
+      if (!confirmRes.ok) {
+        console.error("[sponsors] applicant confirmation failed", await confirmRes.text());
+      }
+    } catch (e) {
+      console.error("[sponsors] applicant confirmation failed", e);
+    }
+
     return { ok: true as const };
   });
+
+/* ------------------------------------------------------------------ */
+/* Member-owned sponsor card                                           */
+/* ------------------------------------------------------------------ */
+
+export const getMySponsor = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MySponsor | null> => {
+    const { supabase, userId } = context;
+    const { data, error } = await supabase
+      .from("sponsors")
+      .select(
+        "id, name, tagline, tagline_af, website_url, logo_path, is_active, billing_starts_at, billing_ends_at",
+      )
+      .eq("owner_user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+
+    const logo_path = data.logo_path as string;
+    let logo_url = logo_path;
+    if (!/^https?:\/\//i.test(logo_path)) {
+      const { data: signed } = await supabase.storage
+        .from("sponsors")
+        .createSignedUrl(logo_path, 60 * 60);
+      logo_url = signed?.signedUrl ?? "";
+    }
+    const ends = data.billing_ends_at ? String(data.billing_ends_at).slice(0, 10) : null;
+    return {
+      id: data.id as string,
+      name: data.name as string,
+      tagline: (data.tagline as string | null) ?? null,
+      tagline_af: (data.tagline_af as string | null) ?? null,
+      website_url: (data.website_url as string | null) ?? null,
+      logo_path,
+      logo_url,
+      is_active: Boolean(data.is_active),
+      billing_starts_at: data.billing_starts_at
+        ? String(data.billing_starts_at).slice(0, 10)
+        : null,
+      billing_ends_at: ends,
+      expired: Boolean(ends && ends < todayISO()),
+    };
+  });
+
+const mySponsorSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  tagline: z.string().trim().max(200).nullable().optional(),
+  tagline_af: z.string().trim().max(200).nullable().optional(),
+  website_url: z.string().trim().max(500).nullable().optional(),
+  logo_path: z.string().trim().min(1).max(500),
+});
+
+export const updateMySponsor = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => mySponsorSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: current, error: readErr } = await supabase
+      .from("sponsors")
+      .select("id, billing_ends_at")
+      .eq("owner_user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!current) throw new Error("You do not have a sponsor card");
+
+    const ends = current.billing_ends_at ? String(current.billing_ends_at).slice(0, 10) : null;
+    if (ends && ends < todayISO()) {
+      throw new Error("Your sponsorship has expired — please contact the club admin");
+    }
+
+    const { error } = await supabase
+      .from("sponsors")
+      .update({
+        name: data.name,
+        tagline: data.tagline ?? null,
+        tagline_af: data.tagline_af ?? null,
+        website_url: data.website_url ?? null,
+        logo_path: data.logo_path,
+      })
+      .eq("id", current.id as string);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+

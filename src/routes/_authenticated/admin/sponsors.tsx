@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
@@ -8,9 +8,12 @@ import {
   deleteSponsor,
   type AdminSponsor,
 } from "@/lib/sponsors.functions";
+import { listAllMembers } from "@/lib/admin-members.functions";
+import { SponsorApplicationsPanel } from "@/components/SponsorApplicationsPanel";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X } from "lucide-react";
+
 
 const TAGLINE_MAX = 200;
 const DEFAULT_START = "2026-07-01";
@@ -88,6 +91,8 @@ function AdminSponsors() {
           ? String(form.billing_starts_at).slice(0, 10)
           : null,
         billing_ends_at: form.billing_ends_at ? String(form.billing_ends_at).slice(0, 10) : null,
+        owner_user_id: form.owner_user_id ?? null,
+
       },
     });
     await qc.invalidateQueries({ queryKey: ["sponsors"] });
@@ -125,7 +130,13 @@ function AdminSponsors() {
         </button>
       </div>
 
-      <ul className="mt-6 space-y-3">
+      <div className="mt-6">
+        <SponsorApplicationsPanel />
+      </div>
+
+      <h2 className="mt-8 font-display text-2xl tracking-wide text-ink">Sponsor cards</h2>
+      <ul className="mt-4 space-y-3">
+
         {sponsors.map((s) => {
           const expired = isExpired(s.billing_ends_at);
           return (
@@ -228,6 +239,12 @@ function EditModal({
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   const taglineEn = form.tagline ?? "";
   const taglineAf = form.tagline_af ?? "";
+  const membersFn = useServerFn(listAllMembers);
+  const { data: members = [] } = useQuery({
+    queryKey: ["admin", "members"],
+    queryFn: () => membersFn(),
+  });
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
@@ -261,6 +278,23 @@ function EditModal({
         <Row label="Business name">
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
+
+        <Row label="Owner (member who can edit this card)">
+          <select
+            value={form.owner_user_id ?? ""}
+            onChange={(e) => set("owner_user_id", e.target.value || null)}
+            className={input}
+          >
+            <option value="">— no owner (admin only) —</option>
+            {members.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                #{m.member_number} {m.display_name ?? "(no name)"} {m.email ? `· ${m.email}` : ""}
+              </option>
+            ))}
+          </select>
+        </Row>
+
+
 
         {/* Billing dates — top of form so they are always visible */}
         <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3">

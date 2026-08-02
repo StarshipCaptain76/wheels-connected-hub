@@ -16,6 +16,18 @@ export type PublicEvent = {
   is_published?: boolean;
 };
 
+/** Event covers live in the private `gallery` bucket — re-sign for display. */
+async function signCovers<T extends { cover_url: string | null }>(rows: T[]): Promise<T[]> {
+  const urls = rows.map((r) => r.cover_url).filter(Boolean) as string[];
+  if (urls.length === 0) return rows;
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { signStoredUrls } = await import("./storage-urls.server");
+  const map = await signStoredUrls(supabaseAdmin, urls);
+  return rows.map((r) => (r.cover_url ? { ...r, cover_url: map.get(r.cover_url) ?? r.cover_url } : r));
+}
+
+
+
 export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicEvent[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
@@ -30,7 +42,7 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: true })
       .limit(24);
     if (error) throw new Error(error.message);
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -49,7 +61,7 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: false })
       .limit(48);
     if (error) throw new Error(error.message);
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -68,7 +80,8 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as PublicEvent | null) ?? null;
+    const row = (data as PublicEvent | null) ?? null;
+    return row ? (await signCovers([row]))[0] : null;
   },
 );
 
@@ -85,7 +98,7 @@ export const listAllEvents = createServerFn({ method: "GET" })
       )
       .order("starts_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   });
 
 const upsertSchema = z.object({

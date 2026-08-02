@@ -38,6 +38,7 @@ type FormState = Partial<MerchItem> & { sizesText?: string };
 
 function AdminShop() {
   const { data: items } = useSuspenseQuery(merchAdminQuery);
+  const { lang } = useI18n();
   const qc = useQueryClient();
   const upsert = useServerFn(upsertMerchItem);
   const del = useServerFn(deleteMerchItem);

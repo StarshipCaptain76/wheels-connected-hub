@@ -6,9 +6,10 @@ import {
   listAllMembers,
   updateMemberStatus,
   setAdminRole,
+  approveAllPendingMembers,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield } from "lucide-react";
+import { Search, Shield, CheckCheck } from "lucide-react";
 
 const membersQuery = queryOptions({
   queryKey: ["admin", "members"],

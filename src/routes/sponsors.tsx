@@ -139,6 +139,7 @@ function SponsorCard({
       <button
         type="button"
         onClick={onToggle}
+        aria-label="Toggle sponsor details"
         className="flex w-full flex-col p-5 text-left"
         aria-expanded={expanded}
       >

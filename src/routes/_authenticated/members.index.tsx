@@ -46,7 +46,13 @@ function MembersPage() {
     queryKey: ["garage", "me"],
     queryFn: () => fetchGarage(),
   });
+  const fetchMySponsor = useServerFn(getMySponsor);
+  const { data: mySponsor } = useQuery({
+    queryKey: ["sponsor", "mine"],
+    queryFn: () => fetchMySponsor(),
+  });
   const isAdmin = Boolean(roles?.isAdmin);
+
   const carPhoto = pickCarPhoto(garage ?? []);
   const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
 

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { getLatestConcoursHomeWinner } from "@/lib/concours.functions";
+import { getLatestConcoursWinner } from "@/lib/concours.functions";
 import { useI18n } from "@/i18n/I18nProvider";
 import { Trophy } from "lucide-react";
 
@@ -8,7 +8,7 @@ export function ConcoursHomeWinner() {
   const { lang } = useI18n();
   const { data } = useQuery({
     queryKey: ["concours-home-winner"],
-    queryFn: () => getLatestConcoursHomeWinner(),
+    queryFn: () => getLatestConcoursWinner(),
     staleTime: 60_000,
   });
 

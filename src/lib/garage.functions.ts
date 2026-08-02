@@ -21,6 +21,24 @@ export type GarageVehicle = {
   story_af: string | null;
   is_primary: boolean;
   sort: number;
+  built_by: string | null;
+  engine: string | null;
+  power: string | null;
+  torque: string | null;
+  acceleration: string | null;
+  quarter_mile: string | null;
+  top_speed: string | null;
+  fuel_economy: string | null;
+  transmission: string | null;
+  diff_ratio: string | null;
+  suspension_front: string | null;
+  suspension_rear: string | null;
+  brakes_front: string | null;
+  brakes_rear: string | null;
+  wheels_tyres: string | null;
+  car_size: string | null;
+  car_weight: string | null;
+  extra_notes: string | null;
   photos: GaragePhoto[];
 };
 
@@ -109,6 +127,24 @@ async function hydrateVehicles(
     story_af: v.story_af,
     is_primary: Boolean(v.is_primary),
     sort: v.sort,
+    built_by: v.built_by ?? null,
+    engine: v.engine ?? null,
+    power: v.power ?? null,
+    torque: v.torque ?? null,
+    acceleration: v.acceleration ?? null,
+    quarter_mile: v.quarter_mile ?? null,
+    top_speed: v.top_speed ?? null,
+    fuel_economy: v.fuel_economy ?? null,
+    transmission: v.transmission ?? null,
+    diff_ratio: v.diff_ratio ?? null,
+    suspension_front: v.suspension_front ?? null,
+    suspension_rear: v.suspension_rear ?? null,
+    brakes_front: v.brakes_front ?? null,
+    brakes_rear: v.brakes_rear ?? null,
+    wheels_tyres: v.wheels_tyres ?? null,
+    car_size: v.car_size ?? null,
+    car_weight: v.car_weight ?? null,
+    extra_notes: v.extra_notes ?? null,
     photos: byVehicle.get(v.id) ?? [],
   }));
 }
@@ -119,7 +155,7 @@ export const listMyGarage = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("garage_vehicles")
-      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort")
+      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort, built_by, engine, power, torque, acceleration, quarter_mile, top_speed, fuel_economy, transmission, diff_ratio, suspension_front, suspension_rear, brakes_front, brakes_rear, wheels_tyres, car_size, car_weight, extra_notes")
       .eq("user_id", userId)
       .order("sort", { ascending: true })
       .order("created_at", { ascending: true });
@@ -134,7 +170,7 @@ export const listGarageForUser = createServerFn({ method: "GET" })
     const { supabase } = context;
     const { data: rows, error } = await supabase
       .from("garage_vehicles")
-      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort")
+      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort, built_by, engine, power, torque, acceleration, quarter_mile, top_speed, fuel_economy, transmission, diff_ratio, suspension_front, suspension_rear, brakes_front, brakes_rear, wheels_tyres, car_size, car_weight, extra_notes")
       .eq("user_id", data.userId)
       .order("sort", { ascending: true });
     if (error) throw error;
@@ -162,7 +198,7 @@ export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
     if (!p || !p.id) return null;
     const { data: rows } = await supabase
       .from("garage_vehicles")
-      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort")
+      .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort, built_by, engine, power, torque, acceleration, quarter_mile, top_speed, fuel_economy, transmission, diff_ratio, suspension_front, suspension_rear, brakes_front, brakes_rear, wheels_tyres, car_size, car_weight, extra_notes")
       .eq("user_id", p.id as string)
       .order("sort", { ascending: true });
     const vehicles = await hydrateVehicles(supabase, rows ?? []);
@@ -189,6 +225,24 @@ const vehicleSchema = z.object({
   story_af: z.string().trim().max(4000).nullable().optional(),
   is_primary: z.boolean().optional(),
   sort: z.number().int().min(0).max(9999).optional(),
+  built_by: z.string().trim().max(600).nullable().optional(),
+  engine: z.string().trim().max(600).nullable().optional(),
+  power: z.string().trim().max(600).nullable().optional(),
+  torque: z.string().trim().max(600).nullable().optional(),
+  acceleration: z.string().trim().max(600).nullable().optional(),
+  quarter_mile: z.string().trim().max(600).nullable().optional(),
+  top_speed: z.string().trim().max(600).nullable().optional(),
+  fuel_economy: z.string().trim().max(600).nullable().optional(),
+  transmission: z.string().trim().max(600).nullable().optional(),
+  diff_ratio: z.string().trim().max(600).nullable().optional(),
+  suspension_front: z.string().trim().max(600).nullable().optional(),
+  suspension_rear: z.string().trim().max(600).nullable().optional(),
+  brakes_front: z.string().trim().max(600).nullable().optional(),
+  brakes_rear: z.string().trim().max(600).nullable().optional(),
+  wheels_tyres: z.string().trim().max(600).nullable().optional(),
+  car_size: z.string().trim().max(600).nullable().optional(),
+  car_weight: z.string().trim().max(600).nullable().optional(),
+  extra_notes: z.string().trim().max(600).nullable().optional(),
 });
 
 export const upsertGarageVehicle = createServerFn({ method: "POST" })

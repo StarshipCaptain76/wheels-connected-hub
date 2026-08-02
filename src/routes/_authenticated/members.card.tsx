@@ -9,7 +9,8 @@ import { listMyGarage } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import { MemberCard, pickCarPhoto, pickFacePhoto, initials } from "@/components/MemberCard";
 import { LOGO_URL } from "@/lib/brand";
-import { Download, WifiOff } from "lucide-react";
+import { downloadDisplayBoard } from "@/lib/display-board";
+import { Download, WifiOff, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
   head: () => ({
@@ -42,6 +43,8 @@ function MemberCardPage() {
   const [cached, setCached] = useState<MemberProfile | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [boardBusy, setBoardBusy] = useState(false);
+  const [boardMsg, setBoardMsg] = useState<string | null>(null);
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -99,6 +102,41 @@ function MemberCardPage() {
     }
   }
 
+  const vehicles = garageQuery.data ?? [];
+  const boardVehicle = vehicles.find((v) => v.is_primary && v.photos.some((p) => p.url))
+    ?? vehicles.find((v) => v.photos.some((p) => p.url))
+    ?? null;
+
+  async function downloadBoard() {
+    if (!profile || !boardVehicle || boardBusy) return;
+    setBoardBusy(true);
+    setBoardMsg(null);
+    try {
+      const res = await downloadDisplayBoard({
+        vehicle: boardVehicle,
+        owner: {
+          display_name: profile.display_name,
+          member_number: profile.member_number,
+          town: profile.town,
+          avatar_url: profile.avatar_url,
+        },
+        lang,
+      });
+      if (res.lowRes) {
+        setBoardMsg(
+          lang === "af"
+            ? "Bord afgelaai — die motorfoto is lae resolusie en mag korrelig druk."
+            : "Board downloaded — the car photo is low resolution and may print grainy.",
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      setBoardMsg(lang === "af" ? "Bord-aflaai het misluk" : "Board download failed");
+    } finally {
+      setBoardBusy(false);
+    }
+  }
+
   return (
     <SiteLayout>
       <section className="mx-auto max-w-3xl px-4 py-10">
@@ -132,8 +170,31 @@ function MemberCardPage() {
                     : "Download for laminate"}
               </button>
             )}
+            {profile && boardVehicle && (
+              <button
+                type="button"
+                onClick={() => void downloadBoard()}
+                disabled={boardBusy}
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] hover:bg-ink/5 disabled:opacity-60"
+              >
+                <FileDown className="h-4 w-4" />
+                {boardBusy
+                  ? lang === "af"
+                    ? "Bou…"
+                    : "Building…"
+                  : lang === "af"
+                    ? "Vertoonbord PDF (600×900mm)"
+                    : "Display board PDF (600×900mm)"}
+              </button>
+            )}
           </div>
         </div>
+
+        {boardMsg && (
+          <p className="mb-4 rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">
+            {boardMsg}
+          </p>
+        )}
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"

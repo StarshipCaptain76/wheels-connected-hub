@@ -11,8 +11,31 @@ import {
   type GarageVehicle,
   type GaragePhoto,
 } from "@/lib/garage.functions";
+import { getMyProfile } from "@/lib/profile.functions";
+import { downloadDisplayBoard } from "@/lib/display-board";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon } from "lucide-react";
+import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown } from "lucide-react";
+
+/** Spec-sheet fields shown on the printable exhibition board */
+export const SPEC_FIELDS: Array<{ key: keyof GarageVehicle; en: string; af: string }> = [
+  { key: "built_by", en: "Built by", af: "Gebou deur" },
+  { key: "engine", en: "Engine", af: "Enjin" },
+  { key: "power", en: "Power", af: "Krag" },
+  { key: "torque", en: "Torque", af: "Wringkrag" },
+  { key: "acceleration", en: "0 – 100 km/h", af: "0 – 100 km/h" },
+  { key: "quarter_mile", en: "Quarter mile", af: "Kwartmyl" },
+  { key: "top_speed", en: "Top speed", af: "Topspoed" },
+  { key: "fuel_economy", en: "Fuel economy", af: "Brandstofverbruik" },
+  { key: "transmission", en: "Transmission", af: "Transmissie" },
+  { key: "diff_ratio", en: "Diff ratio", af: "Ewenaarverhouding" },
+  { key: "suspension_front", en: "Suspension front", af: "Vering voor" },
+  { key: "suspension_rear", en: "Suspension rear", af: "Vering agter" },
+  { key: "brakes_front", en: "Brakes front", af: "Remme voor" },
+  { key: "brakes_rear", en: "Brakes rear", af: "Remme agter" },
+  { key: "wheels_tyres", en: "Wheels & tyres", af: "Wiele & bande" },
+  { key: "car_size", en: "Size (L x W)", af: "Grootte (L x B)" },
+  { key: "car_weight", en: "Weight", af: "Gewig" },
+];
 
 const STORY_MAX = 4000;
 const MAX_PHOTO_MB = 6;
@@ -79,9 +102,16 @@ export function GarageManager({
   const delPhotoFn = useServerFn(deleteGaragePhoto);
   const avatarFn = useServerFn(updateMyAvatar);
 
+  const profileFn = useServerFn(getMyProfile);
+
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["garage", "me"],
     queryFn: () => listFn(),
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", "me"],
+    queryFn: () => profileFn(),
   });
 
   const [editing, setEditing] = useState<Partial<GarageVehicle> | null>(null);
@@ -174,6 +204,24 @@ export function GarageManager({
           story_af: form.story_af ?? null,
           is_primary: form.is_primary ?? false,
           sort: form.sort ?? 0,
+          built_by: (form.built_by as string | null | undefined) ?? null,
+          engine: (form.engine as string | null | undefined) ?? null,
+          power: (form.power as string | null | undefined) ?? null,
+          torque: (form.torque as string | null | undefined) ?? null,
+          acceleration: (form.acceleration as string | null | undefined) ?? null,
+          quarter_mile: (form.quarter_mile as string | null | undefined) ?? null,
+          top_speed: (form.top_speed as string | null | undefined) ?? null,
+          fuel_economy: (form.fuel_economy as string | null | undefined) ?? null,
+          transmission: (form.transmission as string | null | undefined) ?? null,
+          diff_ratio: (form.diff_ratio as string | null | undefined) ?? null,
+          suspension_front: (form.suspension_front as string | null | undefined) ?? null,
+          suspension_rear: (form.suspension_rear as string | null | undefined) ?? null,
+          brakes_front: (form.brakes_front as string | null | undefined) ?? null,
+          brakes_rear: (form.brakes_rear as string | null | undefined) ?? null,
+          wheels_tyres: (form.wheels_tyres as string | null | undefined) ?? null,
+          car_size: (form.car_size as string | null | undefined) ?? null,
+          car_weight: (form.car_weight as string | null | undefined) ?? null,
+          extra_notes: (form.extra_notes as string | null | undefined) ?? null,
         },
       });
       setEditing(null);
@@ -181,6 +229,39 @@ export function GarageManager({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadBoard(v: GarageVehicle) {
+    setBusy(true);
+    setError(null);
+    setOkMsg(null);
+    setStatus(lang === "af" ? "Bou vertoonbord…" : "Building display board…");
+    try {
+      const res = await downloadDisplayBoard({
+        vehicle: v,
+        owner: {
+          display_name: profile?.display_name ?? null,
+          member_number: profile?.member_number ?? null,
+          town: profile?.town ?? null,
+          avatar_url: profile?.avatar_url ?? null,
+        },
+        lang,
+      });
+      setOkMsg(
+        res.lowRes
+          ? lang === "af"
+            ? "Bord afgelaai — die motorfoto is lae resolusie, dit mag korrelig druk."
+            : "Board downloaded — the car photo is low resolution and may print grainy."
+          : lang === "af"
+            ? "Vertoonbord afgelaai (600 x 900 mm)"
+            : "Display board downloaded (600 x 900 mm)",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Board download failed");
+    } finally {
+      setStatus(null);
       setBusy(false);
     }
   }
@@ -406,6 +487,7 @@ export function GarageManager({
               onUpload={() => void uploadPhotos(v.id)}
               onRemovePhoto={(id) => void removePhoto(id)}
               onSetCardPhoto={(url) => void setAsCardPhoto(url)}
+              onDownloadBoard={() => void downloadBoard(v)}
             />
           ))}
         </ul>
@@ -436,6 +518,7 @@ function VehicleCard({
   onUpload,
   onRemovePhoto,
   onSetCardPhoto,
+  onDownloadBoard,
 }: {
   vehicle: GarageVehicle;
   lang: "en" | "af";
@@ -446,6 +529,7 @@ function VehicleCard({
   onUpload: () => void;
   onRemovePhoto: (id: string) => void;
   onSetCardPhoto: (url: string) => void;
+  onDownloadBoard: () => void;
 }) {
   const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   const story = lang === "af" ? v.story_af || v.story : v.story;
@@ -514,12 +598,13 @@ function VehicleCard({
             </p>
           )}
 
+          <div className="mt-4 flex flex-wrap gap-2">
           {hero?.url && (
             <button
               type="button"
               disabled={busy || cardPhotoUrl === hero.url}
               onClick={() => onSetCardPhoto(hero.url)}
-              className="mt-4 inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+              className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper disabled:opacity-50"
             >
               <IdCard className="h-3.5 w-3.5" />
               {cardPhotoUrl === hero.url
@@ -531,6 +616,23 @@ function VehicleCard({
                   : "Use on member card"}
             </button>
           )}
+            <button
+              type="button"
+              disabled={busy || !hero?.url}
+              title={
+                hero?.url
+                  ? undefined
+                  : lang === "af"
+                    ? "Laai eers ’n foto op"
+                    : "Upload a photo first"
+              }
+              onClick={onDownloadBoard}
+              className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink/5 disabled:opacity-50"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              {lang === "af" ? "Vertoonbord PDF" : "Display board PDF"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -686,6 +788,32 @@ function VehicleModal({
             rows={4}
           />
         </div>
+
+        <details className="rounded-md border-2 border-ink/30 p-3">
+          <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-ink/70">
+            {lang === "af"
+              ? "Spesifikasieblad (vir vertoonbord)"
+              : "Spec sheet (for display board)"}
+          </summary>
+          <p className="mt-2 text-[11px] text-ink/50">
+            {lang === "af"
+              ? "Alles opsioneel — leë velde word van die bord gelaat."
+              : "All optional — blank fields are left off the board."}
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {SPEC_FIELDS.map((f) => (
+              <Field key={String(f.key)} label={lang === "af" ? f.af : f.en}>
+                <input
+                  value={(form[f.key] as string | null) ?? ""}
+                  onChange={(e) =>
+                    setForm((s2) => ({ ...s2, [f.key]: e.target.value }))
+                  }
+                  className={inp}
+                />
+              </Field>
+            ))}
+          </div>
+        </details>
 
         <label className="flex items-center gap-2">
           <input

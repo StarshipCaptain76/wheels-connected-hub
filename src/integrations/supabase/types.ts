@@ -441,6 +441,13 @@ export type Database = {
             foreignKeyName: "garage_vehicle_photos_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "featured_garage_vehicles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "garage_vehicles"
             referencedColumns: ["id"]
           },
@@ -1052,14 +1059,151 @@ export type Database = {
         }
         Relationships: []
       }
+      featured_garage_photos_public: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          id: string | null
+          sort: number | null
+          storage_path: string | null
+          vehicle_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "featured_garage_vehicles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_vehicle_photos_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "garage_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_garage_vehicles_public: {
+        Row: {
+          acceleration: string | null
+          brakes_front: string | null
+          brakes_rear: string | null
+          built_by: string | null
+          car_size: string | null
+          car_weight: string | null
+          created_at: string | null
+          diff_ratio: string | null
+          engine: string | null
+          extra_notes: string | null
+          fuel_economy: string | null
+          id: string | null
+          is_primary: boolean | null
+          make: string | null
+          model: string | null
+          nickname: string | null
+          power: string | null
+          quarter_mile: string | null
+          sort: number | null
+          story: string | null
+          story_af: string | null
+          suspension_front: string | null
+          suspension_rear: string | null
+          top_speed: string | null
+          torque: string | null
+          transmission: string | null
+          updated_at: string | null
+          user_id: string | null
+          wheels_tyres: string | null
+          year: number | null
+        }
+        Insert: {
+          acceleration?: string | null
+          brakes_front?: string | null
+          brakes_rear?: string | null
+          built_by?: string | null
+          car_size?: string | null
+          car_weight?: string | null
+          created_at?: string | null
+          diff_ratio?: string | null
+          engine?: string | null
+          extra_notes?: string | null
+          fuel_economy?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          make?: string | null
+          model?: string | null
+          nickname?: string | null
+          power?: string | null
+          quarter_mile?: string | null
+          sort?: number | null
+          story?: string | null
+          story_af?: string | null
+          suspension_front?: string | null
+          suspension_rear?: string | null
+          top_speed?: string | null
+          torque?: string | null
+          transmission?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          wheels_tyres?: string | null
+          year?: number | null
+        }
+        Update: {
+          acceleration?: string | null
+          brakes_front?: string | null
+          brakes_rear?: string | null
+          built_by?: string | null
+          car_size?: string | null
+          car_weight?: string | null
+          created_at?: string | null
+          diff_ratio?: string | null
+          engine?: string | null
+          extra_notes?: string | null
+          fuel_economy?: string | null
+          id?: string | null
+          is_primary?: boolean | null
+          make?: string | null
+          model?: string | null
+          nickname?: string | null
+          power?: string | null
+          quarter_mile?: string | null
+          sort?: number | null
+          story?: string | null
+          story_af?: string | null
+          suspension_front?: string | null
+          suspension_rear?: string | null
+          top_speed?: string | null
+          torque?: string | null
+          transmission?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          wheels_tyres?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "garage_vehicles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "featured_member_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "garage_vehicles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       featured_member_public: {
         Row: {
           avatar_url: string | null
           display_name: string | null
-          favourite_ride: string | null
           featured_bio: string | null
-          featured_photo_url: string | null
-          featured_since: string | null
           id: string | null
           member_number: number | null
           town: string | null
@@ -1067,10 +1211,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           display_name?: string | null
-          favourite_ride?: string | null
           featured_bio?: string | null
-          featured_photo_url?: string | null
-          featured_since?: string | null
           id?: string | null
           member_number?: number | null
           town?: string | null
@@ -1078,10 +1219,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           display_name?: string | null
-          favourite_ride?: string | null
           featured_bio?: string | null
-          featured_photo_url?: string | null
-          featured_since?: string | null
           id?: string | null
           member_number?: number | null
           town?: string | null

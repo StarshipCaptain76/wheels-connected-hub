@@ -40,7 +40,6 @@ import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin/newsletter'
 import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
-import { Route as AuthenticatedAdminFeaturedRouteImport } from './routes/_authenticated/admin/featured'
 import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin/classifieds'
 import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
@@ -209,12 +208,6 @@ const AuthenticatedAdminGalleryRoute =
     path: '/gallery',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminFeaturedRoute =
-  AuthenticatedAdminFeaturedRouteImport.update({
-    id: '/featured',
-    path: '/featured',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
-  } as any)
 const AuthenticatedAdminEventsRoute =
   AuthenticatedAdminEventsRouteImport.update({
     id: '/events',
@@ -255,7 +248,6 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
-  '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -287,7 +279,6 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
-  '/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -325,7 +316,6 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
   '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
-  '/_authenticated/admin/featured': typeof AuthenticatedAdminFeaturedRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/members': typeof AuthenticatedAdminMembersRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
@@ -363,7 +353,6 @@ export interface FileRouteTypes {
     | '/events/'
     | '/admin/classifieds'
     | '/admin/events'
-    | '/admin/featured'
     | '/admin/gallery'
     | '/admin/members'
     | '/admin/newsletter'
@@ -395,7 +384,6 @@ export interface FileRouteTypes {
     | '/events'
     | '/admin/classifieds'
     | '/admin/events'
-    | '/admin/featured'
     | '/admin/gallery'
     | '/admin/members'
     | '/admin/newsletter'
@@ -432,7 +420,6 @@ export interface FileRouteTypes {
     | '/events/'
     | '/_authenticated/admin/classifieds'
     | '/_authenticated/admin/events'
-    | '/_authenticated/admin/featured'
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/members'
     | '/_authenticated/admin/newsletter'
@@ -684,13 +671,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminGalleryRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/featured': {
-      id: '/_authenticated/admin/featured'
-      path: '/featured'
-      fullPath: '/admin/featured'
-      preLoaderRoute: typeof AuthenticatedAdminFeaturedRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
-    }
     '/_authenticated/admin/events': {
       id: '/_authenticated/admin/events'
       path: '/events'
@@ -718,7 +698,6 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
   AuthenticatedAdminEventsRoute: typeof AuthenticatedAdminEventsRoute
-  AuthenticatedAdminFeaturedRoute: typeof AuthenticatedAdminFeaturedRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminMembersRoute: typeof AuthenticatedAdminMembersRoute
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
@@ -731,7 +710,6 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
   {
     AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
     AuthenticatedAdminEventsRoute: AuthenticatedAdminEventsRoute,
-    AuthenticatedAdminFeaturedRoute: AuthenticatedAdminFeaturedRoute,
     AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
     AuthenticatedAdminMembersRoute: AuthenticatedAdminMembersRoute,
     AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,

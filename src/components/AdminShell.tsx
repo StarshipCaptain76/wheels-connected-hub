@@ -5,7 +5,6 @@ import {
   LayoutGrid,
   Calendar,
   Image as ImageIcon,
-  Star,
   Users,
   Tag,
   ShoppingBag,
@@ -29,7 +28,6 @@ const NAV: Array<{
     items: [
       { to: "/admin/events", label: "Events", icon: Calendar },
       { to: "/admin/gallery", label: "Gallery", icon: ImageIcon },
-      { to: "/admin/featured", label: "Featured member", icon: Star },
     ],
   },
   {

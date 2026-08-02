@@ -115,7 +115,7 @@ export const listAllSponsors = createServerFn({ method: "GET" })
     const { data, error } = await supabase
       .from("sponsors")
       .select(
-        "id, name, tagline, tagline_af, website_url, logo_path, is_active, sort, billing_starts_at, billing_ends_at, expiry_notified_at",
+        "id, name, tagline, tagline_af, website_url, logo_path, is_active, sort, billing_starts_at, billing_ends_at, expiry_notified_at, owner_user_id",
       )
       .order("sort", { ascending: true })
       .order("name", { ascending: true });
@@ -134,7 +134,9 @@ export const listAllSponsors = createServerFn({ method: "GET" })
         : null,
       billing_ends_at: row.billing_ends_at ? String(row.billing_ends_at).slice(0, 10) : null,
       expiry_notified_at: (row.expiry_notified_at as string | null) ?? null,
+      owner_user_id: (row.owner_user_id as string | null) ?? null,
     }));
+
   });
 
 const upsertSchema = z.object({

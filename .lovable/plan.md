@@ -1,53 +1,24 @@
 ## Goal
 
-A bell icon in the header showing in-app notifications, with per-user on/off switches for each notification type.
+On phones, the day/night and English/Afrikaans toggles should sit next to the JW logo in the top bar instead of being buried in the hamburger menu, and the header should clear the camera notch/bezel.
 
-## Notification types
+## 1. Toggles beside the logo (mobile)
 
-Members (all active members):
-- New classified listing published
-- New event published
-- New newsletter sent
+In `src/components/SiteLayout.tsx` header:
 
-Admins only:
-- New sponsor application received
-- New member signed up (awaiting approval)
-- New listing awaiting moderation
+- Add a compact toggle group immediately right of the logo link, visible only below the `lg` breakpoint: `ThemeToggle` + `LangToggle`.
+- Remove the `ThemeToggle` and `LangToggle` from the hamburger menu's bottom row (that row keeps only the sign-in / account affordance), so there is no duplicate control.
+- Keep the existing desktop toggles on the right-hand side (currently `hidden md:block`); change them to `hidden lg:block` so they don't appear twice on tablet widths where the hamburger is still shown.
+- Right side on mobile keeps: notification bell + hamburger button.
+- If the toggles feel cramped at 360px, they render icon-only/compact (small square buttons) while desktop keeps the current appearance.
 
-## Database
+## 2. Safe-area top padding
 
-New table `public.notifications`
-- recipient (user), type, title/body (English + Afrikaans), link path, related record id, read flag, created timestamp
-- Members read/update only their own rows (marking read); inserts happen server-side only
-- Realtime enabled so the bell updates live
+- Update the viewport meta in `src/routes/__root.tsx` to `width=device-width, initial-scale=1, viewport-fit=cover` (required for `env(safe-area-inset-*)` to report real values).
+- Add top padding driven by the safe-area inset to the sticky site header so content sits below the camera bezel, e.g. `padding-top: env(safe-area-inset-top)` on the header element (a small utility class in `src/styles.css`, so the value is `0` on devices without an inset and non-zero on notched phones).
+- Apply the same treatment to the admin sub-header bar's sticky offset so the two bars stay stacked correctly.
+- Also add bottom safe-area padding to the footer's last row to avoid the home-indicator overlap on iOS.
 
-New table `public.notification_prefs`
-- one row per user, one boolean per notification type (default all on)
-- Users read and edit only their own row
+## Verification
 
-Both tables get grants + RLS following project conventions.
-
-A shared server helper `fanOut(type, payload)` inserts one notification per eligible recipient (all approved members, or admins for the admin-only types), skipping anyone who has that type switched off.
-
-## Wiring into existing flows
-
-- `listings.functions.ts` — on submit → admin "needs moderation"; on approve/publish → member "new classified"
-- `events.functions.ts` — on publish → member "new event"
-- `newsletter.functions.ts` — on send → member "new newsletter"
-- `sponsor-applications.functions.ts` — on submit → admin
-- `member-signup.functions.ts` — on signup → admin
-
-Existing emails stay as-is; in-app notifications are additive.
-
-## UI
-
-- `NotificationBell.tsx` in the header (signed-in only): unread count badge, dropdown list of the latest 20, each row links to the relevant page and marks itself read, plus "Mark all read".
-- Notifications page at `/members/notifications` for the full history.
-- Settings section in the member profile sidebar: a toggle per notification type, saved immediately, bilingual labels. Admin-only toggles show only for admins.
-- All strings added to the EN/AF translation files; styling uses existing design tokens.
-
-## Technical notes
-
-- Fan-out runs inside existing server functions using the admin client after the caller is authorised; failures are logged and never block the primary action.
-- Realtime subscription set up in a `useEffect` with channel teardown; query cache invalidated on new rows.
-- Preference check happens at insert time, so switching a type off stops future notifications (existing ones stay).
+Load the site at a 390x844 mobile viewport in a headless browser, confirm the toggles are visible beside the logo, that they work (theme + language switch), that the hamburger no longer contains them, and screenshot the header.

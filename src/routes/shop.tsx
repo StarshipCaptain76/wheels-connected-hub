@@ -80,7 +80,16 @@ function Shop() {
                 >
                   <div className="mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-steel/20">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPhoto({ url: item.image_url!, caption: name })}
+                        aria-label={
+                          lang === "af" ? `Bekyk foto van ${name}` : `View photo of ${name}`
+                        }
+                        className="h-full w-full cursor-zoom-in"
+                      >
+                        <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                      </button>
                     ) : (
                       <Package className="h-14 w-14 text-ink/40" />
                     )}

@@ -38,7 +38,13 @@ function getContactsApi(): ContactsManager | null {
 
 
 /** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
-export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
+export function PhotoTagger({
+  galleryItemId,
+  onClose,
+}: {
+  galleryItemId: string;
+  onClose?: () => void;
+}) {
   const { lang } = useI18n();
   const qc = useQueryClient();
   const af = lang === "af";

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Tag, X, UserPlus, Search, Mail, MessageCircle } from "lucide-react";
+import { Tag, X, UserPlus, Search, Mail, MessageCircle, BookUser } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listDirectoryMembers } from "@/lib/directory.functions";
 import {
@@ -22,6 +22,21 @@ function normalisePhone(raw: string) {
   return digits.length >= 10 ? digits : "";
 }
 
+type ContactsManager = {
+  select: (
+    props: string[],
+    opts?: { multiple?: boolean },
+  ) => Promise<Array<{ name?: string[]; tel?: string[] }>>;
+  getProperties: () => Promise<string[]>;
+};
+
+function getContactsApi(): ContactsManager | null {
+  if (typeof navigator === "undefined") return null;
+  const c = (navigator as Navigator & { contacts?: ContactsManager }).contacts;
+  return c && typeof c.select === "function" && "ContactsManager" in window ? c : null;
+}
+
+
 /** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
 export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const { lang } = useI18n();
@@ -39,7 +54,13 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [phone, setPhone] = useState("");
+  const [pickedName, setPickedName] = useState("");
+  const [contactsSupported, setContactsSupported] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setContactsSupported(!!getContactsApi());
+  }, []);
 
   const tagsQuery = useQuery({
     queryKey: ["photo-tags", galleryItemId],
@@ -143,6 +164,33 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
     toast.success(af ? "WhatsApp geopen" : "WhatsApp opened");
     setPhone("");
+    setPickedName("");
+  }
+
+  async function pickFromContacts() {
+    const api = getContactsApi();
+    if (!api) {
+      toast.error(
+        af
+          ? "Jou toestel/blaaier laat nie kontaktoegang toe nie — tik die nommer in."
+          : "Your device/browser doesn't allow contact access — type the number instead.",
+      );
+      return;
+    }
+    try {
+      const picked = await api.select(["name", "tel"], { multiple: false });
+      const c = picked?.[0];
+      if (!c) return;
+      const tel = c.tel?.find((t) => normalisePhone(t)) ?? c.tel?.[0] ?? "";
+      if (!tel) {
+        toast.error(af ? "Daardie kontak het geen nommer nie." : "That contact has no phone number.");
+        return;
+      }
+      setPhone(tel);
+      setPickedName(c.name?.[0] ?? "");
+    } catch {
+      toast.error(af ? "Kon nie kontakte oopmaak nie." : "Could not open contacts.");
+    }
   }
 
 
@@ -279,15 +327,35 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
               <MessageCircle className="h-3.5 w-3.5 text-primary" />
               {af ? "Of nooi per WhatsApp" : "Or invite by WhatsApp"}
             </p>
+            {contactsSupported && (
+              <button
+                type="button"
+                onClick={() => void pickFromContacts()}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-card px-3 py-2 text-sm font-bold text-ink"
+              >
+                <BookUser className="h-4 w-4 text-primary" />
+                {af ? "Kies uit kontakte" : "Choose from contacts"}
+              </button>
+            )}
+            {pickedName && (
+              <p className="mt-2 text-[11px] font-bold text-ink/70">
+                {af ? "Gekose kontak: " : "Selected contact: "}
+                {pickedName}
+              </p>
+            )}
             <input
               type="tel"
               inputMode="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPickedName("");
+              }}
               maxLength={20}
               placeholder={af ? "bv. 0821234567 of +27821234567" : "e.g. 0821234567 or +27821234567"}
               className="mt-2 w-full rounded-lg border-2 border-ink bg-card px-2 py-2 text-sm text-ink outline-none"
             />
+
             <button
               type="button"
               disabled={!normalisePhone(phone)}

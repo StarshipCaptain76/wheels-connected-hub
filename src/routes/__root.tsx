@@ -19,6 +19,7 @@ import { registerPwa } from "../lib/pwa-register";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Toaster } from "../components/ui/sonner";
+import { ConfirmProvider } from "../components/ConfirmDialog";
 
 function NotFoundComponent() {
   return (
@@ -176,9 +177,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <OfflineBanner />
-      <Outlet />
-      <InstallPrompt />
+      <ConfirmProvider>
+        <OfflineBanner />
+        <Outlet />
+        <InstallPrompt />
+      </ConfirmProvider>
       <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   );

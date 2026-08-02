@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { notifyAdminNewMember } from "@/lib/member-signup.functions";
 
 import { Eye, EyeOff, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 function safePath(value: unknown): string {
   if (typeof value !== "string") return "/members";
@@ -62,7 +63,7 @@ function AuthPage() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -70,7 +71,23 @@ function AuthPage() {
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
-        if (error) throw error;
+        if (error) {
+          if (/already|registered|exists/i.test(error.message)) {
+            toast.info(t("auth.alreadyRegistered"));
+            setMode("signin");
+            setPassword("");
+            return;
+          }
+          throw error;
+        }
+        // Supabase returns a user with no identities when the email already exists.
+        const identities = signUpData.user?.identities;
+        if (signUpData.user && identities && identities.length === 0) {
+          toast.info(t("auth.alreadyRegistered"));
+          setMode("signin");
+          setPassword("");
+          return;
+        }
         void notifyAdminNewMember({
           data: { email, displayName: displayName || null },
         }).catch(() => {
@@ -78,6 +95,7 @@ function AuthPage() {
         });
         setInfo(t("auth.checkEmail"));
         setAwaitingEmail(true);
+
 
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {

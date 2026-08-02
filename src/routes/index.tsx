@@ -228,9 +228,10 @@ function Index() {
                   ) : (
                     <p className="mt-2 text-xs italic text-ink/40">
                       {lang === "af"
-                        ? "Geen biografie nog — admin kan dit by Featured member byvoeg."
-                        : "No bio yet — admin can add one under Featured member."}
+                        ? "Geen biografie nog — lede kan hul eie bio by hul profiel byvoeg."
+                        : "No bio yet — members can add their own bio on their profile."}
                     </p>
+
                   )}
                 </div>
 

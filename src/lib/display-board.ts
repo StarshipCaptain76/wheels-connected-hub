@@ -218,15 +218,23 @@ export async function downloadDisplayBoard(opts: {
     const story = (af ? v.story_af || v.story : v.story) || "";
     doc.setTextColor(INK);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(story ? 17 : 18);
     const text = story
       ? story
       : af
         ? "Voeg spesifikasies by in My Garage > Wysig voertuig > Spesifikasieblad."
         : "Add specs in My Garage > Edit vehicle > Spec sheet.";
-    const lines = doc.splitTextToSize(text, heroW) as string[];
-    const maxLines = Math.floor((footerTop - y - 10) / 9);
-    doc.text(lines.slice(0, maxLines), M, y, { lineHeightFactor: 1.5 });
+    // Scale the copy up until it fills the panel without spilling into the footer.
+    const boxH = footerTop - y - 14;
+    let size = 30;
+    let lines: string[] = [];
+    for (; size >= 11; size -= 1) {
+      doc.setFontSize(size);
+      lines = doc.splitTextToSize(text, heroW) as string[];
+      const step = size * 0.3528 * 1.45;
+      if (lines.length * step <= boxH) break;
+    }
+    doc.setFontSize(size);
+    doc.text(lines, M, y, { lineHeightFactor: 1.45 });
   } else {
     const cols = rows.length > 9 ? 2 : 1;
     const colW = cols === 2 ? (heroW - 24) / 2 : heroW;

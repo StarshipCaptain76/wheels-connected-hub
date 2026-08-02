@@ -58,23 +58,39 @@ function GalleryPage() {
   const { data: items } = useSuspenseQuery(galleryQuery);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const categories = Array.from(
     new Set(items.map((it) => it.category).filter(Boolean) as string[]),
   ).sort();
   const visible = activeCat ? items.filter((it) => it.category === activeCat) : items;
 
-  const lightboxItems = visible
-    .filter((it) => it.image_url)
-    .map((it) => ({
-      url: it.image_url,
-      caption: it.title || it.caption || null,
-    }));
+  const lightboxSource = visible.filter((it) => it.image_url);
+  const lightboxItems = lightboxSource.map((it) => ({
+    url: it.image_url,
+    caption: it.title || it.caption || null,
+  }));
+  const activeItem = lightboxIndex != null ? lightboxSource[lightboxIndex] : null;
 
   function openItem(it: GalleryItem) {
     const idx = lightboxItems.findIndex((x) => x.url === it.image_url);
     if (idx >= 0) setLightboxIndex(idx);
   }
+
 
   return (
     <SiteLayout>

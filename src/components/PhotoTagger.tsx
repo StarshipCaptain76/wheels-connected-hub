@@ -54,7 +54,13 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [phone, setPhone] = useState("");
+  const [pickedName, setPickedName] = useState("");
+  const [contactsSupported, setContactsSupported] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setContactsSupported(!!getContactsApi());
+  }, []);
 
   const tagsQuery = useQuery({
     queryKey: ["photo-tags", galleryItemId],

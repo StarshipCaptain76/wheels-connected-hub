@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
+import { ChangePassword } from "@/components/ChangePassword";
+
 import { MemberCard, pickCarPhoto, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";

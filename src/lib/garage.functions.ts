@@ -165,31 +165,35 @@ export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
     };
     vehicles: GarageVehicle[];
   } | null> => {
-    const { createPublicSupabase } = await import("./public-supabase.server");
-    const supabase = createPublicSupabase();
-    const { data: p } = await supabase
-      .from("featured_member_public")
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: featuredId } = await supabaseAdmin.rpc("daily_featured_id");
+    if (!featuredId) return null;
+    const { data: p } = await supabaseAdmin
+      .from("profiles")
       .select("id, display_name, member_number, town, avatar_url, featured_bio")
+      .eq("id", featuredId as string)
       .maybeSingle();
     if (!p || !p.id) return null;
-    const { data: rows } = await supabase
+    const { data: rows } = await supabaseAdmin
       .from("garage_vehicles")
       .select("id, user_id, make, model, year, nickname, story, story_af, is_primary, sort, built_by, engine, power, torque, acceleration, quarter_mile, top_speed, fuel_economy, transmission, diff_ratio, suspension_front, suspension_rear, brakes_front, brakes_rear, wheels_tyres, car_size, car_weight, extra_notes")
       .eq("user_id", p.id as string)
       .order("sort", { ascending: true });
-    const vehicles = await hydrateVehicles(supabase, rows ?? []);
+    const vehicles = await hydrateVehicles(supabaseAdmin, rows ?? []);
+    const { signStoredUrl } = await import("./storage-urls.server");
     return {
       member: {
         display_name: p.display_name,
         member_number: p.member_number ?? 0,
         town: p.town,
-        avatar_url: p.avatar_url,
+        avatar_url: await signStoredUrl(supabaseAdmin, p.avatar_url),
         featured_bio: p.featured_bio,
       },
       vehicles,
     };
   },
 );
+
 
 const vehicleSchema = z.object({
   id: z.string().uuid().nullable().optional(),

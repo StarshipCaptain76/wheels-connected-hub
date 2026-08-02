@@ -14,6 +14,202 @@ export type Database = {
   }
   public: {
     Tables: {
+      concours_questions: {
+        Row: {
+          active: boolean
+          category: string
+          category_af: string | null
+          created_at: string
+          id: string
+          scoring_type: string
+          sort_order: number
+          text_af: string
+          text_en: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          category_af?: string | null
+          created_at?: string
+          id?: string
+          scoring_type: string
+          sort_order?: number
+          text_af: string
+          text_en: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          category_af?: string | null
+          created_at?: string
+          id?: string
+          scoring_type?: string
+          sort_order?: number
+          text_af?: string
+          text_en?: string
+        }
+        Relationships: []
+      }
+      event_concours: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          event_id: string
+          leaderboard_revealed: boolean
+          prize_af: string | null
+          prize_en: string | null
+          question_count: number
+          selected_question_ids: string[]
+          sponsor_logo_url: string | null
+          sponsor_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          event_id: string
+          leaderboard_revealed?: boolean
+          prize_af?: string | null
+          prize_en?: string | null
+          question_count?: number
+          selected_question_ids?: string[]
+          sponsor_logo_url?: string | null
+          sponsor_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          event_id?: string
+          leaderboard_revealed?: boolean
+          prize_af?: string | null
+          prize_en?: string | null
+          question_count?: number
+          selected_question_ids?: string[]
+          sponsor_logo_url?: string | null
+          sponsor_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_concours_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_concours_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_concours_scores: {
+        Row: {
+          answers: Json
+          event_id: string
+          id: string
+          is_member: boolean
+          submitted_at: string
+          total_score: number | null
+          user_id: string | null
+          vehicle_id: string
+          weight: number
+        }
+        Insert: {
+          answers?: Json
+          event_id: string
+          id?: string
+          is_member?: boolean
+          submitted_at?: string
+          total_score?: number | null
+          user_id?: string | null
+          vehicle_id: string
+          weight?: number
+        }
+        Update: {
+          answers?: Json
+          event_id?: string
+          id?: string
+          is_member?: boolean
+          submitted_at?: string
+          total_score?: number | null
+          user_id?: string | null
+          vehicle_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_concours_scores_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_concours_scores_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_concours_scores_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "event_concours_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_concours_vehicles: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          label: string | null
+          label_af: string | null
+          photo_url: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          label?: string | null
+          label_af?: string | null
+          photo_url: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          label?: string | null
+          label_af?: string | null
+          photo_url?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_concours_vehicles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_concours_vehicles_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_invites: {
         Row: {
           created_at: string

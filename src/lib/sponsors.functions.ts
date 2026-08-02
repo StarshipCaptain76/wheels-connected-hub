@@ -24,7 +24,23 @@ export type AdminSponsor = {
   billing_starts_at: string | null;
   billing_ends_at: string | null;
   expiry_notified_at: string | null;
+  owner_user_id: string | null;
 };
+
+export type MySponsor = {
+  id: string;
+  name: string;
+  tagline: string | null;
+  tagline_af: string | null;
+  website_url: string | null;
+  logo_path: string;
+  logo_url: string;
+  is_active: boolean;
+  billing_starts_at: string | null;
+  billing_ends_at: string | null;
+  expired: boolean;
+};
+
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10);

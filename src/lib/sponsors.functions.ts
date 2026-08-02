@@ -271,6 +271,20 @@ export const applySponsor = createServerFn({ method: "POST" })
       console.error("[sponsors] could not store application", e);
     }
 
+    try {
+      const { fanOut } = await import("./notify.server");
+      await fanOut({
+        type: "admin_new_sponsor",
+        title_en: "New sponsor application",
+        title_af: "Nuwe borgaansoek",
+        body_en: data.business + " — " + data.contact,
+        body_af: data.business + " — " + data.contact,
+        link: "/admin/sponsors",
+      });
+    } catch (e) {
+      console.error("[sponsors] in-app notification failed", e);
+    }
+
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },

@@ -166,6 +166,32 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     setPhone("");
   }
 
+  async function pickFromContacts() {
+    const api = getContactsApi();
+    if (!api) {
+      toast.error(
+        af
+          ? "Jou toestel/blaaier laat nie kontaktoegang toe nie — tik die nommer in."
+          : "Your device/browser doesn't allow contact access — type the number instead.",
+      );
+      return;
+    }
+    try {
+      const picked = await api.select(["name", "tel"], { multiple: false });
+      const c = picked?.[0];
+      if (!c) return;
+      const tel = c.tel?.find((t) => normalisePhone(t)) ?? c.tel?.[0] ?? "";
+      if (!tel) {
+        toast.error(af ? "Daardie kontak het geen nommer nie." : "That contact has no phone number.");
+        return;
+      }
+      setPhone(tel);
+      setPickedName(c.name?.[0] ?? "");
+    } catch {
+      toast.error(af ? "Kon nie kontakte oopmaak nie." : "Could not open contacts.");
+    }
+  }
+
 
   return (
     <div className="rounded-xl border-2 border-ink bg-paper p-3">

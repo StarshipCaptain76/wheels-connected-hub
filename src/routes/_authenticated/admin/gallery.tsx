@@ -12,6 +12,7 @@ import {
   type GalleryItem,
 } from "@/lib/gallery.functions";
 import { Trash2, Plus, X, Upload, Loader2, Link2, Tag } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const CATEGORY_PLACEHOLDER = "e.g. First JustWheels Meet up — 2016 Dec 03";
 
@@ -80,6 +81,7 @@ function AdminGallery() {
   const setCategory = useServerFn(setGalleryCategory);
 
   const [uploading, setUploading] = useState(false);
+  const confirm = useConfirm();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [urlForm, setUrlForm] = useState<
@@ -301,7 +303,7 @@ function AdminGallery() {
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!confirm("Delete this photo?")) return;
+                    if (!(await confirm({ title: "Delete this photo?", description: "This removes the photo from the gallery for everyone." }))) return;
                     await del({ data: { id: it.id } });
                     await refresh();
                   }}

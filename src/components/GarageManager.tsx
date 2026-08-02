@@ -15,6 +15,7 @@ import { getMyProfile } from "@/lib/profile.functions";
 import { downloadDisplayBoard } from "@/lib/display-board";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 /** Spec-sheet fields shown on the printable exhibition board */
 export const SPEC_FIELDS: Array<{ key: keyof GarageVehicle; en: string; af: string }> = [
@@ -116,6 +117,7 @@ export function GarageManager({
 
   const [editing, setEditing] = useState<Partial<GarageVehicle> | null>(null);
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
@@ -267,7 +269,12 @@ export function GarageManager({
   }
 
   async function removeVehicle(id: string) {
-    if (!confirm(lang === "af" ? "Verwyder hierdie voertuig?" : "Delete this vehicle?")) return;
+    if (!(await confirm({
+      title: lang === "af" ? "Verwyder hierdie voertuig?" : "Delete this vehicle?",
+      confirmLabel: lang === "af" ? "Verwyder" : "Delete",
+      cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
+    })))
+      return;
     setBusy(true);
     try {
       await delFn({ data: { id } });

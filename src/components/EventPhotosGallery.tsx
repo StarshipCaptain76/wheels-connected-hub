@@ -11,6 +11,7 @@ import {
 } from "@/lib/event-photos.functions";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { Camera, Loader2, Upload, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const MAX_MB = 6;
 
@@ -50,6 +51,7 @@ export function EventPhotosGallery({
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -180,7 +182,12 @@ export function EventPhotosGallery({
   }
 
   async function onDelete(id: string) {
-    if (!confirm(lang === "af" ? "Verwyder hierdie foto?" : "Delete this photo?")) return;
+    if (!(await confirm({
+      title: lang === "af" ? "Verwyder hierdie foto?" : "Delete this photo?",
+      confirmLabel: lang === "af" ? "Verwyder" : "Delete",
+      cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
+    })))
+      return;
     setBusy(true);
     try {
       await delFn({ data: { id } });

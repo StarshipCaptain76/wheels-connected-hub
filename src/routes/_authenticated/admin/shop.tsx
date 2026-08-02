@@ -10,6 +10,7 @@ import {
   type MerchItem,
 } from "@/lib/merch.functions";
 import { Trash2, Plus, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const merchAdminQuery = queryOptions({
   queryKey: ["merch", "admin"],
@@ -37,6 +38,7 @@ function AdminShop() {
   const upsert = useServerFn(upsertMerchItem);
   const del = useServerFn(deleteMerchItem);
   const [editing, setEditing] = useState<FormState | null>(null);
+  const confirm = useConfirm();
 
   async function save(form: FormState) {
     const sizes = (form.sizesText ?? "")
@@ -62,7 +64,7 @@ function AdminShop() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this item?")) return;
+    if (!(await confirm({ title: "Delete this item?", description: "It will be removed from the shop." }))) return;
     await del({ data: { id } });
     await qc.invalidateQueries({ queryKey: ["merch"] });
   }

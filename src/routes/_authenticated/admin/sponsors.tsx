@@ -13,6 +13,7 @@ import { SponsorApplicationsPanel } from "@/components/SponsorApplicationsPanel"
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 
 const TAGLINE_MAX = 200;
@@ -72,6 +73,7 @@ function AdminSponsors() {
   const upsert = useServerFn(upsertSponsor);
   const del = useServerFn(deleteSponsor);
   const [editing, setEditing] = useState<FormState | null>(null);
+  const confirm = useConfirm();
 
   async function save(form: FormState) {
     if (!(form.logo_path ?? "").trim()) {
@@ -100,7 +102,7 @@ function AdminSponsors() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this sponsor?")) return;
+    if (!(await confirm({ title: "Delete this sponsor?", description: "The sponsor card will be removed from the site." }))) return;
     await del({ data: { id } });
     await qc.invalidateQueries({ queryKey: ["sponsors"] });
   }

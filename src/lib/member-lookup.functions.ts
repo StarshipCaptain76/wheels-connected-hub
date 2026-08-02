@@ -62,13 +62,16 @@ export const getMemberByNumber = createServerFn({ method: "GET" })
         })
         .filter(Boolean) as MemberGarage["upcoming"];
 
+    const { signStoredUrl } = await import("./storage-urls.server");
+    const avatarSigned = await signStoredUrl(supabase, p.avatar_url as string | null);
+
     return {
       user_id: p.id,
       display_name: p.display_name,
       member_number: p.member_number,
       town: p.town,
       favourite_ride: p.favourite_ride,
-      avatar_url: p.avatar_url,
+      avatar_url: avatarSigned,
       joined_at: p.joined_at,
       is_featured: Boolean(p.is_featured),
       featured_bio: p.featured_bio,

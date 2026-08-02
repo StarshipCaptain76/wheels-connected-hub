@@ -45,15 +45,10 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
           const day = Math.floor(Date.now() / 86_400_000);
           const pick = paths.sort()[day % paths.length];
 
-          const { data: pub } = supabase.storage.from("garage").getPublicUrl(pick);
-          if (pub?.publicUrl) {
-            garage_thumb_url = pub.publicUrl;
-          } else {
-            const { data: signed } = await supabase.storage
-              .from("garage")
-              .createSignedUrl(pick, 60 * 60 * 24 * 7);
-            garage_thumb_url = signed?.signedUrl ?? null;
-          }
+          const { data: signed } = await supabase.storage
+            .from("garage")
+            .createSignedUrl(pick, 60 * 60 * 24 * 7);
+          garage_thumb_url = signed?.signedUrl ?? null;
         }
       }
     } catch {

@@ -160,9 +160,13 @@ export const inviteTagByEmail = createServerFn({ method: "POST" })
     const me = await profileEmail(userId);
     const { buildTagInviteEmail } = await import("./gallery-tag-email.server");
     const { sendEmail } = await import("./email.server");
+    const { signStoredUrl } = await import("./storage-urls.server");
+    const photoUrl =
+      (await signStoredUrl(supabase, item.image_url as string, 60 * 60 * 24 * 30)) ??
+      (item.image_url as string);
     const mail = buildTagInviteEmail({
       taggerName: me.name,
-      photoUrl: item.image_url as string,
+      photoUrl,
       photoTitle: (item.title as string) || (item.caption as string) || null,
       note: data.note || null,
     });

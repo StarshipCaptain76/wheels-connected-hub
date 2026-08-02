@@ -59,16 +59,9 @@ function pickImageFiles(): Promise<File[]> {
 }
 
 async function resolveUrl(path: string): Promise<string> {
-  const { data: pub } = supabase.storage.from("gallery").getPublicUrl(path);
-  if (pub?.publicUrl) {
-    const { data: signed } = await supabase.storage
-      .from("gallery")
-      .createSignedUrl(path, 60 * 60 * 24 * 365);
-    return signed?.signedUrl ?? pub.publicUrl;
-  }
   const { data: signed } = await supabase.storage
     .from("gallery")
-    .createSignedUrl(path, 60 * 60 * 24 * 365);
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
   return signed?.signedUrl ?? "";
 }
 

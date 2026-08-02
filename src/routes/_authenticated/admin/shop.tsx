@@ -192,8 +192,10 @@ function EditModal({
         .from("gallery")
         .upload(path, file, { cacheControl: "3600", upsert: false });
       if (error) throw error;
-      const { data } = supabase.storage.from("gallery").getPublicUrl(path);
-      set("image_url", data.publicUrl);
+      const { data } = await supabase.storage
+        .from("gallery")
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      set("image_url", data?.signedUrl ?? "");
     } catch (e) {
       setUpErr(e instanceof Error ? e.message : "Upload failed");
     } finally {

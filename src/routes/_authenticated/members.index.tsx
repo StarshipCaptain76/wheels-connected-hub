@@ -358,7 +358,9 @@ function MembersPage() {
                 >
                   <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
                 </Link>
+                <ChangePassword lang={lang === "af" ? "af" : "en"} />
                 <div className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
+
                   <p className="font-display text-xs tracking-[0.3em] text-primary">
                     {t("members.summary")}
                   </p>

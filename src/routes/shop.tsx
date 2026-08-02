@@ -7,6 +7,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listMerchItems, sendMerchEnquiry, type MerchItem } from "@/lib/merch.functions";
 import { ShoppingBag, Mail, Package, X } from "lucide-react";
+import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;

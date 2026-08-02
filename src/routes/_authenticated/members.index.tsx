@@ -61,6 +61,25 @@ function MembersPage() {
   const carPhoto = pickCarPhoto(garage ?? []);
   const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
 
+  const missingFields = missingProfileFields(profile);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Auto-open the wizard once per browser session while the profile is incomplete.
+  useEffect(() => {
+    if (!profile || missingFields.length === 0) return;
+    if (typeof window === "undefined") return;
+    const flag = "jw-profile-wizard-seen";
+    try {
+      if (window.sessionStorage.getItem(flag)) return;
+      window.sessionStorage.setItem(flag, "1");
+    } catch {
+      /* ignore */
+    }
+    setWizardOpen(true);
+  }, [profile, missingFields.length]);
+
+
+
   useEffect(() => {
     if (profile && typeof window !== "undefined") {
       try {

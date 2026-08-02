@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
+import { notifyAdminNewMember } from "@/lib/member-signup.functions";
+
 import { Eye, EyeOff, Mail } from "lucide-react";
 
 function safePath(value: unknown): string {

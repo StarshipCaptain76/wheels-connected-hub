@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ADMIN_EMAIL, SITE_ORIGIN, escapeHtml, sendEmail } from "./email.server";
+import { fakeButton, step, stepImage } from "./email-steps.server";
 
 const schema = z.object({
   email: z.string().trim().email().max(200),
@@ -8,47 +9,6 @@ const schema = z.object({
 });
 
 const FROM = "Just Wheels <members@notify.justwheels.co.za>";
-
-function stepImage(caption: string, inner: string): string {
-  return (
-    '<div style="border:2px solid #111;border-radius:10px;overflow:hidden;margin:8px 0 18px">' +
-    '<div style="background:#f4f1ea;padding:14px">' +
-    inner +
-    "</div>" +
-    '<div style="background:#111;color:#fff;font-size:12px;padding:6px 10px">' +
-    escapeHtml(caption) +
-    "</div>" +
-    "</div>"
-  );
-}
-
-function fakeButton(label: string, bg: string): string {
-  return (
-    '<span style="display:inline-block;background:' +
-    bg +
-    ';color:#fff;border:2px solid #111;border-radius:8px;padding:8px 14px;' +
-    'font-weight:bold;font-size:13px;letter-spacing:1px">' +
-    escapeHtml(label) +
-    "</span>"
-  );
-}
-
-function step(n: number, title: string, body: string): string {
-  return (
-    '<div style="margin:0 0 4px">' +
-    '<span style="display:inline-block;width:28px;height:28px;line-height:28px;text-align:center;' +
-    'background:#c8102e;color:#fff;border-radius:50%;font-weight:bold;margin-right:8px">' +
-    String(n) +
-    "</span>" +
-    '<span style="font-size:17px;font-weight:bold">' +
-    escapeHtml(title) +
-    "</span>" +
-    "</div>" +
-    '<div style="margin:0 0 6px 36px;font-size:15px;line-height:1.6">' +
-    body +
-    "</div>"
-  );
-}
 
 /**
  * Public: notify the club admin that a new member signed up and needs approval.

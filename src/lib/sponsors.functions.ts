@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { createPublicSupabase } from "./public-supabase.server";
+import { buildSponsorApplicationAdminEmail } from "./sponsor-application-email.server";
 
 export type Sponsor = {
   id: string;
@@ -249,37 +250,8 @@ export const applySponsor = createServerFn({ method: "POST" })
     const key = process.env.RESEND_API_KEY;
     if (!key) throw new Error("RESEND_API_KEY not configured");
 
-    const subject = "Sponsor application — " + data.business;
-    const rows = [
-      ["Business", "<strong>" + escapeHtml(data.business) + "</strong>"],
-      ["Contact", escapeHtml(data.contact)],
-      [
-        "Email",
-        '<a href="mailto:' + escapeHtml(data.email) + '">' + escapeHtml(data.email) + "</a>",
-      ],
-    ];
-    if (data.phone) rows.push(["Phone", escapeHtml(data.phone)]);
-    if (data.website) rows.push(["Website", escapeHtml(data.website)]);
-    if (data.message) rows.push(["Message", escapeHtml(data.message)]);
+    const subject = "New sponsor application — " + data.business + " (approval needed)";
 
-    const table = rows
-      .map(
-        ([label, value]) =>
-          '<tr><td style="padding:6px 0;color:#666">' +
-          label +
-          '</td><td style="padding:6px 0">' +
-          value +
-          "</td></tr>",
-      )
-      .join("");
-
-    const html =
-      '<div style="font-family:Arial,sans-serif;color:#111;max-width:560px">' +
-      "<h2 style=\"margin:0 0 12px\">New sponsor application</h2>" +
-      '<p style="margin:0 0 16px;color:#555">Sent from justwheels.co.za sponsors page</p>' +
-      '<table style="border-collapse:collapse;width:100%"><tbody>' +
-      table +
-      "</tbody></table></div>";
 
     // Store the application so admin can review + approve it
     let stored = false;
@@ -307,11 +279,15 @@ export const applySponsor = createServerFn({ method: "POST" })
         to: [ADMIN_EMAIL],
         reply_to: data.email,
         subject,
-        html:
-          html +
-          (stored
-            ? '<p style="margin:16px 0 0;color:#555">Review it under Admin → Sponsors → Applications.</p>'
-            : ""),
+        html: buildSponsorApplicationAdminEmail({
+          business: data.business,
+          contact: data.contact,
+          email: data.email,
+          phone: data.phone,
+          website: data.website,
+          message: data.message,
+          stored,
+        }),
       }),
     });
 

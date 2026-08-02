@@ -8,6 +8,7 @@ import { createListing } from "@/lib/listings.functions";
 import { TranslateButton } from "@/components/TranslateButton";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, X, Upload } from "lucide-react";
+import { CharCounter } from "@/components/CharCounter";
 
 const searchSchema = z.object({
   from: z.enum(["browse", "mine"]).optional(),
@@ -144,10 +145,12 @@ function NewListingPage() {
             </div>
             <input
               required
+              maxLength={120}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            <CharCounter value={title} max={120} />
           </div>
 
           <div>
@@ -156,10 +159,12 @@ function NewListingPage() {
               <TranslateButton source={title} from="en" to="af" onResult={setTitleAf} />
             </div>
             <input
+              maxLength={120}
               value={titleAf}
               onChange={(e) => setTitleAf(e.target.value)}
               className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            <CharCounter value={titleAf} max={120} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -185,7 +190,7 @@ function NewListingPage() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={lang === "af" ? "Prys (R)" : "Price (R)"} name="price_zar" type="number" />
-            <Field label={lang === "af" ? "Ligging" : "Location"} name="location" />
+            <Field label={lang === "af" ? "Ligging" : "Location"} name="location" maxLength={120} />
           </div>
 
           <div>
@@ -198,11 +203,13 @@ function NewListingPage() {
             </div>
             <textarea
               required
+              maxLength={4000}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={5}
               className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            <CharCounter value={description} max={4000} />
           </div>
 
           <div>
@@ -211,11 +218,13 @@ function NewListingPage() {
               <TranslateButton source={description} from="en" to="af" onResult={setDescriptionAf} />
             </div>
             <textarea
+              maxLength={4000}
               value={descriptionAf}
               onChange={(e) => setDescriptionAf(e.target.value)}
               rows={5}
               className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             />
+            <CharCounter value={descriptionAf} max={4000} />
           </div>
 
           <div>
@@ -252,10 +261,10 @@ function NewListingPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={lang === "af" ? "Kontaknaam" : "Contact name"} name="contact_name" required />
-            <Field label={lang === "af" ? "Foon" : "Phone"} name="contact_phone" />
+            <Field label={lang === "af" ? "Kontaknaam" : "Contact name"} name="contact_name" required maxLength={120} />
+            <Field label={lang === "af" ? "Foon" : "Phone"} name="contact_phone" maxLength={40} />
           </div>
-          <Field label={lang === "af" ? "E-pos" : "Email"} name="contact_email" type="email" required />
+          <Field label={lang === "af" ? "E-pos" : "Email"} name="contact_email" type="email" required maxLength={200} />
 
           {error ? <p className="text-sm text-primary">{error}</p> : null}
           <button
@@ -282,12 +291,15 @@ function Field({
   name,
   type = "text",
   required,
+  maxLength,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
+  maxLength?: number;
 }) {
+  const [value, setValue] = useState("");
   return (
     <label className="block">
       <span className="mb-1 block text-sm font-bold uppercase tracking-wider text-ink">
@@ -298,9 +310,13 @@ function Field({
         type={type}
         name={name}
         required={required}
+        maxLength={maxLength}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
         step={type === "number" ? "0.01" : undefined}
         className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
       />
+      {maxLength ? <CharCounter value={value} max={maxLength} /> : null}
     </label>
   );
 }

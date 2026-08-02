@@ -10,6 +10,7 @@ import { MessageCircle } from "lucide-react";
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
 const WA_HUGO = "https://wa.me/27836869237";
+const WA_DAWIE = "https://wa.me/27824602220";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -130,6 +131,20 @@ function Contact() {
               <span>
                 <span className="block font-bold uppercase tracking-wider text-ink">{t("contact.whatsapp")}</span>
                 <span className="block text-sm text-ink/60">{t("contact.whatsappSub")}</span>
+              </span>
+            </a>
+            <a
+              href={WA_DAWIE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-ink bg-primary text-paper">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-bold uppercase tracking-wider text-ink">{t("contact.whatsappDawie")}</span>
+                <span className="block text-sm text-ink/60">{t("contact.whatsappDawieSub")}</span>
               </span>
             </a>
           </div>

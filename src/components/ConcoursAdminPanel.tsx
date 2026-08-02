@@ -9,8 +9,12 @@ import {
   listAllConcoursQuestionsAdmin,
   upsertConcoursQuestion,
   publishConcoursResults,
+  listConcoursScoresAdmin,
+  updateConcoursScoreAdmin,
+  deleteConcoursScoreAdmin,
   type EventConcours,
   type ConcoursQuestion,
+  type ConcoursScoreRow,
 } from "@/lib/concours.functions";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
@@ -23,6 +27,8 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const reveal = useServerFn(revealConcoursLeaderboard);
   const upsertQ = useServerFn(upsertConcoursQuestion);
   const publish = useServerFn(publishConcoursResults);
+  const updateScore = useServerFn(updateConcoursScoreAdmin);
+  const delScore = useServerFn(deleteConcoursScoreAdmin);
 
   const concoursQ = useQuery({
     queryKey: ["concours", eventId],
@@ -39,6 +45,11 @@ export function ConcoursAdminPanel({ eventId }: Props) {
     enabled: !!eventId,
     queryFn: () => listAllConcoursQuestionsAdmin(),
   });
+  const scoresQ = useQuery({
+    queryKey: ["concours-scores-admin", eventId],
+    enabled: !!eventId && adminTab === "scores",
+    queryFn: () => listConcoursScoresAdmin({ data: { eventId: eventId! } }),
+  });
 
   const [enabled, setEnabled] = useState(false);
   const [questionCount, setQuestionCount] = useState(10);
@@ -48,7 +59,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const [sponsorLogoUrl, setSponsorLogoUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "results">("settings");
+  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
 
   // Results form
   const [winnerVehicleId, setWinnerVehicleId] = useState<string>("");
@@ -220,7 +231,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex gap-1 border-b-2 border-ink text-[10px] font-bold uppercase tracking-wider">
-        {(["settings", "questions", "results"] as const).map((t) => (
+        {(["settings", "questions", "scores", "results"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -419,13 +430,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                 Scoring
                 <select
                   value={editingQ.scoring_type ?? "scale_1_10"}
-                  onChange={(e) =>
-                    setEditingQ({
-                      ...editingQ,
-                      scoring_type: e.target.value as NonNullable<typeof editingQ.scoring_type>,
-                    })
-                  }
-
+                  onChange={(e) => setEditingQ({ ...editingQ, scoring_type: e.target.value })}
                   className={inp}
                 >
                   <option value="scale_1_10">1–10 scale</option>
@@ -482,6 +487,85 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                     className="rounded border border-primary px-1.5 text-[10px] font-bold uppercase text-primary"
                   >
                     Off
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+
+      {adminTab === "scores" && (
+        <div className="space-y-3">
+          <p className="text-xs text-ink/60">
+            Edit or delete individual Concours scores. Changing a score updates the live average.
+          </p>
+          {(scoresQ.data ?? []).length === 0 && (
+            <p className="text-sm text-ink/50">No scores submitted yet.</p>
+          )}
+          <ul className="max-h-96 space-y-2 overflow-y-auto">
+            {(scoresQ.data ?? []).map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded border-2 border-ink/20 bg-paper p-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-bold text-ink">
+                    {s.display_name || (s.is_member ? "Member" : "Spectator")}
+                    {s.member_number != null ? ` #${s.member_number}` : ""}
+                  </p>
+                  <p className="text-xs text-ink/60">
+                    {s.vehicle_label || "Vehicle"} · weight {s.weight}
+                    {s.submitted_at
+                      ? ` · ${new Date(s.submitted_at).toLocaleString()}`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    step={0.1}
+                    defaultValue={s.total_score ?? ""}
+                    className="w-16 rounded border-2 border-ink bg-paper px-2 py-1 text-sm font-bold"
+                    onBlur={async (e) => {
+                      const v = e.target.value === "" ? null : Number(e.target.value);
+                      if (v === s.total_score) return;
+                      setBusy(true);
+                      try {
+                        await updateScore({
+                          data: { scoreId: s.id, totalScore: v },
+                        });
+                        await qc.invalidateQueries({ queryKey: ["concours-scores-admin", eventId] });
+                        await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : "Update failed");
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={async () => {
+                      if (!confirm("Delete this score?")) return;
+                      setBusy(true);
+                      try {
+                        await delScore({ data: { scoreId: s.id } });
+                        await qc.invalidateQueries({ queryKey: ["concours-scores-admin", eventId] });
+                        await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : "Delete failed");
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                    className="rounded border-2 border-primary px-2 py-1 text-[10px] font-bold uppercase text-primary"
+                  >
+                    Del
                   </button>
                 </div>
               </li>

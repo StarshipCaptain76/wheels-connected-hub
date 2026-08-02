@@ -44,6 +44,7 @@ function Shop() {
   const { t, lang } = useI18n();
   const { data: items } = useSuspenseQuery(shopQuery);
   const [openItem, setOpenItem] = useState<MerchItem | null>(null);
+  const [photo, setPhoto] = useState<LightboxItem | null>(null);
 
   return (
     <SiteLayout>

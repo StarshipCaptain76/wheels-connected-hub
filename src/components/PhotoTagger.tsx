@@ -130,6 +130,22 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     }
   }
 
+  function onWhatsApp() {
+    const to = normalisePhone(phone);
+    if (!to) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const photoUrl = `${origin}/gallery?photo=${galleryItemId}`;
+    const joinUrl = `${origin}/join`;
+    const extra = note.trim() ? `\n\n${note.trim()}` : "";
+    const msg = af
+      ? `Haai! Ek het jou gemerk op 'n foto by Just Wheels Hessequa 🛞\n\nKyk die foto: ${photoUrl}\n\nOns is 'n klassieke- en spesiale motorklub in die Hessequa-omgewing. Sluit gerus by ons aan: ${joinUrl}${extra}`
+      : `Hi! I tagged you in a photo at Just Wheels Hessequa 🛞\n\nSee the photo: ${photoUrl}\n\nWe're a classic & special car club in the Hessequa area — come join us: ${joinUrl}${extra}`;
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    toast.success(af ? "WhatsApp geopen" : "WhatsApp opened");
+    setPhone("");
+  }
+
+
   return (
     <div className="rounded-xl border-2 border-ink bg-paper p-3">
       <div className="flex flex-wrap items-center gap-2">

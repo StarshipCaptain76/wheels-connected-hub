@@ -1,293 +1,583 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
-import { useI18n } from "@/i18n/I18nProvider";
-import { useConfirm } from "@/components/ConfirmDialog";
-import { ImageUploadField } from "@/components/ImageUploadField";
-import { CharCounter } from "@/components/CharCounter";
 import {
   getEventConcours,
-  listConcoursQuestions,
-  listConcoursVehicles,
   upsertEventConcours,
   revealConcoursLeaderboard,
-  addConcoursVehicle,
-  deleteConcoursVehicle,
+  listConcoursVehicles,
+  listAllConcoursQuestionsAdmin,
+  upsertConcoursQuestion,
+  publishConcoursResults,
+  type EventConcours,
+  type ConcoursQuestion,
 } from "@/lib/concours.functions";
-import { Trash2, Trophy, Shuffle } from "lucide-react";
+import { ImageUploadField } from "@/components/ImageUploadField";
+import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
-export function ConcoursAdminPanel({ eventId }: { eventId?: string | null }) {
-  const { lang } = useI18n();
+type Props = { eventId: string | undefined };
+
+export function ConcoursAdminPanel({ eventId }: Props) {
   const qc = useQueryClient();
-  const confirm = useConfirm();
-
-  const save = useServerFn(upsertEventConcours);
+  const upsert = useServerFn(upsertEventConcours);
   const reveal = useServerFn(revealConcoursLeaderboard);
-  const addVehicle = useServerFn(addConcoursVehicle);
-  const delVehicle = useServerFn(deleteConcoursVehicle);
+  const upsertQ = useServerFn(upsertConcoursQuestion);
+  const publish = useServerFn(publishConcoursResults);
 
-  const concours = useQuery({
+  const concoursQ = useQuery({
     queryKey: ["concours", eventId],
+    enabled: !!eventId,
     queryFn: () => getEventConcours({ data: { eventId: eventId! } }),
-    enabled: Boolean(eventId),
   });
-  const vehicles = useQuery({
+  const vehiclesQ = useQuery({
     queryKey: ["concours-vehicles", eventId],
+    enabled: !!eventId,
     queryFn: () => listConcoursVehicles({ data: { eventId: eventId! } }),
-    enabled: Boolean(eventId),
   });
-  const questions = useQuery({
-    queryKey: ["concours-questions", concours.data?.selected_question_ids],
-    queryFn: () =>
-      listConcoursQuestions({ data: { ids: concours.data?.selected_question_ids ?? [] } }),
-    enabled: Boolean(concours.data?.selected_question_ids?.length),
+  const questionsQ = useQuery({
+    queryKey: ["concours-questions-admin"],
+    enabled: !!eventId,
+    queryFn: () => listAllConcoursQuestionsAdmin(),
   });
 
-  const [enabled, setEnabled] = useState<boolean | null>(null);
-  const [count, setCount] = useState<number | null>(null);
-  const [prizeEn, setPrizeEn] = useState<string | null>(null);
-  const [prizeAf, setPrizeAf] = useState<string | null>(null);
-  const [sponsorName, setSponsorName] = useState<string | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [questionCount, setQuestionCount] = useState(10);
+  const [prizeEn, setPrizeEn] = useState("");
+  const [prizeAf, setPrizeAf] = useState("");
+  const [sponsorName, setSponsorName] = useState("");
+  const [sponsorLogoUrl, setSponsorLogoUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [photoUrl, setPhotoUrl] = useState("");
-  const [label, setLabel] = useState("");
+  const [msg, setMsg] = useState<string | null>(null);
+  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "results">("settings");
+
+  // Results form
+  const [winnerVehicleId, setWinnerVehicleId] = useState<string>("");
+  const [winnerPhotoUrl, setWinnerPhotoUrl] = useState("");
+  const [winnerHeadlineEn, setWinnerHeadlineEn] = useState("");
+  const [winnerHeadlineAf, setWinnerHeadlineAf] = useState("");
+  const [resultsOnHome, setResultsOnHome] = useState(false);
+
+  // Question editor
+  const [editingQ, setEditingQ] = useState<Partial<ConcoursQuestion> & { scoring_type?: string } | null>(null);
+
+  useEffect(() => {
+    const c = concoursQ.data;
+    if (c) {
+      setEnabled(c.enabled);
+      setQuestionCount(c.question_count);
+      setPrizeEn(c.prize_en ?? "");
+      setPrizeAf(c.prize_af ?? "");
+      setSponsorName(c.sponsor_name ?? "");
+      setSponsorLogoUrl(c.sponsor_logo_url ?? "");
+      setWinnerVehicleId(c.winner_vehicle_id ?? "");
+      setWinnerPhotoUrl(c.winner_photo_url ?? "");
+      setWinnerHeadlineEn(c.winner_headline_en ?? "");
+      setWinnerHeadlineAf(c.winner_headline_af ?? "");
+      setResultsOnHome(!!c.results_on_home);
+    }
+  }, [concoursQ.data]);
 
   if (!eventId) {
     return (
-      <p className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-        {lang === "af"
-          ? "Stoor eers die geleentheid, dan kan jy die Concours opstel."
-          : "Save the event first, then you can set up the Concours."}
+      <p className="text-sm text-ink/60">
+        Save the event first, then open this tab to enable Concours Mini.
       </p>
     );
   }
 
-  const c = concours.data;
-  const isEnabled = enabled ?? c?.enabled ?? false;
-  const qCount = count ?? c?.question_count ?? 8;
-
-  async function persist(reRoll = false) {
+  async function save(reRoll = false) {
     setBusy(true);
+    setMsg(null);
     try {
-      await save({
+      const res = await upsert({
         data: {
           eventId: eventId!,
-          enabled: isEnabled,
-          questionCount: qCount,
-          prizeEn: prizeEn ?? c?.prize_en ?? null,
-          prizeAf: prizeAf ?? c?.prize_af ?? null,
-          sponsorName: sponsorName ?? c?.sponsor_name ?? null,
-          sponsorLogoUrl: c?.sponsor_logo_url ?? null,
+          enabled,
+          questionCount,
+          prizeEn: prizeEn || null,
+          prizeAf: prizeAf || null,
+          sponsorName: sponsorName || null,
+          sponsorLogoUrl: sponsorLogoUrl || null,
           reRollQuestions: reRoll,
         },
       });
+      setMsg(
+        reRoll
+          ? `Questions re-rolled (${res.selectedCount} selected)`
+          : `Saved · ${res.selectedCount} questions ready`,
+      );
       await qc.invalidateQueries({ queryKey: ["concours", eventId] });
-      toast.success(lang === "af" ? "Concours gestoor" : "Concours saved");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Save failed");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Save failed");
     } finally {
       setBusy(false);
     }
   }
 
+  async function toggleReveal() {
+    if (!concoursQ.data) return;
+    setBusy(true);
+    try {
+      await reveal({
+        data: { eventId: eventId!, revealed: !concoursQ.data.leaderboard_revealed },
+      });
+      await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveQuestion() {
+    if (!editingQ?.text_en || !editingQ?.text_af || !editingQ?.category) {
+      alert("Category + EN + AF text required");
+      return;
+    }
+    setBusy(true);
+    try {
+      await upsertQ({
+        data: {
+          id: editingQ.id ?? null,
+          category: editingQ.category,
+          categoryAf: editingQ.category_af ?? null,
+          textEn: editingQ.text_en,
+          textAf: editingQ.text_af,
+          scoringType: (editingQ.scoring_type as "scale_1_10" | "yes_no" | "yes_no_na" | "count") ?? "scale_1_10",
+          sortOrder: editingQ.sort_order ?? 0,
+          active: true,
+        },
+      });
+      setEditingQ(null);
+      await qc.invalidateQueries({ queryKey: ["concours-questions-admin"] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deactivateQuestion(id: string) {
+    if (!confirm("Deactivate this question?")) return;
+    setBusy(true);
+    try {
+      const q = questionsQ.data?.find((x) => x.id === id);
+      if (!q) return;
+      await upsertQ({
+        data: {
+          id: q.id,
+          category: q.category,
+          categoryAf: q.category_af,
+          textEn: q.text_en,
+          textAf: q.text_af,
+          scoringType: q.scoring_type,
+          sortOrder: q.sort_order,
+          active: false,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["concours-questions-admin"] });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveResults() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await publish({
+        data: {
+          eventId: eventId!,
+          winnerVehicleId: winnerVehicleId || null,
+          winnerPhotoUrl: winnerPhotoUrl || null,
+          winnerHeadlineEn: winnerHeadlineEn || null,
+          winnerHeadlineAf: winnerHeadlineAf || null,
+          resultsOnHome,
+        },
+      });
+      setMsg(resultsOnHome ? "Published on home page" : "Results saved (not on home)");
+      await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+      await qc.invalidateQueries({ queryKey: ["concours-home-winner"] });
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Publish failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const c: EventConcours | null = concoursQ.data ?? null;
+  const vehicles = vehiclesQ.data ?? [];
+  const vehicleCount = vehicles.length;
+  const bank = (questionsQ.data ?? []).filter((q) => (q as ConcoursQuestion & { active?: boolean }));
+
+  // vehicles sorted by score for winner picker
+  const ranked = [...vehicles]
+    .filter((v) => v.average_score != null)
+    .sort((a, b) => (b.average_score ?? 0) - (a.average_score ?? 0));
+
   return (
-    <div className="space-y-6">
-      <section className="space-y-3 rounded-lg border border-border p-4">
-        <label className="flex items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            checked={isEnabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-          />
-          {lang === "af" ? "Concours-uitdaging aktief" : "Concours challenge enabled"}
-        </label>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {lang === "af" ? "Aantal vrae (5–15)" : "Number of questions (5–15)"}
-            </label>
-            <input
-              type="number"
-              min={5}
-              max={15}
-              value={qCount}
-              onChange={(e) => setCount(Number(e.target.value))}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {lang === "af" ? "Borg se naam" : "Sponsor name"}
-            </label>
-            <input
-              value={sponsorName ?? c?.sponsor_name ?? ""}
-              maxLength={120}
-              onChange={(e) => setSponsorName(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-            <CharCounter value={sponsorName ?? c?.sponsor_name ?? ""} max={120} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Prize (EN)</label>
-            <input
-              value={prizeEn ?? c?.prize_en ?? ""}
-              maxLength={300}
-              onChange={(e) => setPrizeEn(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-            <CharCounter value={prizeEn ?? c?.prize_en ?? ""} max={300} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Prys (AF)</label>
-            <input
-              value={prizeAf ?? c?.prize_af ?? ""}
-              maxLength={300}
-              onChange={(e) => setPrizeAf(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            />
-            <CharCounter value={prizeAf ?? c?.prize_af ?? ""} max={300} />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
+    <div className="space-y-4">
+      <div className="flex gap-1 border-b-2 border-ink text-[10px] font-bold uppercase tracking-wider">
+        {(["settings", "questions", "results"] as const).map((t) => (
           <button
+            key={t}
             type="button"
-            disabled={busy}
-            onClick={() => persist(false)}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            onClick={() => setAdminTab(t)}
+            className={`rounded-t border-2 border-b-0 px-3 py-1.5 ${
+              adminTab === t ? "border-ink bg-ink text-paper" : "border-transparent text-ink/60"
+            }`}
           >
-            {lang === "af" ? "Stoor Concours" : "Save Concours"}
+            {t}
           </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => persist(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60"
-          >
-            <Shuffle className="h-4 w-4" />
-            {lang === "af" ? "Kies nuwe vrae" : "Re-roll questions"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={async () => {
-              try {
-                await reveal({
-                  data: { eventId, revealed: !(c?.leaderboard_revealed ?? false) },
-                });
-                await qc.invalidateQueries({ queryKey: ["concours", eventId] });
-              } catch (e) {
-                toast.error(e instanceof Error ? e.message : "Failed");
-              }
-            }}
-            className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60"
-          >
-            <Trophy className="h-4 w-4" />
-            {c?.leaderboard_revealed
-              ? lang === "af"
-                ? "Versteek uitslae"
-                : "Hide leaderboard"
-              : lang === "af"
-                ? "Wys uitslae"
-                : "Reveal leaderboard"}
-          </button>
-        </div>
-      </section>
+        ))}
+      </div>
 
-      {questions.data && questions.data.length > 0 && (
-        <section className="rounded-lg border border-border p-4">
-          <h3 className="mb-2 text-sm font-semibold">
-            {lang === "af" ? "Gekose vrae" : "Selected questions"}
-          </h3>
-          <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
-            {questions.data.map((q) => (
-              <li key={q.id}>{lang === "af" ? q.text_af : q.text_en}</li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      <section className="space-y-3 rounded-lg border border-border p-4">
-        <h3 className="text-sm font-semibold">
-          {lang === "af" ? "Voertuie om te beoordeel" : "Vehicles to judge"}
-        </h3>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {lang === "af" ? "Foto" : "Photo"}
-            </label>
-            <ImageUploadField
-              bucket="events"
-              folder="concours"
-              value={photoUrl}
-              onChange={(v) => setPhotoUrl(v)}
-            />
+      {adminTab === "settings" && (
+        <div className="space-y-4">
+          <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 text-sm text-ink/80">
+            <p className="font-bold text-primary">Concours Mini</p>
+            <p className="mt-1">
+              Enable here. On the day: members/spectators GPS check-in on the event page; admins add
+              cars with [+].
+            </p>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">
-              {lang === "af" ? "Beskrywing" : "Label"}
-            </label>
+
+          <label className="flex items-center gap-3">
             <input
-              value={label}
-              maxLength={120}
-              onChange={(e) => setLabel(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="h-4 w-4"
             />
-            <CharCounter value={label} max={120} />
-            <button
-              type="button"
-              disabled={!photoUrl || busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  await addVehicle({
-                    data: { eventId, photoUrl, label: label || null, labelAf: null },
-                  });
-                  setPhotoUrl("");
-                  setLabel("");
-                  await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : "Failed");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-              className="mt-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
-            >
-              {lang === "af" ? "Voeg voertuig by" : "Add vehicle"}
-            </button>
-          </div>
-        </div>
+            <span className="text-sm font-bold">Enable Concours Mini for this event</span>
+          </label>
 
-        <ul className="grid gap-3 sm:grid-cols-3">
-          {(vehicles.data ?? []).map((v) => (
-            <li key={v.id} className="overflow-hidden rounded-lg border border-border">
-              <img src={v.photo_url} alt={v.label ?? ""} className="h-32 w-full object-cover" />
-              <div className="flex items-center justify-between gap-2 p-2 text-xs">
-                <span className="truncate">{v.label ?? "—"}</span>
+          {enabled && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                    Questions for this event (5–15)
+                  </span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={15}
+                    value={questionCount}
+                    onChange={(e) =>
+                      setQuestionCount(Math.max(5, Math.min(15, Number(e.target.value) || 10)))
+                    }
+                    className={inp}
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => save(true)}
+                    className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase disabled:opacity-50"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" /> Re-roll from bank
+                  </button>
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Prize (EN)</span>
+                <input value={prizeEn} onChange={(e) => setPrizeEn(e.target.value)} className={inp} />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Prize (AF)</span>
+                <input value={prizeAf} onChange={(e) => setPrizeAf(e.target.value)} className={inp} />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                  Sponsor name (optional)
+                </span>
+                <input
+                  value={sponsorName}
+                  onChange={(e) => setSponsorName(e.target.value)}
+                  className={inp}
+                />
+              </label>
+              <ImageUploadField
+                label="Sponsor logo (optional)"
+                value={sponsorLogoUrl}
+                onChange={(v) => setSponsorLogoUrl(v || "")}
+                bucket="gallery"
+                folder="events/concours-sponsors"
+                maxMb={2}
+              />
+
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  aria-label="Delete"
-                  onClick={async () => {
-                    const ok = await confirm({
-                      title: lang === "af" ? "Verwyder voertuig?" : "Remove vehicle?",
-                    });
-                    if (!ok) return;
-                    await delVehicle({ data: { vehicleId: v.id } });
-                    await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
-                  }}
-                  className="text-destructive"
+                  disabled={busy}
+                  onClick={() => save(false)}
+                  className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  {busy ? "Saving…" : "Save settings"}
+                </button>
+                {c && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={toggleReveal}
+                    className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase disabled:opacity-50"
+                  >
+                    {c.leaderboard_revealed ? (
+                      <>
+                        <EyeOff className="h-4 w-4" /> Hide leaderboard
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4" /> Reveal leaderboard
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              {msg && <p className="text-sm font-bold text-primary">{msg}</p>}
+
+              <div className="flex items-start gap-2 rounded-lg border-2 border-dashed border-ink/30 p-3 text-sm text-ink/70">
+                <Camera className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div>
+                  <p className="font-bold text-ink">
+                    Vehicles on event page ({vehicleCount} so far)
+                  </p>
+                  <p className="mt-0.5">
+                    Admins check in on site, then use [+] on the public event page.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {adminTab === "questions" && (
+        <div className="space-y-3">
+          <p className="text-xs text-ink/60">
+            Master question bank used when rolling questions for an event. Edit scoring type and
+            bilingual text.
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              setEditingQ({
+                category: "Quirks & Character",
+                text_en: "",
+                text_af: "",
+                scoring_type: "scale_1_10",
+                sort_order: (questionsQ.data?.length ?? 0) + 1,
+              })
+            }
+            className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase text-paper"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add question
+          </button>
+
+          {editingQ && (
+            <div className="space-y-2 rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
+              <label className="block text-xs font-bold uppercase">
+                Category (EN)
+                <input
+                  value={editingQ.category ?? ""}
+                  onChange={(e) => setEditingQ({ ...editingQ, category: e.target.value })}
+                  className={inp}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase">
+                Category (AF)
+                <input
+                  value={editingQ.category_af ?? ""}
+                  onChange={(e) => setEditingQ({ ...editingQ, category_af: e.target.value })}
+                  className={inp}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase">
+                Question (EN)
+                <textarea
+                  value={editingQ.text_en ?? ""}
+                  onChange={(e) => setEditingQ({ ...editingQ, text_en: e.target.value })}
+                  className={inp}
+                  rows={2}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase">
+                Question (AF)
+                <textarea
+                  value={editingQ.text_af ?? ""}
+                  onChange={(e) => setEditingQ({ ...editingQ, text_af: e.target.value })}
+                  className={inp}
+                  rows={2}
+                />
+              </label>
+              <label className="block text-xs font-bold uppercase">
+                Scoring
+                <select
+                  value={editingQ.scoring_type ?? "scale_1_10"}
+                  onChange={(e) => setEditingQ({ ...editingQ, scoring_type: e.target.value })}
+                  className={inp}
+                >
+                  <option value="scale_1_10">1–10 scale</option>
+                  <option value="yes_no">Yes / No</option>
+                  <option value="yes_no_na">Yes / No / N/A</option>
+                  <option value="count">Count (number)</option>
+                </select>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={saveQuestion}
+                  className="rounded-md border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase text-paper"
+                >
+                  Save question
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingQ(null)}
+                  className="rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase"
+                >
+                  Cancel
                 </button>
               </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+            </div>
+          )}
+
+          <ul className="max-h-72 space-y-2 overflow-y-auto">
+            {(questionsQ.data ?? []).map((q) => (
+              <li
+                key={q.id}
+                className="flex items-start justify-between gap-2 rounded border-2 border-ink/20 bg-paper p-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase text-primary">
+                    {q.category} · {q.scoring_type}
+                  </p>
+                  <p className="font-bold text-ink">{q.text_en}</p>
+                  <p className="text-xs text-ink/60">{q.text_af}</p>
+                </div>
+                <div className="flex shrink-0 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingQ(q)}
+                    className="rounded border border-ink p-1"
+                    title="Edit"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deactivateQuestion(q.id)}
+                    className="rounded border border-primary px-1.5 text-[10px] font-bold uppercase text-primary"
+                  >
+                    Off
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {adminTab === "results" && (
+        <div className="space-y-3">
+          <p className="text-xs text-ink/60">
+            After the event: pick the winner, upload a showcase photo, and optionally pin it on the
+            home page.
+          </p>
+
+          {ranked.length > 0 && (
+            <div className="rounded-lg border-2 border-ink/20 bg-paper p-2 text-xs">
+              <p className="font-bold uppercase text-primary">Live ranking</p>
+              <ol className="mt-1 space-y-0.5">
+                {ranked.slice(0, 5).map((v, i) => (
+                  <li key={v.id}>
+                    #{i + 1} {v.tagged_display_name || v.label || "Vehicle"} — {v.average_score} (
+                    {v.submission_count} votes)
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+              Winner vehicle
+            </span>
+            <select
+              value={winnerVehicleId}
+              onChange={(e) => setWinnerVehicleId(e.target.value)}
+              className={inp}
+            >
+              <option value="">— Select —</option>
+              {vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {(v.tagged_display_name || v.label || "Vehicle") +
+                    (v.average_score != null ? ` (${v.average_score})` : "")}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <ImageUploadField
+            label="Winner showcase photo (required for home)"
+            value={winnerPhotoUrl}
+            onChange={(v) => setWinnerPhotoUrl(v || "")}
+            bucket="gallery"
+            folder={`events/concours/${eventId}/winner`}
+            maxMb={6}
+          />
+
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+              Headline (EN)
+            </span>
+            <input
+              value={winnerHeadlineEn}
+              onChange={(e) => setWinnerHeadlineEn(e.target.value)}
+              placeholder="e.g. Concours Mini champ — Stilbaai cruise"
+              className={inp}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+              Headline (AF)
+            </span>
+            <input
+              value={winnerHeadlineAf}
+              onChange={(e) => setWinnerHeadlineAf(e.target.value)}
+              className={inp}
+            />
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={resultsOnHome}
+              onChange={(e) => setResultsOnHome(e.target.checked)}
+            />
+            <span className="text-sm font-bold">Show on home page</span>
+          </label>
+
+          <button
+            type="button"
+            disabled={busy || (resultsOnHome && !winnerPhotoUrl)}
+            onClick={saveResults}
+            className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+          >
+            <Trophy className="h-4 w-4" />
+            {busy ? "Saving…" : resultsOnHome ? "Publish to home" : "Save results"}
+          </button>
+          {msg && <p className="text-sm font-bold text-primary">{msg}</p>}
+        </div>
+      )}
     </div>
   );
 }
+
+const inp = "mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2";

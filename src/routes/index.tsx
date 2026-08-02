@@ -127,6 +127,9 @@ function Index() {
               JUST WHEELS
               <br />
               <span className="text-primary">HESSEQUA</span>
+              <span className="mt-3 block font-sans text-base font-bold uppercase tracking-[0.2em] text-ink/70 sm:text-lg">
+                Southern Cape Car Club
+              </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
             <div className="mt-8 flex flex-wrap gap-3">

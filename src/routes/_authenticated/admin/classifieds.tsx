@@ -23,6 +23,13 @@ export const Route = createFileRoute("/_authenticated/admin/classifieds")({
   ),
 });
 
+const CATEGORY_LABELS: Record<string, { en: string; af: string }> = {
+  cars: { en: "Cars", af: "Karre" },
+  parts: { en: "Parts", af: "Onderdele" },
+  memorabilia: { en: "Memorabilia", af: "Memorabilia" },
+  other: { en: "Other", af: "Ander" },
+};
+
 function StatusBadge({
   status,
   lang,
@@ -166,7 +173,11 @@ function AdminClassifieds() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge status={l.status} lang={lang} />
-                    <span className="text-xs uppercase tracking-wider text-ink/50">{l.category}</span>
+                    <span className="text-xs uppercase tracking-wider text-ink/50">
+                      {lang === "af"
+                        ? (CATEGORY_LABELS[l.category]?.af ?? l.category)
+                        : (CATEGORY_LABELS[l.category]?.en ?? l.category)}
+                    </span>
                   </div>
                   <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
                   <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>

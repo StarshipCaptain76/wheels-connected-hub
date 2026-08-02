@@ -927,8 +927,12 @@ export const listConcoursScoresAdmin = createServerFn({ method: "GET" })
         .in("id", vehicleIds),
     ]);
 
-    const byUser = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
-    const byVeh = new Map((vehicles ?? []).map((v: Record<string, unknown>) => [v.id as string, v]));
+    const byUser = new Map<string, Record<string, unknown>>(
+      ((profiles ?? []) as Record<string, unknown>[]).map((p) => [p.id as string, p]),
+    );
+    const byVeh = new Map<string, Record<string, unknown>>(
+      ((vehicles ?? []) as Record<string, unknown>[]).map((v) => [v.id as string, v]),
+    );
 
     return scores.map((s: Record<string, unknown>) => {
       const p = s.user_id ? byUser.get(s.user_id as string) : null;

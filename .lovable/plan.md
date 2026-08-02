@@ -1,34 +1,42 @@
-# Sponsor applications, approval and member-owned sponsor cards
+## Goal
 
-## What changes for people
+When a member signs in and their profile is missing information, show them exactly what is missing and walk them through a short wizard to fill it in. Skipping is allowed, but a reminder stays until the profile is complete.
 
-**A business applies** on `/sponsors`. Today that form only emails the club — nothing is stored. After this change the application is saved, and the applicant immediately gets a confirmation email ("we received your application").
+## What counts as "complete"
 
-**Admin reviews** at `/admin/sponsors`, in a new "Applications" section above the sponsor list: pending / approved / declined tabs, each showing business, contact, email, phone, website and message. Admin can:
-- **Approve** — pick which club member owns this sponsor (searchable member picker, pre-matched by the application email when it matches a member), set subscription start/end dates, and a sponsor record is created in draft (inactive) state. The applicant and assigned member get an email: "Approved — complete your sponsor card setup" with a link to `/members/sponsor`.
-- **Decline** — marks it declined (no email sent unless you want one; default: no email).
+Five things, all already stored on the member profile:
 
-**The assigned member** gets a new page `/members/sponsor` (linked from the members area when they own a sponsor). While their subscription is valid they can edit the sponsor card: logo, name, tagline (EN/AF, with the existing translate button) and website. When the end date has passed, the form is read-only and shows "Your sponsorship has expired — contact the club admin" with the WhatsApp/email contact. Members can never change dates, active flag, sort order, or ownership — admin-only.
+1. Full name
+2. Phone number
+3. Town
+4. Profile photo
+5. Favourite ride
+6. Short bio (the one used when they are the featured member)
 
-**Public carousel** is unchanged in behaviour: only active sponsors inside their date window are shown.
+## Member experience
 
-## Technical details
+On the members home page only:
 
-Database migration:
-- `public.sponsor_applications` — business, contact_name, email, phone, website, message, status (`pending` / `approved` / `declined`), reviewed_by, reviewed_at, created_sponsor_id, timestamps. Insert allowed for anon+authenticated (public form); select/update admin-only via `has_role`. GRANTs for anon/authenticated/service_role per policies.
-- `public.sponsors` gains `owner_user_id uuid references auth.users`.
-- New RLS on sponsors: owners may `SELECT`/`UPDATE` their own row; an `UPDATE` policy plus a trigger restricts owner edits to name/tagline/tagline_af/website_url/logo_path and blocks changes when `billing_ends_at < current_date`. Admin policies stay as-is.
-- Storage `sponsors` bucket: extend upload/update policies so a sponsor owner may write under their own `owner_user_id/...` prefix (currently admin-only).
+- If anything is missing, a red-bordered card appears at the top: "Your profile is X% complete" with a plain-language list of what is still needed and a big **COMPLETE MY PROFILE** button.
+- The wizard opens automatically the first time they land on the page in a session; after that the card stays but does not pop up again.
+- The wizard is one question per screen with a progress dot row, Back / Next, and a **Skip for now** link. It only shows the steps that are actually missing.
+- Photo step reuses the existing avatar upload.
+- Last screen confirms "All done" and closes back to the profile page.
+- Everything bilingual (English / Afrikaans), matching the existing club styling.
 
-Server functions (`src/lib/sponsors.functions.ts` + new `sponsor-applications.functions.ts`):
-- `applySponsor` — keep the admin notification email, add an insert into `sponsor_applications` and a Resend confirmation email to the applicant (from `sponsors@notify.justwheels.co.za`).
-- `listSponsorApplications`, `approveSponsorApplication` (assign owner + dates, create sponsor row, send setup email), `declineSponsorApplication` — all admin-gated.
-- `getMySponsor` / `updateMySponsor` — `requireSupabaseAuth`, owner-scoped, server-side expiry check.
-- Reuse the existing member list from `admin-members.functions.ts` for the owner picker.
+```text
++------------------------------------------+
+|  YOUR PROFILE IS 60% COMPLETE            |
+|  Still needed: photo, town, short bio    |
+|  [ COMPLETE MY PROFILE ]   skip for now  |
++------------------------------------------+
+```
 
-UI:
-- `src/routes/_authenticated/admin/sponsors.tsx`: applications panel with tabs, approve dialog (member picker + dates), decline action; owner column shown on each sponsor row so admin can reassign.
-- New `src/routes/_authenticated/members.sponsor.tsx` with the card editor and expired state; entry point added in the members area only when the user owns a sponsor.
-- New EN/AF strings in `src/i18n/dictionaries.ts` for the member-facing page and application confirmation copy.
+## Technical notes
 
-Emails are all Resend via the existing `RESEND_API_KEY` and the `notify.justwheels.co.za` sender.
+- New `src/lib/profile-completeness.ts`: pure helper returning missing field keys + percentage from a `MemberProfile`; shared by the banner and the wizard.
+- New `src/components/ProfileWizard.tsx`: modal stepper, one field per step, saves through the existing `updateMyProfile` server function (and `updateMyAvatar` for the photo step, same upload logic as `GarageManager`). Saves each step as you advance so partial progress is never lost.
+- New `src/components/ProfileCompletionBanner.tsx`: the summary card + open button.
+- `src/routes/_authenticated/members.index.tsx`: render the banner above the existing content, auto-open the wizard once per session (`sessionStorage` flag), invalidate the `["profile","me"]` query on save so the member card preview updates immediately.
+- Translation keys added to the existing i18n dictionary.
+- No database or schema changes needed — all fields already exist on `profiles`.

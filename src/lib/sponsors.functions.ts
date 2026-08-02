@@ -19,6 +19,8 @@ export type AdminSponsor = {
   tagline_af: string | null;
   website_url: string | null;
   logo_path: string;
+  logo_url: string;
+
   is_active: boolean;
   sort: number;
   billing_starts_at: string | null;

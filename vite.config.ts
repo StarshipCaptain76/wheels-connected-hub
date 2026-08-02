@@ -30,12 +30,18 @@ export default defineConfig({
           ],
           runtimeCaching: [
             {
+              // Never cache remote storage objects: their signed URLs expire.
+              urlPattern: ({ url }) => url.pathname.includes("/storage/v1/object/"),
+              handler: "NetworkOnly",
+            },
+            {
               urlPattern: ({ request }) => request.mode === "navigate",
               handler: "NetworkFirst",
               options: {
                 cacheName: "html-navigations",
                 networkTimeoutSeconds: 4,
-                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 7 },
+                // Short-lived: pages embed signed image URLs that expire.
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 2 },
               },
             },
             {

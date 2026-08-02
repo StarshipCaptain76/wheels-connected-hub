@@ -267,7 +267,7 @@ export function PhotoTagger({
             />
           </div>
 
-          <ul className="max-h-56 space-y-1 overflow-y-auto">
+          <ul className="max-h-40 space-y-1 overflow-y-auto sm:max-h-56">
             {membersQuery.isLoading && (
               <li className="p-2 text-xs text-ink/50">{af ? "Laai…" : "Loading…"}</li>
             )}

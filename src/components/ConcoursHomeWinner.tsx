@@ -1,62 +1,74 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Trophy } from "lucide-react";
+import { getLatestConcoursHomeWinner } from "@/lib/concours.functions";
 import { useI18n } from "@/i18n/I18nProvider";
-import { getLatestConcoursWinner } from "@/lib/concours.functions";
+import { Trophy } from "lucide-react";
 
 export function ConcoursHomeWinner() {
   const { lang } = useI18n();
   const { data } = useQuery({
-    queryKey: ["concours", "latest-winner"],
-    queryFn: () => getLatestConcoursWinner(),
-    staleTime: 5 * 60_000,
+    queryKey: ["concours-home-winner"],
+    queryFn: () => getLatestConcoursHomeWinner(),
+    staleTime: 60_000,
   });
 
-  if (!data || !data.vehicleLabel) return null;
+  if (!data?.winnerPhotoUrl) return null;
 
-  const af = lang === "af";
-  const title = af ? data.eventTitleAf ?? data.eventTitle : data.eventTitle;
-  const vehicle = af ? data.vehicleLabelAf ?? data.vehicleLabel : data.vehicleLabel;
-  const prize = af ? data.prizeAf ?? data.prizeEn : data.prizeEn;
+  const headline =
+    lang === "af" && data.winnerHeadlineAf
+      ? data.winnerHeadlineAf
+      : data.winnerHeadlineEn || (lang === "af" ? "Concours Mini wenner" : "Concours Mini winner");
+
+  const eventTitle = lang === "af" && data.eventTitleAf ? data.eventTitleAf : data.eventTitle;
+
+  const who = data.taggedDisplayName || data.vehicleLabel || (lang === "af" ? "Die wenner" : "The winner");
+
+  const prize = lang === "af" && data.prizeAf ? data.prizeAf : data.prizeEn;
 
   return (
     <section className="border-b-2 border-ink bg-paper text-ink">
       <div className="mx-auto max-w-6xl px-4 py-8">
-        <Link
-          to="/events/$eventId"
-          params={{ eventId: data.eventId }}
-          className="flex flex-col overflow-hidden rounded-xl border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] sm:flex-row"
-        >
-          {data.photoUrl && (
-            <div className="h-40 w-full shrink-0 overflow-hidden border-b-2 border-ink sm:h-auto sm:w-56 sm:border-b-0 sm:border-r-2">
-              <img
-                src={data.photoUrl}
-                alt={vehicle ?? ""}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
+        <div className="overflow-hidden rounded-xl border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-primary)] sm:flex">
+          <div className="relative h-48 w-full shrink-0 border-b-2 border-ink sm:h-auto sm:w-56 sm:border-b-0 sm:border-r-2">
+            <img src={data.winnerPhotoUrl} alt="" className="h-full w-full object-cover" />
+            <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full border-2 border-ink bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
+              <Trophy className="h-3 w-3" />
+              Concours
             </div>
-          )}
-          <div className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-            <div className="flex items-center gap-2 font-display text-xs tracking-[0.3em] text-muted-foreground">
-              <Trophy className="h-4 w-4" aria-hidden />
-              {af ? "CONCOURS-WENNER" : "CONCOURS WINNER"}
-            </div>
-            <div className="font-display text-2xl tracking-wide">{vehicle}</div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            {prize && <p className="text-sm font-semibold">{prize}</p>}
-            {data.averageScore != null && (
-              <p className="text-sm">
-                {af ? "Gemiddelde punt" : "Average score"}: {data.averageScore}
-              </p>
-            )}
-            {data.sponsorName && (
-              <p className="text-xs text-muted-foreground">
-                {af ? "Geborg deur" : "Sponsored by"} {data.sponsorName}
-              </p>
-            )}
           </div>
-        </Link>
+          <div className="flex flex-1 flex-col justify-center gap-2 p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{headline}</p>
+            <p className="font-display text-2xl leading-tight text-ink sm:text-3xl">{who}</p>
+            <p className="text-sm text-ink/70">
+              {eventTitle}
+              {data.averageScore != null && (
+                <>
+                  {" · "}
+                  <span className="font-bold text-ink">
+                    {data.averageScore}
+                    <span className="font-normal text-ink/50">
+                      {" "}
+                      / 10 · {data.submissionCount} {lang === "af" ? "stemme" : "votes"}
+                    </span>
+                  </span>
+                </>
+              )}
+            </p>
+            {prize && (
+              <p className="text-sm font-bold text-primary">
+                {lang === "af" ? "Pryse: " : "Prize: "}
+                {prize}
+              </p>
+            )}
+            <Link
+              to="/events/$id"
+              params={{ id: data.eventId }}
+              className="mt-1 self-start rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-paper"
+            >
+              {lang === "af" ? "Bekyk byeenkoms" : "View event"} →
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -116,6 +116,11 @@ export const upsertEvent = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { id, ...values } = data;
     if (id) {
+      const { data: prev } = await supabase
+        .from("events")
+        .select("is_published")
+        .eq("id", id)
+        .maybeSingle();
       const { data: updated, error } = await supabase
         .from("events")
         .update(values)
@@ -128,6 +133,9 @@ export const upsertEvent = createServerFn({ method: "POST" })
           "Update blocked by database permissions. Run the events admin RLS policies in Supabase SQL editor.",
         );
       }
+      if (values.is_published && prev && prev.is_published === false) {
+        await notifyNewEvent(id, values.title, values.title_af ?? null);
+      }
       return { id };
     }
     const { data: row, error } = await supabase
@@ -136,8 +144,29 @@ export const upsertEvent = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw error;
+    if (values.is_published) {
+      await notifyNewEvent(row.id as string, values.title, values.title_af ?? null);
+    }
     return { id: row.id };
   });
+
+async function notifyNewEvent(id: string, title: string, titleAf: string | null) {
+  try {
+    const { fanOut } = await import("./notify.server");
+    await fanOut({
+      type: "new_event",
+      title_en: "New event on the calendar",
+      title_af: "Nuwe byeenkoms op die kalender",
+      body_en: title,
+      body_af: titleAf ?? title,
+      link: `/events/${id}`,
+      related_id: id,
+    });
+  } catch (e) {
+    console.error("[events] notification failed", e);
+  }
+}
+
 
 export const deleteEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -27,7 +27,6 @@ export const listTagsForPhoto = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ galleryItemId: z.string().uuid() }).parse(i))
   .handler(async ({ context, data }): Promise<PhotoTag[]> => {
     const { supabase } = context;
-    const { profilesByIds } = await import("./gallery-tags.server");
     const { data: tags, error } = await supabase
       .from("gallery_tags")
       .select("id, gallery_item_id, tagged_user_id, tagged_by, created_at")
@@ -35,7 +34,30 @@ export const listTagsForPhoto = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true });
     if (error) throw error;
     const rows = tags ?? [];
-    const profiles = await profilesByIds(rows.map((r) => r.tagged_user_id as string));
+    const userIds = [...new Set(rows.map((r) => r.tagged_user_id as string))];
+    const { data: profileRows } = userIds.length
+      ? await supabase
+          .from("profiles")
+          .select("id, display_name, member_number, avatar_url")
+          .in("id", userIds)
+      : { data: [] };
+    const { signStoredUrls } = await import("./storage-urls.server");
+    const signed = await signStoredUrls(
+      supabase,
+      (profileRows ?? []).map((profile) => profile.avatar_url as string | null),
+    );
+    const profiles = new Map(
+      (profileRows ?? []).map((profile) => [
+        profile.id as string,
+        {
+          display_name: profile.display_name as string | null,
+          member_number: profile.member_number as number | null,
+          avatar_url: profile.avatar_url
+            ? (signed.get(profile.avatar_url as string) ?? (profile.avatar_url as string))
+            : null,
+        },
+      ]),
+    );
     return rows.map((r) => {
       const p = profiles.get(r.tagged_user_id as string);
       return {
@@ -102,11 +124,15 @@ export const addPhotoTag = createServerFn({ method: "POST" })
     if (error && !error.message.includes("duplicate")) throw error;
 
     if (data.taggedUserId !== userId) {
-      const { notifyTagged, profileEmail } = await import("./gallery-tags.server");
-      const me = await profileEmail(userId);
+      const { data: me } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", userId)
+        .maybeSingle();
+      const { notifyTagged } = await import("./gallery-tags.server");
       await notifyTagged({
         userId: data.taggedUserId,
-        taggerName: me.name,
+        taggerName: (me?.display_name as string) || "A Just Wheels member",
         link: "/gallery",
         relatedId: data.galleryItemId,
       });
@@ -136,16 +162,26 @@ export const inviteTagByEmail = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ context, data }) => {
-    const { supabase, userId } = context;
+    const { supabase, userId, claims } = context;
     const email = data.email.toLowerCase();
 
-    const { inviteAlreadySent, invitesSentToday, profileEmail } = await import(
-      "./gallery-tags.server"
-    );
-    if (await inviteAlreadySent(data.galleryItemId, email)) {
+    const { data: existingInvite } = await supabase
+      .from("gallery_tag_invites")
+      .select("id")
+      .eq("gallery_item_id", data.galleryItemId)
+      .eq("email", email)
+      .eq("invited_by", userId)
+      .maybeSingle();
+    if (existingInvite) {
       return { ok: true, already: true };
     }
-    if ((await invitesSentToday(userId)) >= 20) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: invitesToday } = await supabase
+      .from("gallery_tag_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("invited_by", userId)
+      .gte("created_at", since);
+    if ((invitesToday ?? 0) >= 20) {
       throw new Error("Daily invite limit reached. Please try again tomorrow.");
     }
 
@@ -157,7 +193,13 @@ export const inviteTagByEmail = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!item) throw new Error("Photo not found");
 
-    const me = await profileEmail(userId);
+    const { data: me } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const taggerName = (me?.display_name as string) || "A Just Wheels member";
+    const replyTo = typeof claims.email === "string" ? claims.email : null;
     const { buildTagInviteEmail } = await import("./gallery-tag-email.server");
     const { sendEmail } = await import("./email.server");
     const { signStoredUrl } = await import("./storage-urls.server");
@@ -165,7 +207,7 @@ export const inviteTagByEmail = createServerFn({ method: "POST" })
       (await signStoredUrl(supabase, item.image_url as string, 60 * 60 * 24 * 30)) ??
       (item.image_url as string);
     const mail = buildTagInviteEmail({
-      taggerName: me.name,
+      taggerName,
       photoUrl,
       photoTitle: (item.title as string) || (item.caption as string) || null,
       note: data.note || null,
@@ -176,7 +218,7 @@ export const inviteTagByEmail = createServerFn({ method: "POST" })
       subject: mail.subject,
       html: mail.html,
       from: "Just Wheels Hessequa <invites@notify.justwheels.co.za>",
-      ...(me.email ? { replyTo: me.email } : {}),
+      ...(replyTo ? { replyTo } : {}),
     });
 
     const { error } = await supabase.from("gallery_tag_invites").insert({

@@ -95,3 +95,25 @@ export const deleteGalleryItem = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+export const setGalleryCategory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        category: z.string().trim().max(120).nullable(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { error } = await supabase
+      .from("gallery_items")
+      .update({ category: data.category || null })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });

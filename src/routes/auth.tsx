@@ -69,8 +69,14 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        void notifyAdminNewMember({
+          data: { email, displayName: displayName || null },
+        }).catch(() => {
+          /* notification failure must not block sign-up */
+        });
         setInfo(t("auth.checkEmail"));
         setAwaitingEmail(true);
+
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,

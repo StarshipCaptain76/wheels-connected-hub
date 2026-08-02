@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { notifyNewEvent } from "./events-notify.server";
+import { eventImageUrl, isPrivateStorageUrl } from "./event-image-url";
 
 export type PublicEvent = {
   id: string;
@@ -47,7 +48,7 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: true })
       .limit(24);
     if (error) throw new Error(error.message);
-    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: true });
+    return withDisplayUrls((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -66,7 +67,7 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: false })
       .limit(48);
     if (error) throw new Error(error.message);
-    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: true });
+    return withDisplayUrls((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -86,7 +87,7 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
       .maybeSingle();
     if (error) throw new Error(error.message);
     const row = (data as PublicEvent | null) ?? null;
-    return row ? (await signCovers([row], { dropPrivateOnFail: true }))[0] : null;
+    return row ? withDisplayUrls([row])[0] : null;
   },
 );
 
@@ -104,7 +105,7 @@ export const listAllEvents = createServerFn({ method: "GET" })
       .order("starts_at", { ascending: false });
     if (error) throw error;
     // IMPORTANT: never drop cover_url on admin list — Edit→Save would wipe images
-    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: false });
+    return withDisplayUrls((data ?? []) as PublicEvent[]);
   });
 
 const upsertSchema = z.object({

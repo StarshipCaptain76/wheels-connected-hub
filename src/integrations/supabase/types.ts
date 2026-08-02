@@ -763,6 +763,7 @@ export type Database = {
       }
     }
     Functions: {
+      daily_featured_id: { Args: never; Returns: string }
       grant_admin_if_allowlisted: {
         Args: { _confirmed_at: string; _email: string; _user_id: string }
         Returns: undefined

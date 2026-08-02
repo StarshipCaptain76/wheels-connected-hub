@@ -1,39 +1,30 @@
-## What I verified
+## Gallery tagging reliability fix
 
-- The uploads **did** save. Both recent events have `cover_url` (and one has `hero_image_url`) stored in the database, pointing at `gallery/events/covers/...` and `gallery/events/heroes/...`.
-- The images don't display because the `gallery` bucket is private and the server-side signing step is skipped: the backend environment currently has `SUPABASE_URL` and the publishable key but **no `SUPABASE_SERVICE_ROLE_KEY`**, which `signCovers()` requires. Fetching the stored URL directly returns HTTP 400.
-- Result: on public pages the code deliberately drops unsigned private URLs to `null` (the red chevron placeholder), and in the admin list it keeps the URL, which then 404s (broken thumbnail).
-- The `gallery` bucket's only public read rule covers published gallery items and active shop items — event covers/heroes are not included, so anonymous visitors can never read them even when a URL is correct.
-- On the event page, the "Who's coming / Wie kom" block renders unconditionally (`src/routes/events.$id.tsx`, around line 300).
+### Confirmed cause
+The hosted backend is healthy. Gallery tagging fails because ordinary member actions unnecessarily call the privileged backend client:
+- Loading photo tags calls `profilesByIds()`, which requires `SUPABASE_SERVICE_ROLE_KEY`.
+- Adding a tag successfully writes through the signed-in member client, but then `profileEmail()` requires the privileged key; that follow-up failure makes the UI report the whole action as failed.
+- Email-invite duplicate/rate-limit checks also use the privileged client even though existing row-level permissions already allow the member-scoped queries.
 
-## Corrective plan
+This explains why rebinding the key temporarily helps but the same user-facing error keeps returning.
 
-**1. Stop depending on the service key for event images (root fix)**
+### Implementation
+1. **Restore the managed backend bindings**
+   - Rebind the canonical runtime variables and confirm both the backend URL and privileged key are available to server functions.
 
-Add a storage read rule so objects referenced by a **published** event's `cover_url` or `hero_image_url` are readable by everyone — the same pattern already used for published gallery items and active shop items. Event covers are promotional images shown on the public events page, so this matches their intent.
+2. **Remove unnecessary privileged-key dependencies from gallery tagging**
+   - Use the authenticated request client for tag lists, member profile display data, invite checks, invite logging, and the current member’s display name.
+   - Obtain the signed-in member’s email from verified auth claims when needed for an invite reply address.
+   - Keep the privileged client only for the targeted in-app notification write, where elevated access is genuinely required.
 
-With that in place the stored `/object/public/gallery/...` URLs work directly, in the browser, in the admin list, and in emails — no signing, no expiry, no service key.
+3. **Make notification delivery fail-soft**
+   - A missing privileged key or notification error must not undo or falsely report a successful photo tag.
+   - Log notification failures server-side while returning success for the completed tag operation.
 
-**2. Keep signing as a fallback, but stop blanking images**
+4. **Prevent misleading retries and duplicate actions**
+   - Refresh the tag list after a successful write using the authenticated path.
+   - Return clear member-friendly errors only when the actual tag insert/remove fails, not when optional notification delivery fails.
 
-In `src/lib/events.functions.ts`, keep `signCovers()` for when the service key is present, but no longer null out event cover URLs when signing is unavailable — the public policy from step 1 makes the plain URL valid. This removes the red-chevron placeholders on `/events` and restores admin thumbnails.
-
-**3. Hero image on the event detail page**
-
-Confirm the detail route passes `hero_image_url` through the same resolution path as the cover, falling back to the cover when no hero is set.
-
-**4. Hide "Who's coming" for past events**
-
-In `src/routes/events.$id.tsx`, only render the attendee/RSVP frame while the event is still upcoming (end time if set, otherwise start time, compared to now). Past events keep their details, map, and photo gallery; the RSVP buttons and attendee list disappear.
-
-**5. Verify**
-
-- Reload `/admin/events` and confirm thumbnails render for both existing events.
-- Reload `/events` and the detail page and confirm cover/hero images render, logged out as well.
-- Re-upload one image end-to-end to confirm the save/display round trip.
-- Open a past event and confirm the "Who's coming" frame is gone; open an upcoming one and confirm it still works.
-
-## Technical notes
-
-- New policy on `storage.objects` for `bucket_id = 'gallery'`, matching object names against `events.cover_url` / `events.hero_image_url` where `is_published = true`, mirroring the existing `gallery_public_read_published` policy shape.
-- No change to `garage`, `listings`, or `sponsors` buckets; unpublished events' images remain unreadable to the public.
+5. **Verify the full flow**
+   - Test opening the tagger, loading the member list, adding a tag, undoing/removing it, and sending an email invite while signed in.
+   - Confirm the gallery no longer shows the “connect backend” error and that tag state remains correct after refresh.

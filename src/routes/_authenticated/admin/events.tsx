@@ -145,9 +145,9 @@ function AdminEvents() {
             key={e.id}
             className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4"
           >
-            {e.cover_url ? (
+            {e.cover_display_url ?? e.cover_url ? (
               <img
-                src={e.cover_url}
+                src={e.cover_display_url ?? e.cover_url ?? ""}
                 alt=""
                 className="h-20 w-full rounded border-2 border-ink object-cover sm:h-20 sm:w-28 sm:flex-none"
               />

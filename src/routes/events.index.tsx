@@ -61,7 +61,7 @@ export const Route = createFileRoute("/events/")({
               }
             : undefined,
           description: ev.description ?? undefined,
-          image: ev.cover_url ?? undefined,
+          image: ev.cover_display_url ?? ev.cover_url ?? undefined,
           organizer: {
             "@type": "Organization",
             name: "Just Wheels Hessequa",
@@ -219,9 +219,9 @@ function EventCard({
 
   const body = (
     <>
-      {event.cover_url ? (
+      {event.cover_display_url ?? event.cover_url ? (
         <img
-          src={event.cover_url}
+          src={event.cover_display_url ?? event.cover_url ?? ""}
           alt=""
           className={`h-40 w-full border-b-2 border-ink object-cover ${past ? "opacity-90" : ""}`}
         />

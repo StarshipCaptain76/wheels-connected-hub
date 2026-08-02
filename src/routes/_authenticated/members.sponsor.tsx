@@ -187,7 +187,6 @@ function MySponsorPage() {
                   value={form.logo_path ?? ""}
                   onChange={(v) => setForm((f) => ({ ...f, logo_path: v }))}
                   bucket="sponsors"
-                  folder="logos"
                   storePath
                   maxMb={3}
                 />

@@ -133,6 +133,20 @@ function Contact() {
                 <span className="block text-sm text-ink/60">{t("contact.whatsappSub")}</span>
               </span>
             </a>
+            <a
+              href={WA_DAWIE}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-md border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-ink bg-primary text-paper">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block font-bold uppercase tracking-wider text-ink">{t("contact.whatsappDawie")}</span>
+                <span className="block text-sm text-ink/60">{t("contact.whatsappDawieSub")}</span>
+              </span>
+            </a>
           </div>
         </div>
       </section>

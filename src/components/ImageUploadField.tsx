@@ -17,6 +17,8 @@ type Props = {
   label?: string;
   maxMb?: number;
   className?: string;
+  /** Override the preview image source (e.g. a proxy URL for private buckets) */
+  previewSrc?: string | null;
 };
 
 /**
@@ -36,6 +38,7 @@ export function ImageUploadField({
   label = "Image",
   maxMb = 5,
   className = "",
+  previewSrc = null,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export function ImageUploadField({
 
   const displaySrc =
     preview ??
-    (value && /^https?:\/\//i.test(value) ? value : null);
+    (value ? (previewSrc ?? (/^https?:\/\//i.test(value) ? value : null)) : null);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;

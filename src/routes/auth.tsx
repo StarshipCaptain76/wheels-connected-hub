@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { notifyAdminNewMember } from "@/lib/member-signup.functions";
 
 import { Eye, EyeOff, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 function safePath(value: unknown): string {
   if (typeof value !== "string") return "/members";

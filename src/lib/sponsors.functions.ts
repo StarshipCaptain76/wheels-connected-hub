@@ -122,22 +122,36 @@ export const listAllSponsors = createServerFn({ method: "GET" })
       .order("sort", { ascending: true })
       .order("name", { ascending: true });
     if (error) throw error;
-    return (data ?? []).map((row) => ({
-      id: row.id as string,
-      name: row.name as string,
-      tagline: (row.tagline as string | null) ?? null,
-      tagline_af: (row.tagline_af as string | null) ?? null,
-      website_url: (row.website_url as string | null) ?? null,
-      logo_path: row.logo_path as string,
-      is_active: Boolean(row.is_active),
-      sort: Number(row.sort ?? 0),
-      billing_starts_at: row.billing_starts_at
-        ? String(row.billing_starts_at).slice(0, 10)
-        : null,
-      billing_ends_at: row.billing_ends_at ? String(row.billing_ends_at).slice(0, 10) : null,
-      expiry_notified_at: (row.expiry_notified_at as string | null) ?? null,
-      owner_user_id: (row.owner_user_id as string | null) ?? null,
-    }));
+    const out: AdminSponsor[] = [];
+    for (const row of data ?? []) {
+      const logo_path = row.logo_path as string;
+      let logo_url = logo_path;
+      if (logo_path && !/^https?:\/\//i.test(logo_path)) {
+        const { data: signed } = await supabase.storage
+          .from("sponsors")
+          .createSignedUrl(logo_path, 60 * 60);
+        logo_url = signed?.signedUrl ?? "";
+      }
+      out.push({
+        id: row.id as string,
+        name: row.name as string,
+        tagline: (row.tagline as string | null) ?? null,
+        tagline_af: (row.tagline_af as string | null) ?? null,
+        website_url: (row.website_url as string | null) ?? null,
+        logo_path,
+        logo_url,
+        is_active: Boolean(row.is_active),
+        sort: Number(row.sort ?? 0),
+        billing_starts_at: row.billing_starts_at
+          ? String(row.billing_starts_at).slice(0, 10)
+          : null,
+        billing_ends_at: row.billing_ends_at ? String(row.billing_ends_at).slice(0, 10) : null,
+        expiry_notified_at: (row.expiry_notified_at as string | null) ?? null,
+        owner_user_id: (row.owner_user_id as string | null) ?? null,
+      });
+    }
+    return out;
+
 
   });
 

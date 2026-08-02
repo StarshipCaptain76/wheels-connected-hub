@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Tag, X, UserPlus, Search, Mail } from "lucide-react";
+import { Tag, X, UserPlus, Search, Mail, MessageCircle } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listDirectoryMembers } from "@/lib/directory.functions";
 import {
@@ -12,7 +12,17 @@ import {
   removePhotoTag,
 } from "@/lib/gallery-tags.functions";
 
-/** Tag club members in a gallery photo, or invite someone by email. */
+/** Turn a local or international SA number into WhatsApp's digits-only format. */
+function normalisePhone(raw: string) {
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  if (raw.trim().startsWith("+")) return digits.length >= 10 ? digits : "";
+  if (digits.startsWith("0")) return digits.length === 10 ? "27" + digits.slice(1) : "";
+  if (digits.startsWith("27")) return digits.length === 11 ? digits : "";
+  return digits.length >= 10 ? digits : "";
+}
+
+/** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
 export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const { lang } = useI18n();
   const qc = useQueryClient();
@@ -28,6 +38,7 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const [q, setQ] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
 
   const tagsQuery = useQuery({
@@ -118,6 +129,22 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
       setBusy(false);
     }
   }
+
+  function onWhatsApp() {
+    const to = normalisePhone(phone);
+    if (!to) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const photoUrl = `${origin}/gallery?photo=${galleryItemId}`;
+    const joinUrl = `${origin}/join`;
+    const extra = note.trim() ? `\n\n${note.trim()}` : "";
+    const msg = af
+      ? `Haai! Ek het jou gemerk op 'n foto by Just Wheels Hessequa 🛞\n\nKyk die foto: ${photoUrl}\n\nOns is 'n klassieke- en spesiale motorklub in die Hessequa-omgewing. Sluit gerus by ons aan: ${joinUrl}${extra}`
+      : `Hi! I tagged you in a photo at Just Wheels Hessequa 🛞\n\nSee the photo: ${photoUrl}\n\nWe're a classic & special car club in the Hessequa area — come join us: ${joinUrl}${extra}`;
+    window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    toast.success(af ? "WhatsApp geopen" : "WhatsApp opened");
+    setPhone("");
+  }
+
 
   return (
     <div className="rounded-xl border-2 border-ink bg-paper p-3">
@@ -246,6 +273,36 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
                 : "The email is sent on your behalf — replies come back to you."}
             </p>
           </div>
+
+          <div className="rounded-lg border-2 border-dashed border-ink/30 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink/70">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              {af ? "Of nooi per WhatsApp" : "Or invite by WhatsApp"}
+            </p>
+            <input
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={20}
+              placeholder={af ? "bv. 0821234567 of +27821234567" : "e.g. 0821234567 or +27821234567"}
+              className="mt-2 w-full rounded-lg border-2 border-ink bg-card px-2 py-2 text-sm text-ink outline-none"
+            />
+            <button
+              type="button"
+              disabled={!normalisePhone(phone)}
+              onClick={onWhatsApp}
+              className="mt-2 w-full rounded-lg border-2 border-ink bg-primary px-3 py-2 text-sm font-bold text-paper disabled:opacity-50"
+            >
+              {af ? "Stuur WhatsApp-uitnodiging" : "Send WhatsApp invite"}
+            </button>
+            <p className="mt-1.5 text-[11px] text-ink/50">
+              {af
+                ? "WhatsApp open met 'n klaar geskrewe boodskap — jy stuur dit self."
+                : "WhatsApp opens with a ready-written message — you send it yourself."}
+            </p>
+          </div>
+
         </div>
       )}
     </div>

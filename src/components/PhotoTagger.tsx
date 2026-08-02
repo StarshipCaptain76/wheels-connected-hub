@@ -60,8 +60,19 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     setBusy(true);
     try {
       await addTag({ data: { galleryItemId, taggedUserId: userId } });
-      await qc.invalidateQueries({ queryKey: ["photo-tags", galleryItemId] });
-      toast.success(af ? "Lid gemerk" : "Member tagged");
+      const fresh = await qc.invalidateQueries({ queryKey: ["photo-tags", galleryItemId] });
+      void fresh;
+      const latest = await listTags({ data: { galleryItemId } });
+      qc.setQueryData(["photo-tags", galleryItemId], latest);
+      const added = latest.find((t) => t.tagged_user_id === userId);
+      toast.success(af ? "Lid gemerk" : "Member tagged", {
+        action: added
+          ? {
+              label: af ? "Ontdoen" : "Undo",
+              onClick: () => void onRemove(added.id),
+            }
+          : undefined,
+      });
       setQ("");
     } catch (e) {
       toast.error((e as Error).message);
@@ -75,12 +86,14 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     try {
       await removeTag({ data: { id } });
       await qc.invalidateQueries({ queryKey: ["photo-tags", galleryItemId] });
+      toast.success(af ? "Merk verwyder" : "Tag removed");
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
       setBusy(false);
     }
   }
+
 
   async function onInvite() {
     const value = email.trim();

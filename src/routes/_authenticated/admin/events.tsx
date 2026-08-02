@@ -16,7 +16,8 @@ import {
 import { PlacePicker } from "@/components/PlacePicker";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Trash2, Plus, X, MapPin, ExternalLink } from "lucide-react";
+import { Trash2, Plus, X, MapPin, ExternalLink, Mail } from "lucide-react";
+import { getEventInviteStatus, sendEventInvites } from "@/lib/event-invites.functions";
 
 const eventsAdminQuery = queryOptions({
   queryKey: ["events", "admin"],
@@ -170,6 +171,7 @@ function AdminEvents() {
               >
                 Edit
               </button>
+              <InviteButton eventId={e.id} published={Boolean(e.is_published)} />
               <button
                 type="button"
                 onClick={() => remove(e.id)}
@@ -186,6 +188,121 @@ function AdminEvents() {
     </div>
   );
 }
+
+function InviteButton({ eventId, published }: { eventId: string; published: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const send = useServerFn(sendEventInvites);
+
+  const status = useQuery({
+    queryKey: ["event-invite-status", eventId],
+    queryFn: () => getEventInviteStatus({ data: { eventId } }),
+    enabled: open,
+  });
+
+  async function run(onlyNew: boolean) {
+    setBusy(true);
+    setResult(null);
+    try {
+      const res = await send({ data: { eventId, onlyNew } });
+      setResult(
+        `Sent ${res.sent} invite${res.sent === 1 ? "" : "s"}` +
+          (res.failed ? ` · ${res.failed} failed` : "") +
+          (res.skipped ? ` · ${res.skipped} skipped` : ""),
+      );
+      await status.refetch();
+    } catch (err) {
+      setResult(err instanceof Error ? err.message : "Sending failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!published) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        title="Email all members an invite"
+        className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
+      >
+        <Mail className="h-3 w-3" /> Invite
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4">
+          <div className="w-full max-w-md rounded-lg border-2 border-ink bg-card p-5 shadow-[6px_6px_0_0_var(--color-primary)]">
+            <div className="mb-3 flex items-start justify-between gap-4">
+              <h2 className="font-display text-xl tracking-wide text-ink">Invite all members</h2>
+              <button type="button" onClick={() => setOpen(false)} className="text-ink/60">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {status.isLoading ? (
+              <p className="text-sm text-ink/60">Checking members…</p>
+            ) : status.data ? (
+              <div className="space-y-2 text-sm text-ink/80">
+                <p>
+                  <strong>{status.data.eligible}</strong> active members will get an email with the
+                  event details, map and Going / Maybe / Can&apos;t make it buttons.
+                </p>
+                {status.data.invited > 0 && (
+                  <p className="text-ink/60">
+                    Already invited: {status.data.invited}
+                    {status.data.lastSentAt
+                      ? ` · last sent ${new Date(status.data.lastSentAt).toLocaleString()}`
+                      : ""}
+                    {status.data.newSinceLast > 0
+                      ? ` · ${status.data.newSinceLast} new member(s) not yet invited`
+                      : ""}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-primary">Could not load member counts.</p>
+            )}
+
+            {result && <p className="mt-3 text-sm font-bold text-primary">{result}</p>}
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy || !status.data?.eligible}
+                onClick={() => run(false)}
+                className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+              >
+                {busy ? "Sending…" : `Send to all (${status.data?.eligible ?? 0})`}
+              </button>
+              {(status.data?.newSinceLast ?? 0) > 0 && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(true)}
+                  className="rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink disabled:opacity-50"
+                >
+                  New members only ({status.data?.newSinceLast})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
 
 function EditModal({
   state,

@@ -1,46 +1,43 @@
 ## Goal
 
-Replace the two long, fake-mockup admin emails (new member sign-up, new sponsor application) with short, visual emails built around **real mobile screenshots** of the actual admin pages, each screenshot clickable and linking straight to the page it shows.
+After an event is created/published, an admin can press **Invite all members** and every approved member receives a branded HTML email with the event details, a map image, and three one-click voting buttons (Going / Maybe / Can't make it) that record their RSVP without needing to log in.
 
-## What changes for the reader
+## What the admin sees
 
-Current: walls of text, CSS-drawn fake buttons, 4–5 verbose steps.
+On each event row in Admin → Events:
+- A new **Invite all members** button (only for published events).
+- A confirm dialog showing the recipient count ("Send invite to 42 members?").
+- After sending: a small note "Invited 42 members · 2 Aug 14:30" stored on the event, plus a **Resend / send to new members only** option so nobody gets spammed twice.
+- Bilingual: each member gets the email in their own language preference (EN/AF), defaulting to English.
 
-New shape, same for both emails:
+## What the member receives
 
-```text
-[ red header: what happened + who ]
-[ small detail box: name / email ]
+A single-column mobile-friendly email in club styling (red/ink/paper, cartoon logo header):
+- Event title, date & time (SA format), location.
+- Short description / details excerpt.
+- A static Google map image of the destination (with pins for meet-up waypoints), clickable through to the event page.
+- Waypoint/meet-time list if the event has them.
+- Three big buttons: **I'm going · Maybe · Can't make it**.
+- A "View full event & route" link to `justwheels.co.za/events/<id>`.
 
-  1  Open the approvals page      → [ real mobile screenshot, tappable ]
-     one short line of text
+Clicking a vote button opens a Just Wheels confirmation page saying "Thanks, you're marked as Going" with links to the event page — no login required.
 
-  2  Find the orange PENDING row  → [ real mobile screenshot, tappable ]
-     one short line of text
+## Technical section
 
-  3  Tap the green APPROVE button → [ real mobile screenshot, tappable ]
-     one short line of text
+**Database (one migration)**
+- `public.event_invites` — `event_id`, `user_id`, `email`, `token` (uuid, unique), `sent_at`, `responded_at`, `response`. Unique on (event_id, user_id) so resends skip already-invited members. RLS: admin-only read/write via `has_role`; GRANTs for `authenticated` + `service_role` (tokens are consumed server-side through the service role, not the Data API).
+- `public.events`: add `invites_sent_at timestamptz`, `invites_sent_count int`.
 
-[ big black button: OPEN APPROVALS ]
-[ plain link URL underneath, for copy/paste ]
-```
+**Server**
+- `src/lib/event-invites.functions.ts` (createServerFn, `requireSupabaseAuth` + `has_role` admin check):
+  - `getEventInviteStatus({ eventId })` — counts of eligible members / already invited.
+  - `sendEventInvites({ eventId, onlyNew })` — loads approved, non-suspended members with emails via `supabaseAdmin` (inside the handler), creates invite tokens, renders the HTML per member language, sends through Resend in batches (Resend batch endpoint, ≤100 per call, sequential with small delay), then updates `invites_sent_at/count`. Returns `{ sent, skipped, failed }`.
+- `src/lib/event-invite-email.server.ts` — HTML builder reusing `emailShell`/`escapeHtml` from `email.server.ts`; static map URL built from `destination_lat/lng` + waypoints using the existing Google Maps key (Static Maps API), with graceful fallback to a text-only email if no coordinates.
+- `src/routes/api/public/event-rsvp.ts` — `GET ?token=…&r=going|maybe|not_going`: looks up the token, upserts into `event_rsvps` for that user, marks the invite responded, returns a styled HTML confirmation page (and handles unknown/expired token gracefully). Token in the URL is the only credential, so it does nothing except set that one RSVP.
 
-Rules applied: max one short sentence per step, step number in a red circle beside the picture, every picture wrapped in a link to the live page, phone-width images (max-width 320px, auto-scaling), no fake CSS buttons, no tips paragraph buried at the end (the "approve all pending" tip becomes one line under step 3).
+**UI**
+- `src/routes/_authenticated/admin/events.tsx`: invite button, confirm dialog with counts, sending state, success toast, and the "last invited" line. No changes to the public event page.
 
-## Screenshots
-
-Capture real mobile-viewport (390px wide) screenshots of `/admin/members` and `/admin/sponsors` as an admin, cropped to the relevant region per step:
-
-- members: page top, a pending row, the approve action
-- sponsors: applications block, an application row, the approve dialog
-
-Store them as static files in `public/email/` (e.g. `public/email/members-1.png`), served from `https://justwheels.co.za/email/...` so email clients can load them. Screenshots contain demo/blurred names, not real member PII.
-
-If a page can't be captured cleanly for a step, that step falls back to text-only rather than a fake mockup.
-
-## Technical details
-
-- New `src/lib/email-shot.server.ts`: `shot(step, caption, imgUrl, linkUrl)` helper rendering the numbered row + linked, width-constrained `<img>` with alt text, and `compactShell(kicker, title, body)` for the outer frame.
-- Rewrite `src/lib/sponsor-application-email.server.ts` to use it; delete the fake-mockup helpers from `src/lib/email-steps.server.ts` once unused.
-- Rewrite the HTML block in `src/lib/member-signup.functions.ts` into a new `src/lib/member-signup-email.server.ts` so the server function stays a thin wrapper.
-- Image URLs are absolute against `SITE_ORIGIN`; images use `width`/`style="max-width:320px"` for Gmail/Outlook mobile.
+**Notes**
+- Emails are per-recipient (personalised token), triggered by an admin action for a specific event — no marketing list involved; unsubscribed newsletter status is irrelevant since this is club-member notification.
+- `From: Just Wheels <events@notify.justwheels.co.za>` on the existing verified subdomain.

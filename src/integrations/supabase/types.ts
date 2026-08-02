@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_invites: {
+        Row: {
+          created_at: string
+          email: string
+          event_id: string
+          id: string
+          responded_at: string | null
+          response: string | null
+          sent_at: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          event_id: string
+          id?: string
+          responded_at?: string | null
+          response?: string | null
+          sent_at?: string
+          token?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          event_id?: string
+          id?: string
+          responded_at?: string | null
+          response?: string | null
+          sent_at?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_invites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_photos: {
         Row: {
           caption: string | null
@@ -179,6 +233,8 @@ export type Database = {
           ends_at: string | null
           hero_image_url: string | null
           id: string
+          invites_sent_at: string | null
+          invites_sent_count: number
           is_published: boolean
           location: string | null
           starts_at: string
@@ -200,6 +256,8 @@ export type Database = {
           ends_at?: string | null
           hero_image_url?: string | null
           id?: string
+          invites_sent_at?: string | null
+          invites_sent_count?: number
           is_published?: boolean
           location?: string | null
           starts_at: string
@@ -221,6 +279,8 @@ export type Database = {
           ends_at?: string | null
           hero_image_url?: string | null
           id?: string
+          invites_sent_at?: string | null
+          invites_sent_count?: number
           is_published?: boolean
           location?: string | null
           starts_at?: string

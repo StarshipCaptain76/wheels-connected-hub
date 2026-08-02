@@ -216,6 +216,7 @@ export async function downloadDisplayBoard(opts: {
   if (rows.length === 0) {
     // No structured specs yet — fall back to the vehicle story so the board is never blank.
     const story = (af ? v.story_af || v.story : v.story) || "";
+    console.log("[board] story len", story.length);
     doc.setTextColor(INK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(story ? 17 : 18);

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Loader2, Link2 } from "lucide-react";
 
+const PRIVATE_BUCKETS = new Set(["gallery", "garage", "listings", "sponsors"]);
+
 type Props = {
   /** Current value — storage path or full URL */
   value: string;
@@ -20,6 +22,10 @@ type Props = {
 /**
  * Image picker that uploads to Supabase Storage.
  * Still allows pasting a public URL as a fallback.
+ *
+ * For private buckets (gallery, garage, …) we store a stable
+ * /object/public/… URL (re-signed on read by the server). Preview
+ * uses a long-lived signed URL so the admin form shows the image.
  */
 export function ImageUploadField({
   value,
@@ -74,8 +80,20 @@ export function ImageUploadField({
 
       if (storePath) {
         onChange(path);
+      } else if (PRIVATE_BUCKETS.has(bucket)) {
+        // Stable public-format URL for DB (server re-signs on every page load)
+        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
+        onChange(pub?.publicUrl ?? path);
+        // Better on-screen preview: long-lived signed URL
+        try {
+          const { data: signed } = await supabase.storage
+            .from(bucket)
+            .createSignedUrl(path, 60 * 60 * 24 * 7);
+          if (signed?.signedUrl) setPreview(signed.signedUrl);
+        } catch {
+          /* keep objectUrl preview */
+        }
       } else {
-        // Prefer public URL; fall back to long-lived signed URL
         const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path);
         if (pub?.publicUrl) {
           onChange(pub.publicUrl);

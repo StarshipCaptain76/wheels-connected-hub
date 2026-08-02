@@ -388,6 +388,13 @@ export function PhotoTagger({
             </p>
           </div>
 
+          <button
+            type="button"
+            onClick={() => (onClose ? onClose() : setOpen(false))}
+            className="w-full rounded-lg border-2 border-ink bg-ink px-3 py-2.5 text-sm font-bold text-paper"
+          >
+            {af ? "Maak toe" : "Close"}
+          </button>
         </div>
       )}
     </div>

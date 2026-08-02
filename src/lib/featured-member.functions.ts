@@ -80,6 +80,11 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
       featured_since: data.featured_since,
       garage_thumb_url,
     };
+    } catch (e) {
+      console.error("[featured-member] failed (site continues)", e);
+      return null;
+    }
   },
+
 );
 

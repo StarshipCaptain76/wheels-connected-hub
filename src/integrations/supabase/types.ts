@@ -56,6 +56,7 @@ export type Database = {
           distance_m: number
           event_id: string
           id: string
+          is_spectator: boolean
           lat: number
           lng: number
           user_id: string
@@ -65,6 +66,7 @@ export type Database = {
           distance_m: number
           event_id: string
           id?: string
+          is_spectator?: boolean
           lat: number
           lng: number
           user_id: string
@@ -74,6 +76,7 @@ export type Database = {
           distance_m?: number
           event_id?: string
           id?: string
+          is_spectator?: boolean
           lat?: number
           lng?: number
           user_id?: string
@@ -104,10 +107,16 @@ export type Database = {
           prize_af: string | null
           prize_en: string | null
           question_count: number
+          results_on_home: boolean
+          results_published_at: string | null
           selected_question_ids: string[]
           sponsor_logo_url: string | null
           sponsor_name: string | null
           updated_at: string
+          winner_headline_af: string | null
+          winner_headline_en: string | null
+          winner_photo_url: string | null
+          winner_vehicle_id: string | null
         }
         Insert: {
           created_at?: string
@@ -117,10 +126,16 @@ export type Database = {
           prize_af?: string | null
           prize_en?: string | null
           question_count?: number
+          results_on_home?: boolean
+          results_published_at?: string | null
           selected_question_ids?: string[]
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
           updated_at?: string
+          winner_headline_af?: string | null
+          winner_headline_en?: string | null
+          winner_photo_url?: string | null
+          winner_vehicle_id?: string | null
         }
         Update: {
           created_at?: string
@@ -130,10 +145,16 @@ export type Database = {
           prize_af?: string | null
           prize_en?: string | null
           question_count?: number
+          results_on_home?: boolean
+          results_published_at?: string | null
           selected_question_ids?: string[]
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
           updated_at?: string
+          winner_headline_af?: string | null
+          winner_headline_en?: string | null
+          winner_photo_url?: string | null
+          winner_vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -148,6 +169,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: true
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_concours_winner_vehicle_id_fkey"
+            columns: ["winner_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "event_concours_vehicles"
             referencedColumns: ["id"]
           },
         ]

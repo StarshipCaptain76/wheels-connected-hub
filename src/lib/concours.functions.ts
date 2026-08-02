@@ -394,3 +394,63 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true, totalScore, isMember, weight };
   });
+
+export type ConcoursWinner = {
+  eventId: string;
+  eventTitle: string;
+  eventTitleAf: string | null;
+  eventDate: string | null;
+  prizeEn: string | null;
+  prizeAf: string | null;
+  sponsorName: string | null;
+  vehicleLabel: string | null;
+  vehicleLabelAf: string | null;
+  photoUrl: string | null;
+  averageScore: number | null;
+};
+
+export const getLatestConcoursWinner = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ConcoursWinner | null> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase();
+
+    const { data: rows } = await supabase
+      .from("event_concours")
+      .select("event_id, prize_en, prize_af, sponsor_name, events!inner(title, title_af, start_at)")
+      .eq("enabled", true)
+      .eq("leaderboard_revealed", true)
+      .order("start_at", { ascending: false, referencedTable: "events" })
+      .limit(20);
+
+    const list = (rows ?? []) as unknown as Array<{
+      event_id: string;
+      prize_en: string | null;
+      prize_af: string | null;
+      sponsor_name: string | null;
+      events: { title: string; title_af: string | null; start_at: string | null };
+    }>;
+    if (!list.length) return null;
+    list.sort((a, b) => (b.events?.start_at ?? "").localeCompare(a.events?.start_at ?? ""));
+    const top = list[0];
+
+    const vehicles = await listConcoursVehicles({ data: { eventId: top.event_id } });
+    const ranked = vehicles
+      .filter((v) => v.average_score != null)
+      .sort((a, b) => (b.average_score ?? 0) - (a.average_score ?? 0));
+    const winner = ranked[0];
+
+    return {
+      eventId: top.event_id,
+      eventTitle: top.events?.title ?? "",
+      eventTitleAf: top.events?.title_af ?? null,
+      eventDate: top.events?.start_at ?? null,
+      prizeEn: top.prize_en,
+      prizeAf: top.prize_af,
+      sponsorName: top.sponsor_name,
+      vehicleLabel: winner?.label ?? null,
+      vehicleLabelAf: winner?.label_af ?? null,
+      photoUrl: winner?.photo_url ?? null,
+      averageScore: winner?.average_score ?? null,
+    };
+  },
+);

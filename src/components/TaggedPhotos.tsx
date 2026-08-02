@@ -69,4 +69,3 @@ export function TaggedPhotos({ userId, canUntag }: { userId: string; canUntag?: 
   );
 }
 
-export { removePhotoTag };

@@ -43,9 +43,6 @@ const CORE_COLS =
 const EXTENDED_COLS =
   "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, hero_image_url, details_md, details_af_md, destination_lat, destination_lng, destination_place_id, destination_address, is_published";
 
-function isPrivateStorageUrl(url: string): boolean {
-  return /\/object\/(?:public|sign|authenticated)\/(gallery|garage|listings|sponsors)\//.test(url);
-}
 
 export const getEventDetail = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))

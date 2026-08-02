@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Tag, X, UserPlus, Search, Mail } from "lucide-react";
+import { Tag, X, UserPlus, Search, Mail, MessageCircle } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listDirectoryMembers } from "@/lib/directory.functions";
 import {

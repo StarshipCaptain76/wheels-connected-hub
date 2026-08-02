@@ -68,6 +68,7 @@ function AdminMembersPage() {
 
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [adminsOpen, setAdminsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pendingCount = useMemo(

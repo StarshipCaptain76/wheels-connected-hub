@@ -9,7 +9,17 @@ import {
   approveAllPendingMembers,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, CheckCheck } from "lucide-react";
+import { Search, Shield, CheckCheck, ChevronDown, ChevronRight } from "lucide-react";
+
+function SectionRow({ label }: { label: string }) {
+  return (
+    <tr className="border-t-2 border-ink bg-ink/5">
+      <td colSpan={5} className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink">
+        {label}
+      </td>
+    </tr>
+  );
+}
 
 const membersQuery = queryOptions({
   queryKey: ["admin", "members"],

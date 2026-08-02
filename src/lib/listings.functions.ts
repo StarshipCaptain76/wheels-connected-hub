@@ -253,6 +253,22 @@ export const createListing = createServerFn({ method: "POST" })
       const { error: pErr } = await supabase.from("listing_photos").insert(photos);
       if (pErr) throw new Error(pErr.message);
     }
+    try {
+      const { fanOut } = await import("./notify.server");
+      await fanOut({
+        type: "admin_listing_review",
+        title_en: "New listing awaiting approval",
+        title_af: "Nuwe advertensie wag vir goedkeuring",
+        body_en: listing.title,
+        body_af: listing.title_af ?? listing.title,
+        link: "/admin/classifieds",
+        related_id: row.id as string,
+        excludeUserId: userId,
+      });
+    } catch (e) {
+      console.error("[listings] admin notification failed", e);
+    }
+
     return { id: row.id };
   });
 

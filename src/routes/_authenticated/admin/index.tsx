@@ -6,7 +6,6 @@ import { listPendingListings } from "@/lib/listings.functions";
 import { listAllEvents } from "@/lib/events.functions";
 import { listAllGalleryItems } from "@/lib/gallery.functions";
 import { listSubscribers } from "@/lib/newsletter.functions";
-import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { listAllSponsors } from "@/lib/sponsors.functions";
 import {
   Tag,
@@ -14,7 +13,6 @@ import {
   Image as ImageIcon,
   Users,
   Mail,
-  Star,
   Handshake,
   ArrowRight,
 } from "lucide-react";
@@ -59,7 +57,6 @@ function AdminOverview() {
   const gallery = useServerFn(listAllGalleryItems);
   const members = useServerFn(listAllMembers);
   const subs = useServerFn(listSubscribers);
-  const featured = useServerFn(getCurrentFeaturedMember);
   const sponsors = useServerFn(listAllSponsors);
 
   const pendingQ = useQuery({ queryKey: ["listings", "moderation"], queryFn: () => pending() });
@@ -67,7 +64,6 @@ function AdminOverview() {
   const galleryQ = useQuery({ queryKey: ["gallery", "admin"], queryFn: () => gallery() });
   const membersQ = useQuery({ queryKey: ["admin", "members"], queryFn: () => members() });
   const subsQ = useQuery({ queryKey: ["newsletter", "subscribers"], queryFn: () => subs() });
-  const featuredQ = useQuery({ queryKey: ["featured-member"], queryFn: () => featured() });
   const sponsorsQ = useQuery({ queryKey: ["sponsors", "admin"], queryFn: () => sponsors() });
 
   const now = Date.now();
@@ -137,12 +133,6 @@ function AdminOverview() {
       label: "Active subscribers",
       value: subsQ.isLoading ? "…" : activeSubs,
       icon: Mail,
-    },
-    {
-      to: "/admin/featured",
-      label: featuredQ.data ? `Featured: ${featuredQ.data.display_name ?? "—"}` : "No featured member",
-      value: featuredQ.data ? "★" : "—",
-      icon: Star,
     },
   ] as const;
 

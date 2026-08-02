@@ -124,6 +124,7 @@ function ClassifiedsPage() {
             </button>
           ))}
           <input
+            aria-label={lang === "af" ? "Soek advertensies" : "Search listings"}
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}

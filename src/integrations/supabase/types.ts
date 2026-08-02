@@ -378,45 +378,99 @@ export type Database = {
       }
       garage_vehicles: {
         Row: {
+          acceleration: string | null
+          brakes_front: string | null
+          brakes_rear: string | null
+          built_by: string | null
+          car_size: string | null
+          car_weight: string | null
           created_at: string
+          diff_ratio: string | null
+          engine: string | null
+          extra_notes: string | null
+          fuel_economy: string | null
           id: string
           is_primary: boolean
           make: string | null
           model: string | null
           nickname: string | null
+          power: string | null
+          quarter_mile: string | null
           sort: number
           story: string | null
           story_af: string | null
+          suspension_front: string | null
+          suspension_rear: string | null
+          top_speed: string | null
+          torque: string | null
+          transmission: string | null
           updated_at: string
           user_id: string
+          wheels_tyres: string | null
           year: number | null
         }
         Insert: {
+          acceleration?: string | null
+          brakes_front?: string | null
+          brakes_rear?: string | null
+          built_by?: string | null
+          car_size?: string | null
+          car_weight?: string | null
           created_at?: string
+          diff_ratio?: string | null
+          engine?: string | null
+          extra_notes?: string | null
+          fuel_economy?: string | null
           id?: string
           is_primary?: boolean
           make?: string | null
           model?: string | null
           nickname?: string | null
+          power?: string | null
+          quarter_mile?: string | null
           sort?: number
           story?: string | null
           story_af?: string | null
+          suspension_front?: string | null
+          suspension_rear?: string | null
+          top_speed?: string | null
+          torque?: string | null
+          transmission?: string | null
           updated_at?: string
           user_id: string
+          wheels_tyres?: string | null
           year?: number | null
         }
         Update: {
+          acceleration?: string | null
+          brakes_front?: string | null
+          brakes_rear?: string | null
+          built_by?: string | null
+          car_size?: string | null
+          car_weight?: string | null
           created_at?: string
+          diff_ratio?: string | null
+          engine?: string | null
+          extra_notes?: string | null
+          fuel_economy?: string | null
           id?: string
           is_primary?: boolean
           make?: string | null
           model?: string | null
           nickname?: string | null
+          power?: string | null
+          quarter_mile?: string | null
           sort?: number
           story?: string | null
           story_af?: string | null
+          suspension_front?: string | null
+          suspension_rear?: string | null
+          top_speed?: string | null
+          torque?: string | null
+          transmission?: string | null
           updated_at?: string
           user_id?: string
+          wheels_tyres?: string | null
           year?: number | null
         }
         Relationships: [

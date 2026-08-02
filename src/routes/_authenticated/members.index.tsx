@@ -144,6 +144,15 @@ function MembersPage() {
             >
               <IdCard className="h-4 w-4" /> {t("members.viewCard")}
             </Link>
+            {mySponsor && (
+              <Link
+                to="/members/sponsor"
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              >
+                <Handshake className="h-4 w-4 text-primary" /> My sponsor card
+              </Link>
+            )}
+
             <button
               type="button"
               onClick={handleSignOut}

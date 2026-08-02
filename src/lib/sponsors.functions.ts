@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { createPublicSupabase } from "./public-supabase.server";
+import { buildSponsorApplicationAdminEmail } from "./sponsor-application-email.server";
 
 export type Sponsor = {
   id: string;

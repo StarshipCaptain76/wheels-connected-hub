@@ -61,6 +61,33 @@ export const Route = createFileRoute("/events/$id")({
         { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [{ rel: "canonical", href: `${SITE_ORIGIN}/events/${params.id}` }],
+      ...(ev
+        ? {
+            scripts: [
+              {
+                type: "application/ld+json",
+                children: JSON.stringify({
+                  "@context": "https://schema.org",
+                  "@type": "Event",
+                  name: ev.title,
+                  startDate: ev.starts_at,
+                  description: ev.description ?? undefined,
+                  url: `${SITE_ORIGIN}/events/${params.id}`,
+                  image: ev.cover_url ?? undefined,
+                  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+                  location: ev.location
+                    ? { "@type": "Place", name: ev.location, address: ev.location }
+                    : undefined,
+                  organizer: {
+                    "@type": "Organization",
+                    name: "Just Wheels Hessequa",
+                    url: SITE_ORIGIN,
+                  },
+                }),
+              },
+            ],
+          }
+        : {}),
     };
   },
   component: EventDetailPage,

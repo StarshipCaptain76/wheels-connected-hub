@@ -17,7 +17,43 @@ const listingsQuery = queryOptions({
   staleTime: 30_000,
 });
 
+const SITE_ORIGIN = "https://justwheels.co.za";
+const OG_LOGO = `${SITE_ORIGIN}/apple-touch-icon.png`;
+
 export const Route = createFileRoute("/classifieds/")({
+  head: () => ({
+    meta: [
+      { title: "Marketplace | Just Wheels Hessequa" },
+      {
+        name: "description",
+        content:
+          "Cars, parts, memorabilia and gear for sale by Just Wheels Hessequa members across Riversdale, Stilbaai and the Southern Cape.",
+      },
+      { property: "og:title", content: "Marketplace | Just Wheels Hessequa" },
+      {
+        property: "og:description",
+        content: "Cars, parts and gear for sale by Just Wheels Hessequa club members.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${SITE_ORIGIN}/classifieds` },
+      { property: "og:image", content: OG_LOGO },
+      { name: "twitter:image", content: OG_LOGO },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [{ rel: "canonical", href: `${SITE_ORIGIN}/classifieds` }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "Just Wheels Hessequa Marketplace",
+          description: "Cars, parts and memorabilia listed for sale by club members.",
+          url: `${SITE_ORIGIN}/classifieds`,
+        }),
+      },
+    ],
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(listingsQuery),
   component: ClassifiedsPage,
   pendingComponent: () => (
@@ -124,6 +160,7 @@ function ClassifiedsPage() {
             </button>
           ))}
           <input
+            aria-label={lang === "af" ? "Soek advertensies" : "Search listings"}
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}

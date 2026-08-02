@@ -37,6 +37,18 @@ export const Route = createFileRoute("/gallery")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: `${SITE_ORIGIN}/gallery` }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Just Wheels Hessequa Gallery",
+          description: "Photos from Just Wheels Hessequa runs, shows and workshop days.",
+          url: `${SITE_ORIGIN}/gallery`,
+        }),
+      },
+    ],
   }),
 
   loader: ({ context }) => context.queryClient.ensureQueryData(galleryQuery),

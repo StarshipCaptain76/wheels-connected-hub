@@ -214,9 +214,11 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <div className="hidden md:block">
               <LangToggle />
             </div>
+            <NotificationBell />
             <div className="hidden md:block">
               <AuthAffordance />
             </div>
+
 
             <button
               type="button"

@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import { ProfileWizard } from "@/components/ProfileWizard";
+import { missingProfileFields } from "@/lib/profile-completeness";
 
 import { MemberCard, pickCarPhoto, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -57,6 +60,25 @@ function MembersPage() {
 
   const carPhoto = pickCarPhoto(garage ?? []);
   const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
+
+  const missingFields = missingProfileFields(profile);
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Auto-open the wizard once per browser session while the profile is incomplete.
+  useEffect(() => {
+    if (!profile || missingFields.length === 0) return;
+    if (typeof window === "undefined") return;
+    const flag = "jw-profile-wizard-seen";
+    try {
+      if (window.sessionStorage.getItem(flag)) return;
+      window.sessionStorage.setItem(flag, "1");
+    } catch {
+      /* ignore */
+    }
+    setWizardOpen(true);
+  }, [profile, missingFields.length]);
+
+
 
   useEffect(() => {
     if (profile && typeof window !== "undefined") {
@@ -172,6 +194,17 @@ function MembersPage() {
             </button>
           </div>
         </div>
+
+        {profile && (
+          <ProfileCompletionBanner
+            missing={missingFields}
+            onOpen={() => setWizardOpen(true)}
+          />
+        )}
+
+        {wizardOpen && profile && (
+          <ProfileWizard profile={profile} onClose={() => setWizardOpen(false)} />
+        )}
 
         {/* Admin portal — top of page, above profile / garage */}
         {isAdmin && (

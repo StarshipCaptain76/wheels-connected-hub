@@ -19,6 +19,7 @@ import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X, MapPin, ExternalLink, Mail } from "lucide-react";
 import { getEventInviteStatus, sendEventInvites } from "@/lib/event-invites.functions";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { ConcoursAdminPanel } from "@/components/ConcoursAdminPanel";
 
 const eventsAdminQuery = queryOptions({
   queryKey: ["events", "admin"],
@@ -317,7 +318,7 @@ function EditModal({
 }) {
   const [form, setForm] = useState<FormState>(state);
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"basics" | "destination" | "details" | "stops">("basics");
+  const [tab, setTab] = useState<"basics" | "destination" | "details" | "stops" | "concours">("basics");
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
@@ -356,7 +357,7 @@ function EditModal({
         </div>
 
         <div className="flex gap-1 border-b-2 border-ink text-xs font-bold uppercase tracking-wider">
-          {(["basics", "destination", "details", "stops"] as const).map((t) => (
+          {(["basics", "destination", "details", "stops", "concours"] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -757,6 +758,12 @@ function EditModal({
           </div>
         )}
 
+        {tab === "concours" && (
+          <ConcoursAdminPanel eventId={form.id} />
+        )}
+
+        {/* Hide main Save when on concours — that panel has its own save */}
+        {tab !== "concours" && (
         <button
           type="submit"
           disabled={busy}
@@ -764,6 +771,7 @@ function EditModal({
         >
           {busy ? "Saving…" : "Save event"}
         </button>
+        )}
       </form>
     </div>
   );

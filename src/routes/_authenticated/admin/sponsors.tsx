@@ -145,11 +145,20 @@ function AdminSponsors() {
               className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4"
             >
               <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20 p-1">
-                {/^https?:\/\//i.test(s.logo_path) ? (
-                  <img src={s.logo_path} alt="" className="h-full w-full object-contain" />
+                {s.logo_url ? (
+                  <img
+                    src={s.logo_url}
+                    alt={`${s.name} logo`}
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
                 ) : (
                   <div className="flex h-full items-center justify-center text-[10px] text-ink/50">logo</div>
                 )}
+
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wider">

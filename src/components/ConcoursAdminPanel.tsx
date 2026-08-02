@@ -425,6 +425,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                       scoring_type: e.target.value as NonNullable<typeof editingQ.scoring_type>,
                     })
                   }
+
                   className={inp}
                 >
                   <option value="scale_1_10">1–10 scale</option>

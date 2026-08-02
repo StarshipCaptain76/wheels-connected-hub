@@ -17,7 +17,14 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
   async (): Promise<FeaturedMember | null> => {
     // Featured data is public, but the rotation helper is privileged, so this
     // read runs server-side with an explicit, narrow column projection.
+    // NEVER throw — a missing service role key must not take the home page down.
+    if (!process.env['SUPABASE_SERVICE_ROLE_KEY'] || !process.env['SUPABASE_URL']) {
+      console.warn("[featured-member] service role env missing — skipping");
+      return null;
+    }
+    try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const { data: featuredId } = await supabaseAdmin.rpc("daily_featured_id");
     if (!featuredId) return null;
 
@@ -73,6 +80,11 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
       featured_since: data.featured_since,
       garage_thumb_url,
     };
+    } catch (e) {
+      console.error("[featured-member] failed (site continues)", e);
+      return null;
+    }
   },
+
 );
 

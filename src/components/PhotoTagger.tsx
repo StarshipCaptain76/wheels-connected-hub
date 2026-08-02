@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Tag, X, UserPlus, Search, Mail, MessageCircle } from "lucide-react";
+import { Tag, X, UserPlus, Search, Mail, MessageCircle, BookUser } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listDirectoryMembers } from "@/lib/directory.functions";
 import {
@@ -21,6 +21,21 @@ function normalisePhone(raw: string) {
   if (digits.startsWith("27")) return digits.length === 11 ? digits : "";
   return digits.length >= 10 ? digits : "";
 }
+
+type ContactsManager = {
+  select: (
+    props: string[],
+    opts?: { multiple?: boolean },
+  ) => Promise<Array<{ name?: string[]; tel?: string[] }>>;
+  getProperties: () => Promise<string[]>;
+};
+
+function getContactsApi(): ContactsManager | null {
+  if (typeof navigator === "undefined") return null;
+  const c = (navigator as Navigator & { contacts?: ContactsManager }).contacts;
+  return c && typeof c.select === "function" && "ContactsManager" in window ? c : null;
+}
+
 
 /** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
 export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {

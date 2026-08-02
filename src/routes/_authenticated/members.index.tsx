@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import { ProfileWizard } from "@/components/ProfileWizard";
+import { missingProfileFields } from "@/lib/profile-completeness";
 
 import { MemberCard, pickCarPhoto, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";

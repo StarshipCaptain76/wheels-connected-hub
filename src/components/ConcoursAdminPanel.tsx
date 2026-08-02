@@ -17,7 +17,7 @@ import {
 } from "@/lib/concours.functions";
 import { Trash2, Trophy, Shuffle } from "lucide-react";
 
-export function ConcoursAdminPanel({ eventId }: { eventId: string | null }) {
+export function ConcoursAdminPanel({ eventId }: { eventId?: string | null }) {
   const { lang } = useI18n();
   const qc = useQueryClient();
   const confirm = useConfirm();

@@ -8,9 +8,12 @@ import {
   createGalleryItem,
   togglePublishGalleryItem,
   deleteGalleryItem,
+  setGalleryCategory,
   type GalleryItem,
 } from "@/lib/gallery.functions";
-import { Trash2, Plus, X, Upload, Loader2, Link2 } from "lucide-react";
+import { Trash2, Plus, X, Upload, Loader2, Link2, Tag } from "lucide-react";
+
+const CATEGORY_PLACEHOLDER = "e.g. First JustWheels Meet up — 2016 Dec 03";
 
 const galleryAdminQuery = queryOptions({
   queryKey: ["gallery", "admin"],
@@ -74,13 +77,19 @@ function AdminGallery() {
   const create = useServerFn(createGalleryItem);
   const toggle = useServerFn(togglePublishGalleryItem);
   const del = useServerFn(deleteGalleryItem);
+  const setCategory = useServerFn(setGalleryCategory);
 
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [urlForm, setUrlForm] = useState<null | { title: string; caption: string; image_url: string }>(
-    null,
-  );
+  const [urlForm, setUrlForm] = useState<
+    null | { title: string; caption: string; image_url: string; category: string }
+  >(null);
+  const [category, setCategoryInput] = useState("");
+
+  const knownCategories = Array.from(
+    new Set(items.map((it: GalleryItem) => it.category).filter(Boolean) as string[]),
+  ).sort();
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["gallery"] });
@@ -145,6 +154,7 @@ function AdminGallery() {
               title: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || null,
               caption: null,
               image_url: url,
+              category: category.trim() || null,
               is_published: true,
             },
           });
@@ -190,12 +200,53 @@ function AdminGallery() {
           </button>
           <button
             type="button"
-            onClick={() => setUrlForm({ title: "", caption: "", image_url: "" })}
+            onClick={() =>
+              setUrlForm({ title: "", caption: "", image_url: "", category: category.trim() })
+            }
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink"
           >
             <Link2 className="h-4 w-4" /> Paste URL
           </button>
         </div>
+      </div>
+
+      <div className="mt-5 rounded-xl border-2 border-ink bg-card p-4">
+        <label className="block">
+          <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/70">
+            <Tag className="h-3.5 w-3.5" /> Album / category for this upload
+          </span>
+          <input
+            value={category}
+            onChange={(e) => setCategoryInput(e.target.value)}
+            list="gallery-categories"
+            placeholder={CATEGORY_PLACEHOLDER}
+            className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2"
+          />
+        </label>
+        <datalist id="gallery-categories">
+          {knownCategories.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        {knownCategories.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {knownCategories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoryInput(c)}
+                className={`rounded-full border-2 border-ink px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                  category === c ? "bg-primary text-paper" : "bg-paper text-ink"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="mt-2 text-xs text-ink/55">
+          Photos you upload now are filed under this album. Leave blank for “Uncategorised”.
+        </p>
       </div>
 
       {status && (
@@ -223,6 +274,19 @@ function AdminGallery() {
               </div>
               <p className="font-display text-base text-ink">{it.title ?? "(untitled)"}</p>
               <p className="line-clamp-2 text-xs text-ink/70">{it.caption ?? ""}</p>
+              <button
+                type="button"
+                onClick={async () => {
+                  const next = prompt("Album / category", it.category ?? "");
+                  if (next === null) return;
+                  await setCategory({ data: { id: it.id, category: next.trim() || null } });
+                  await refresh();
+                }}
+                className="mt-2 inline-flex items-center gap-1 rounded-full border-2 border-ink bg-paper px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-ink"
+              >
+                <Tag className="h-3 w-3" />
+                {it.category ?? "Uncategorised"}
+              </button>
               <div className="mt-2 flex gap-2">
                 <button
                   type="button"
@@ -278,6 +342,7 @@ function AdminGallery() {
                   title: urlForm.title || null,
                   caption: urlForm.caption || null,
                   image_url: urlForm.image_url,
+                  category: urlForm.category.trim() || null,
                   is_published: true,
                 },
               });

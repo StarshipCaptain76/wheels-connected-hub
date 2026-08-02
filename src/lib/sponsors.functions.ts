@@ -158,6 +158,7 @@ const upsertSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .nullable()
     .optional(),
+  owner_user_id: z.string().uuid().nullable().optional(),
 });
 
 export const upsertSponsor = createServerFn({ method: "POST" })
@@ -179,7 +180,9 @@ export const upsertSponsor = createServerFn({ method: "POST" })
       sort: rest.sort,
       billing_starts_at: rest.billing_starts_at ?? null,
       billing_ends_at: rest.billing_ends_at ?? null,
+      owner_user_id: rest.owner_user_id ?? null,
     };
+
     if (rest.billing_ends_at && rest.billing_ends_at >= todayISO()) {
       values.expiry_notified_at = null;
     }

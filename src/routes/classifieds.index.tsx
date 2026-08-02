@@ -18,7 +18,7 @@ const listingsQuery = queryOptions({
 });
 
 const SITE_ORIGIN = "https://justwheels.co.za";
-const OG_LOGO = `${SITE_ORIGIN}/icons/icon-512.png`;
+const OG_LOGO = `${SITE_ORIGIN}/apple-touch-icon.png`;
 
 export const Route = createFileRoute("/classifieds/")({
   head: () => ({

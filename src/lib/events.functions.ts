@@ -13,54 +13,25 @@ export type PublicEvent = {
   starts_at: string;
   ends_at: string | null;
   cover_url: string | null;
+  /** Always-loadable URL for display (raw cover_url stays intact for saving). */
+  cover_display_url?: string | null;
+  hero_image_url?: string | null;
   is_published?: boolean;
 };
 
 /**
- * Event covers live in the private `gallery` bucket — re-sign for display.
- * On sign failure, keep the original URL for admin forms (so Save does not wipe covers),
- * but for public pages drop private public/ links that would 404.
+ * Event covers live in the private `gallery` bucket. Instead of signing
+ * (which expires and needs the service key) we point the browser at a stable
+ * server endpoint that streams the bytes: /api/public/event-image.
  */
-function isPrivateStorageUrl(url: string): boolean {
-  return /\/object\/(?:public|sign|authenticated)\/(gallery|garage|listings|sponsors)\//.test(url);
+function withDisplayUrls<T extends { id: string; cover_url: string | null }>(rows: T[]): T[] {
+  return rows.map((r) => ({
+    ...r,
+    cover_display_url:
+      r.cover_url && isPrivateStorageUrl(r.cover_url) ? eventImageUrl(r.id, "cover") : r.cover_url,
+  }));
 }
 
-/**
- * Re-sign private bucket cover URLs for display.
- * NEVER throws — missing SERVICE_ROLE_KEY or sign failures must not take the site down.
- */
-async function signCovers<T extends { cover_url: string | null }>(
-  rows: T[],
-  opts: { dropPrivateOnFail?: boolean } = {},
-): Promise<T[]> {
-  const { dropPrivateOnFail = true } = opts;
-  const urls = rows.map((r) => r.cover_url).filter(Boolean) as string[];
-  if (urls.length === 0) return rows;
-
-  let map = new Map<string, string>();
-  try {
-    // Guard: service role may be missing in some deploys
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.SUPABASE_URL) {
-      console.warn("[signCovers] SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL missing — skipping sign");
-    } else {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { signStoredUrls } = await import("./storage-urls.server");
-      map = await signStoredUrls(supabaseAdmin, urls);
-    }
-  } catch (e) {
-    console.error("[signCovers] failed (site continues)", e);
-  }
-
-  return rows.map((r) => {
-    if (!r.cover_url) return r;
-    const signed = map.get(r.cover_url);
-    if (signed) return { ...r, cover_url: signed };
-    if (dropPrivateOnFail && isPrivateStorageUrl(r.cover_url)) {
-      return { ...r, cover_url: null };
-    }
-    return r;
-  });
-}
 
 export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicEvent[]> => {

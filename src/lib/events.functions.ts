@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { notifyNewEvent } from "./events-notify.server";
 
 export type PublicEvent = {
   id: string;
@@ -150,22 +151,6 @@ export const upsertEvent = createServerFn({ method: "POST" })
     return { id: row.id };
   });
 
-async function notifyNewEvent(id: string, title: string, titleAf: string | null) {
-  try {
-    const { fanOut } = await import("./notify.server");
-    await fanOut({
-      type: "new_event",
-      title_en: "New event on the calendar",
-      title_af: "Nuwe byeenkoms op die kalender",
-      body_en: title,
-      body_af: titleAf ?? title,
-      link: `/events/${id}`,
-      related_id: id,
-    });
-  } catch (e) {
-    console.error("[events] notification failed", e);
-  }
-}
 
 
 export const deleteEvent = createServerFn({ method: "POST" })

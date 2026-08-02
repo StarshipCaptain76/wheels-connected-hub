@@ -16,27 +16,48 @@ export type PublicEvent = {
   is_published?: boolean;
 };
 
-/** Event covers live in the private `gallery` bucket — re-sign for display. */
-async function signCovers<T extends { cover_url: string | null }>(rows: T[]): Promise<T[]> {
+/**
+ * Event covers live in the private `gallery` bucket — re-sign for display.
+ * On sign failure, keep the original URL for admin forms (so Save does not wipe covers),
+ * but for public pages drop private public/ links that would 404.
+ */
+async function signCovers<T extends { cover_url: string | null }>(
+  rows: T[],
+  opts: { dropPrivateOnFail?: boolean } = {},
+): Promise<T[]> {
+  const { dropPrivateOnFail = true } = opts;
   const urls = rows.map((r) => r.cover_url).filter(Boolean) as string[];
   if (urls.length === 0) return rows;
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { signStoredUrls } = await import("./storage-urls.server");
-  const map = await signStoredUrls(supabaseAdmin, urls);
-  return rows.map((r) => {
-    if (!r.cover_url) return r;
-    const signed = map.get(r.cover_url);
-    if (signed) return { ...r, cover_url: signed };
-    // Signing failed and the object lives in a private bucket: a raw
-    // /object/public/ link would render as a broken image, so drop it.
-    const isPrivate = /\/object\/(?:public|sign)\/(gallery|garage|listings|sponsors)\//.test(
-      r.cover_url,
-    );
-    return isPrivate ? { ...r, cover_url: null } : r;
-  });
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { signStoredUrls } = await import("./storage-urls.server");
+    const map = await signStoredUrls(supabaseAdmin, urls);
+    return rows.map((r) => {
+      if (!r.cover_url) return r;
+      const signed = map.get(r.cover_url);
+      if (signed) return { ...r, cover_url: signed };
+      const isPrivate = /\/object\/(?:public|sign|authenticated)\/(gallery|garage|listings|sponsors)\//.test(
+        r.cover_url,
+      );
+      if (dropPrivateOnFail && isPrivate) {
+        // Public pages: avoid broken <img> — show placeholder instead
+        return { ...r, cover_url: null };
+      }
+      // Admin / edit forms: keep original stored URL so Save does not clear it
+      return r;
+    });
+  } catch (e) {
+    console.error("[signCovers] failed", e);
+    if (!dropPrivateOnFail) return rows;
+    return rows.map((r) => {
+      if (!r.cover_url) return r;
+      const isPrivate = /\/object\/(?:public|sign|authenticated)\/(gallery|garage|listings|sponsors)\//.test(
+        r.cover_url,
+      );
+      return isPrivate ? { ...r, cover_url: null } : r;
+    });
+  }
 }
-
-
 
 export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicEvent[]> => {
@@ -52,7 +73,7 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: true })
       .limit(24);
     if (error) throw new Error(error.message);
-    return signCovers((data ?? []) as PublicEvent[]);
+    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: true });
   },
 );
 
@@ -71,7 +92,7 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: false })
       .limit(48);
     if (error) throw new Error(error.message);
-    return signCovers((data ?? []) as PublicEvent[]);
+    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: true });
   },
 );
 
@@ -91,7 +112,7 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
       .maybeSingle();
     if (error) throw new Error(error.message);
     const row = (data as PublicEvent | null) ?? null;
-    return row ? (await signCovers([row]))[0] : null;
+    return row ? (await signCovers([row], { dropPrivateOnFail: true }))[0] : null;
   },
 );
 
@@ -108,7 +129,8 @@ export const listAllEvents = createServerFn({ method: "GET" })
       )
       .order("starts_at", { ascending: false });
     if (error) throw error;
-    return signCovers((data ?? []) as PublicEvent[]);
+    // IMPORTANT: never drop cover_url on admin list — Edit→Save would wipe images
+    return signCovers((data ?? []) as PublicEvent[], { dropPrivateOnFail: false });
   });
 
 const upsertSchema = z.object({
@@ -120,8 +142,8 @@ const upsertSchema = z.object({
   location: z.string().trim().max(200).nullable().optional(),
   starts_at: z.string().min(1),
   ends_at: z.string().nullable().optional(),
-  cover_url: z.string().trim().max(1000).nullable().optional(),
-  hero_image_url: z.string().trim().max(1000).nullable().optional(),
+  cover_url: z.string().trim().max(2000).nullable().optional(),
+  hero_image_url: z.string().trim().max(2000).nullable().optional(),
   details_md: z.string().trim().max(6000).nullable().optional(),
   details_af_md: z.string().trim().max(6000).nullable().optional(),
   destination_address: z.string().trim().max(300).nullable().optional(),
@@ -131,6 +153,19 @@ const upsertSchema = z.object({
   is_published: z.boolean().default(true),
 });
 
+/** Strip expiring signed tokens; keep a stable public-format storage URL for DB. */
+function stabilizeStorageUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const m = url.match(
+    /^(https?:\/\/[^/]+\/storage\/v1\/object\/)(?:sign|authenticated)\/([^?]+)/,
+  );
+  if (m) {
+    // Convert signed → public form (still private bucket; re-signed on read)
+    return `${m[1]}public/${m[2]}`;
+  }
+  return url;
+}
+
 export const upsertEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => upsertSchema.parse(i))
@@ -138,7 +173,12 @@ export const upsertEvent = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
-    const { id, ...values } = data;
+    const { id, ...rest } = data;
+    const values = {
+      ...rest,
+      cover_url: stabilizeStorageUrl(rest.cover_url),
+      hero_image_url: stabilizeStorageUrl(rest.hero_image_url),
+    };
     if (id) {
       const { data: prev } = await supabase
         .from("events")
@@ -173,8 +213,6 @@ export const upsertEvent = createServerFn({ method: "POST" })
     }
     return { id: row.id };
   });
-
-
 
 export const deleteEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

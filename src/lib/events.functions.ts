@@ -23,7 +23,17 @@ async function signCovers<T extends { cover_url: string | null }>(rows: T[]): Pr
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { signStoredUrls } = await import("./storage-urls.server");
   const map = await signStoredUrls(supabaseAdmin, urls);
-  return rows.map((r) => (r.cover_url ? { ...r, cover_url: map.get(r.cover_url) ?? r.cover_url } : r));
+  return rows.map((r) => {
+    if (!r.cover_url) return r;
+    const signed = map.get(r.cover_url);
+    if (signed) return { ...r, cover_url: signed };
+    // Signing failed and the object lives in a private bucket: a raw
+    // /object/public/ link would render as a broken image, so drop it.
+    const isPrivate = /\/object\/(?:public|sign)\/(gallery|garage|listings|sponsors)\//.test(
+      r.cover_url,
+    );
+    return isPrivate ? { ...r, cover_url: null } : r;
+  });
 }
 
 

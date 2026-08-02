@@ -7,6 +7,7 @@ import { Calendar, IdCard, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
+import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
 
 const nextEventQuery = queryOptions({
   queryKey: ["events", "next"],
@@ -35,8 +36,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Just Wheels Hessequa | Southern Cape Car Club" },
       {
         property: "og:description",
-        content:
-          "Join a community car club for classics, hot rods, bakkies and bikes across the Southern Cape.",
+        content: "Join a community car club for classics, hot rods, bakkies and bikes across the Southern Cape.",
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${SITE_ORIGIN}/` },
@@ -102,14 +102,9 @@ function Index() {
       : nextEvent.description
     : null;
 
-  const nextBody = nextEvent
-    ? [nextMeta, nextDesc].filter(Boolean).join(" — ")
-    : t("home.tbaBody");
+  const nextBody = nextEvent ? [nextMeta, nextDesc].filter(Boolean).join(" — ") : t("home.tbaBody");
 
-  const faceSrc =
-    featured?.avatar_url?.trim() ||
-    featured?.featured_photo_url?.trim() ||
-    null;
+  const faceSrc = featured?.avatar_url?.trim() || featured?.featured_photo_url?.trim() || null;
 
   const garageThumb = featured?.garage_thumb_url?.trim() || null;
   const bio = featured?.featured_bio?.trim() || null;
@@ -157,9 +152,7 @@ function Index() {
       </section>
 
       <Link
-        {...(nextEvent
-          ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
-          : ({ to: "/events" } as const))}
+        {...(nextEvent ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const) : ({ to: "/events" } as const))}
         className="block border-b-2 border-ink bg-primary text-white transition-colors hover:bg-primary/90"
       >
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
@@ -175,6 +168,8 @@ function Index() {
       </Link>
 
       <SponsorCarousel />
+
+      <ConcoursHomeWinner />
 
       {featured && (
         <section className="border-b-2 border-ink bg-paper text-ink">
@@ -205,9 +200,7 @@ function Index() {
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
                       {lang === "af" ? "Lid in die kollig" : "Featured member"}
                     </p>
-                    <p className="font-display text-xl leading-tight text-ink">
-                      {featured.display_name ?? "—"}
-                    </p>
+                    <p className="font-display text-xl leading-tight text-ink">{featured.display_name ?? "—"}</p>
                   </div>
                 </div>
 
@@ -231,7 +224,6 @@ function Index() {
                         ? "Geen biografie nog — lede kan hul eie bio by hul profiel byvoeg."
                         : "No bio yet — members can add their own bio on their profile."}
                     </p>
-
                   )}
                 </div>
 
@@ -249,9 +241,7 @@ function Index() {
       )}
 
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
-          {t("home.featuresTitle")}
-        </h2>
+        <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">{t("home.featuresTitle")}</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={<Calendar className="h-6 w-6" />}
@@ -273,9 +263,7 @@ function Index() {
 
       <section className="border-t-2 border-ink bg-paper text-ink">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-16 md:grid-cols-2">
-          <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
-            {t("home.aboutTitle")}
-          </h2>
+          <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">{t("home.aboutTitle")}</h2>
           <div>
             <p className="text-lg text-ink/80">{t("home.aboutBody")}</p>
             <Link

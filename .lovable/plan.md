@@ -1,98 +1,34 @@
-## Events v2 — Maps, Waypoints, RSVPs, Richer Content
+# Sponsor applications, approval and member-owned sponsor cards
 
-Everything below is additive to the existing `events` table and admin flow. Existing events keep working; new fields are optional.
+## What changes for people
 
-### 1. Data model (one migration)
+**A business applies** on `/sponsors`. Today that form only emails the club — nothing is stored. After this change the application is saved, and the applicant immediately gets a confirmation email ("we received your application").
 
-Extend `public.events`:
-- `destination_lat numeric`, `destination_lng numeric` — resolved once via Google Geocoding when admin picks a place.
-- `destination_place_id text`, `destination_address text` — full formatted address for display.
-- `hero_image_url text` — optional destination photo (separate from existing `cover_url` used for cards).
-- `details_md text` / `details_af_md text` — long-form "more about this destination" (markdown, rendered safely).
+**Admin reviews** at `/admin/sponsors`, in a new "Applications" section above the sponsor list: pending / approved / declined tabs, each showing business, contact, email, phone, website and message. Admin can:
+- **Approve** — pick which club member owns this sponsor (searchable member picker, pre-matched by the application email when it matches a member), set subscription start/end dates, and a sponsor record is created in draft (inactive) state. The applicant and assigned member get an email: "Approved — complete your sponsor card setup" with a link to `/members/sponsor`.
+- **Decline** — marks it declined (no email sent unless you want one; default: no email).
 
-New table `public.event_waypoints` (admin-defined meetup stops along the route):
-- `event_id`, `label`, `label_af`, `address`, `lat`, `lng`, `place_id`, `meet_time timestamptz`, `sort int`.
-- Public read when parent event is published; admin manage.
+**The assigned member** gets a new page `/members/sponsor` (linked from the members area when they own a sponsor). While their subscription is valid they can edit the sponsor card: logo, name, tagline (EN/AF, with the existing translate button) and website. When the end date has passed, the form is read-only and shows "Your sponsorship has expired — contact the club admin" with the WhatsApp/email contact. Members can never change dates, active flag, sort order, or ownership — admin-only.
 
-New table `public.event_rsvps`:
-- `event_id`, `user_id` (unique together), `status` enum `going | maybe | not_going`, `party_size int` (only meaningful when going, 1–10), `note text`, timestamps.
-- RLS: members read all RSVPs for published events (attendee list is members-only); members can insert/update/delete their own; admins can manage all.
+**Public carousel** is unchanged in behaviour: only active sponsors inside their date window are shown.
 
-Origin towns for distance display are hardcoded (Albertinia, Riversdale, Stilbaai, Heidelberg) with fixed lat/lng in a shared constants file — no need to store them.
+## Technical details
 
-### 2. Server functions
+Database migration:
+- `public.sponsor_applications` — business, contact_name, email, phone, website, message, status (`pending` / `approved` / `declined`), reviewed_by, reviewed_at, created_sponsor_id, timestamps. Insert allowed for anon+authenticated (public form); select/update admin-only via `has_role`. GRANTs for anon/authenticated/service_role per policies.
+- `public.sponsors` gains `owner_user_id uuid references auth.users`.
+- New RLS on sponsors: owners may `SELECT`/`UPDATE` their own row; an `UPDATE` policy plus a trigger restricts owner edits to name/tagline/tagline_af/website_url/logo_path and blocks changes when `billing_ends_at < current_date`. Admin policies stay as-is.
+- Storage `sponsors` bucket: extend upload/update policies so a sponsor owner may write under their own `owner_user_id/...` prefix (currently admin-only).
 
-`src/lib/events.functions.ts` gains:
-- `getEventDetail({ id })` — public: event + waypoints + counts (going/maybe/not_going). Uses publishable client.
-- `listEventAttendees({ id })` — auth-required: returns going/maybe members with display name, member number, town, avatar.
-- `upsertMyRsvp({ eventId, status, partySize, note })` — auth-required, validated with Zod.
-- `deleteMyRsvp({ eventId })`.
-- Admin: `saveEventWaypoints({ eventId, waypoints[] })`, extend existing `upsertEvent` to accept the new fields.
+Server functions (`src/lib/sponsors.functions.ts` + new `sponsor-applications.functions.ts`):
+- `applySponsor` — keep the admin notification email, add an insert into `sponsor_applications` and a Resend confirmation email to the applicant (from `sponsors@notify.justwheels.co.za`).
+- `listSponsorApplications`, `approveSponsorApplication` (assign owner + dates, create sponsor row, send setup email), `declineSponsorApplication` — all admin-gated.
+- `getMySponsor` / `updateMySponsor` — `requireSupabaseAuth`, owner-scoped, server-side expiry check.
+- Reuse the existing member list from `admin-members.functions.ts` for the owner picker.
 
-`src/lib/maps.functions.ts` (new, server-only):
-- `geocodeAddress({ query })` — Google Geocoding via the connector gateway (server key).
-- `computeRoute({ origin, waypoints[], destination })` — Routes API `computeRoutes`, returns overview polyline + total distance/duration.
-- `distancesFromOrigins({ destination })` — Routes API `computeRouteMatrix` for the four fixed towns → destination, returns km + duration each.
-- Results are cached in a lightweight `public.route_cache` keyed by a hash so we don't burn quota on every page view.
+UI:
+- `src/routes/_authenticated/admin/sponsors.tsx`: applications panel with tabs, approve dialog (member picker + dates), decline action; owner column shown on each sponsor row so admin can reassign.
+- New `src/routes/_authenticated/members.sponsor.tsx` with the card editor and expired state; entry point added in the members area only when the user owns a sponsor.
+- New EN/AF strings in `src/i18n/dictionaries.ts` for the member-facing page and application confirmation copy.
 
-### 3. Browser map component
-
-`src/components/EventMap.tsx`:
-- Loads Maps JS via `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` with `loading=async` + `callback`.
-- Renders destination pin, waypoint pins (numbered by sort), and the overview polyline from the server-side route response.
-- Uses plain `google.maps.Marker` (no `mapId`, no AdvancedMarker).
-- Skeleton fallback when key is missing; never crashes the page.
-
-### 4. Admin portal — `/admin/events`
-
-`src/routes/_authenticated/admin/events.tsx` (already migrated into the admin shell) grows an "Edit event" drawer:
-- **Basics**: title/description EN + AF, dates, cover, published toggle (existing).
-- **Destination**: place autocomplete input (Places API New browser autocomplete, then server geocode to persist lat/lng/place_id/address). Optional destination hero image upload → `gallery` bucket subfolder `events/<id>/`.
-- **More info**: rich markdown editor for `details_md` (EN + AF tabs). Rendered client-side with `react-markdown` + `rehype-sanitize`.
-- **Waypoints**: repeatable rows — label EN/AF, address (autocomplete), optional meet time, drag-sort. Save button calls `saveEventWaypoints`.
-- **Live preview**: right-hand panel embeds `EventMap` + the origin distance table so the admin sees exactly what members will see.
-- **RSVPs tab**: current going/maybe/no counts, table of attendees (name → members-only garage link), CSV export.
-
-### 5. Public event page
-
-New route `src/routes/events.$id.tsx` (list page keeps `/events`):
-- Header: cover, title, when, where, published badge.
-- **Map card**: `EventMap` with route polyline + waypoints.
-- **Distances card**: table of Albertinia / Riversdale / Stilbaai / Heidelberg → destination (km + drive time), pulled from `distancesFromOrigins`.
-- **Meetup stops card**: ordered list of waypoints with label, address, meet time (localised).
-- **About this destination**: sanitized markdown render of `details_md` in current language.
-- **RSVP card**:
-  - Signed-out: "Sign in to RSVP" CTA.
-  - Signed-in: three buttons (Going / Maybe / Not going). Choosing Going reveals a "How many in your group?" input (1–10). Optimistic update, saved via `upsertMyRsvp`.
-- **Who's going** (signed-in only): grid of attendee cards → link to `/members/$member_number`. Public users see just totals ("24 going, 6 maybe").
-
-### 6. Members-only "garage" page
-
-New route `src/routes/_authenticated/members.$number.tsx`:
-- Shows display name, town, favourite ride, avatar, member since, current RSVPs to upcoming events they're going to.
-- Gated by `_authenticated` layout (already redirects to `/auth`).
-- Attendee list links point here.
-
-Backend: add `getMemberByNumber({ number })` server fn (auth-required) that returns only public-safe profile columns.
-
-### 7. i18n & polish
-
-- New keys in `src/i18n/dictionaries.ts` for RSVP, map, waypoints, distances, "more info" sections in EN + AF.
-- Distance strings formatted with `Intl.NumberFormat` (km) and duration humanised ("1 h 42 min").
-- All markdown rendering goes through `rehype-sanitize` — never `dangerouslySetInnerHTML` with raw input.
-
-### 8. Ordering of work
-
-1. Connect `google_maps` connector, add migration (events columns, waypoints, rsvps, route_cache) + RLS + GRANTs.
-2. Server: `maps.functions.ts`, extend `events.functions.ts`, `getMemberByNumber`.
-3. `EventMap` component + admin edit drawer with waypoints & destination picker.
-4. Public `/events/$id` page with map, distances, RSVP, attendee list.
-5. Members `/members/$number` garage page + attendee link wiring.
-6. Admin RSVP tab + CSV export.
-7. i18n sweep, empty states, error boundaries.
-
-### Notes on scope kept out on purpose
-
-- Members can't propose their own pickup points (per your answer). Waypoints are admin-only.
-- Google Calendar events (read-only feed) stay list-only — no map/RSVP layer, since we don't own that data.
-- No email/push notifications for RSVP changes yet; can be added later off the same tables.
+Emails are all Resend via the existing `RESEND_API_KEY` and the `notify.justwheels.co.za` sender.

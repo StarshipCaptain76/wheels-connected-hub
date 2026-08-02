@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getSupabaseServerClient } from "@/integrations/supabase/client.server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -39,33 +39,35 @@ export type ConcoursVehicle = {
   submission_count?: number;
 };
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// New tables are not yet in generated Database types — cast through any.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClient = { from: (t: string) => any; rpc: (fn: string, args: Record<string, unknown>) => any; auth?: any };
 
-function pickBalancedQuestions(
-  all: ConcoursQuestion[],
-  count: number,
-): ConcoursQuestion[] {
+async function assertAdmin(supabase: AnyClient, userId: string) {
+  const { data: isAdmin, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  if (error) throw new Error(`Role check failed: ${error.message}`);
+  if (!isAdmin) throw new Error("Forbidden");
+}
+
+function pickBalancedQuestions(all: ConcoursQuestion[], count: number): ConcoursQuestion[] {
   const byCat = new Map<string, ConcoursQuestion[]>();
   for (const q of all) {
     const list = byCat.get(q.category) ?? [];
     list.push(q);
     byCat.set(q.category, list);
   }
-
-  // Shuffle each category
   for (const list of byCat.values()) {
     for (let i = list.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [list[i], list[j]] = [list[j], list[i]];
     }
   }
-
   const categories = Array.from(byCat.keys());
   const selected: ConcoursQuestion[] = [];
   let catIdx = 0;
-
   while (selected.length < count && categories.length > 0) {
     const cat = categories[catIdx % categories.length];
     const list = byCat.get(cat)!;
@@ -77,79 +79,70 @@ function pickBalancedQuestions(
     }
     catIdx++;
   }
-
   return selected;
 }
 
 // ---------------------------------------------------------------------------
-// Public / shared reads
+// Public reads (anon)
 // ---------------------------------------------------------------------------
 
 export const getEventConcours = createServerFn({ method: "GET" })
-  .validator(z.object({ eventId: z.string().uuid() }))
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ data }): Promise<EventConcours | null> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase() as unknown as AnyClient;
     const { data: row, error } = await supabase
       .from("event_concours")
       .select("*")
       .eq("event_id", data.eventId)
       .maybeSingle();
-
     if (error) throw new Error(error.message);
-    return row as EventConcours | null;
+    return (row as EventConcours | null) ?? null;
   });
 
 export const listConcoursQuestions = createServerFn({ method: "GET" })
-  .validator(z.object({ ids: z.array(z.string().uuid()).optional() }))
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
+  .inputValidator((i: unknown) =>
+    z.object({ ids: z.array(z.string().uuid()).optional() }).parse(i),
+  )
+  .handler(async ({ data }): Promise<ConcoursQuestion[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase() as unknown as AnyClient;
     let q = supabase
       .from("concours_questions")
       .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
       .eq("active", true)
       .order("sort_order");
-
     if (data.ids && data.ids.length > 0) {
       q = q.in("id", data.ids);
     }
-
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as ConcoursQuestion[];
   });
 
 export const listConcoursVehicles = createServerFn({ method: "GET" })
-  .validator(z.object({ eventId: z.string().uuid() }))
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ data }): Promise<ConcoursVehicle[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase() as unknown as AnyClient;
 
     const { data: vehicles, error } = await supabase
       .from("event_concours_vehicles")
       .select("*")
       .eq("event_id", data.eventId)
       .order("sort_order");
-
     if (error) throw new Error(error.message);
-    if (!vehicles?.length) return [] as ConcoursVehicle[];
+    if (!vehicles?.length) return [];
 
-    // Compute live weighted averages
     const { data: scores } = await supabase
       .from("event_concours_scores")
       .select("vehicle_id, total_score, weight, is_member")
       .eq("event_id", data.eventId);
 
-    const byVehicle = new Map<
-      string,
-      { weightedSum: number; weightSum: number; count: number }
-    >();
-
+    const byVehicle = new Map<string, { weightedSum: number; weightSum: number; count: number }>();
     for (const s of scores ?? []) {
       if (s.total_score == null) continue;
-      const cur = byVehicle.get(s.vehicle_id) ?? {
-        weightedSum: 0,
-        weightSum: 0,
-        count: 0,
-      };
+      const cur = byVehicle.get(s.vehicle_id) ?? { weightedSum: 0, weightSum: 0, count: 0 };
       const w = Number(s.weight) || 1;
       cur.weightedSum += Number(s.total_score) * w;
       cur.weightSum += w;
@@ -157,7 +150,7 @@ export const listConcoursVehicles = createServerFn({ method: "GET" })
       byVehicle.set(s.vehicle_id, cur);
     }
 
-    return vehicles.map((v) => {
+    return (vehicles as ConcoursVehicle[]).map((v) => {
       const stats = byVehicle.get(v.id);
       return {
         ...v,
@@ -166,66 +159,53 @@ export const listConcoursVehicles = createServerFn({ method: "GET" })
             ? Math.round((stats.weightedSum / stats.weightSum) * 10) / 10
             : null,
         submission_count: stats?.count ?? 0,
-      } as ConcoursVehicle;
+      };
     });
   });
 
 // ---------------------------------------------------------------------------
-// Admin actions
+// Admin (auth required)
 // ---------------------------------------------------------------------------
 
 export const upsertEventConcours = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      eventId: z.string().uuid(),
-      enabled: z.boolean(),
-      questionCount: z.number().int().min(5).max(15),
-      prizeEn: z.string().nullable().optional(),
-      prizeAf: z.string().nullable().optional(),
-      sponsorName: z.string().nullable().optional(),
-      sponsorLogoUrl: z.string().nullable().optional(),
-      reRollQuestions: z.boolean().optional(),
-    }),
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        enabled: z.boolean(),
+        questionCount: z.number().int().min(5).max(15),
+        prizeEn: z.string().nullable().optional(),
+        prizeAf: z.string().nullable().optional(),
+        sponsorName: z.string().nullable().optional(),
+        sponsorLogoUrl: z.string().nullable().optional(),
+        reRollQuestions: z.boolean().optional(),
+      })
+      .parse(i),
   )
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _role: "admin",
-      _user_id: user.id,
-    });
-    if (!isAdmin) throw new Error("Admin only");
-
-    const { data: existing } = await supabase
+    const { data: existing } = await sb
       .from("event_concours")
       .select("*")
       .eq("event_id", data.eventId)
       .maybeSingle();
 
-    let selectedIds: string[] = existing?.selected_question_ids ?? [];
+    let selectedIds: string[] = (existing?.selected_question_ids as string[] | undefined) ?? [];
 
-    // (Re)select questions if first time, count changed, or admin requested re-roll
     if (
       !existing ||
       data.reRollQuestions ||
       selectedIds.length !== data.questionCount
     ) {
-      const { data: allQ } = await supabase
+      const { data: allQ } = await sb
         .from("concours_questions")
-        .select(
-          "id, category, category_af, text_en, text_af, scoring_type, sort_order",
-        )
+        .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
         .eq("active", true);
-
-      const picked = pickBalancedQuestions(
-        (allQ ?? []) as ConcoursQuestion[],
-        data.questionCount,
-      );
+      const picked = pickBalancedQuestions((allQ ?? []) as ConcoursQuestion[], data.questionCount);
       selectedIds = picked.map((q) => q.id);
     }
 
@@ -241,69 +221,55 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from("event_concours")
-      .upsert(payload, { onConflict: "event_id" });
-
+    const { error } = await sb.from("event_concours").upsert(payload, { onConflict: "event_id" });
     if (error) throw new Error(error.message);
-    return { ok: true, selectedCount: selectedIds.length };
+    return { ok: true as const, selectedCount: selectedIds.length };
   });
 
 export const revealConcoursLeaderboard = createServerFn({ method: "POST" })
-  .validator(z.object({ eventId: z.string().uuid(), revealed: z.boolean() }))
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z.object({ eventId: z.string().uuid(), revealed: z.boolean() }).parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _role: "admin",
-      _user_id: user.id,
-    });
-    if (!isAdmin) throw new Error("Admin only");
-
-    const { error } = await supabase
+    const { error } = await sb
       .from("event_concours")
       .update({
         leaderboard_revealed: data.revealed,
         updated_at: new Date().toISOString(),
       })
       .eq("event_id", data.eventId);
-
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true as const };
   });
 
 export const addConcoursVehicle = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      eventId: z.string().uuid(),
-      photoUrl: z.string().url(),
-      label: z.string().nullable().optional(),
-      labelAf: z.string().nullable().optional(),
-    }),
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        photoUrl: z.string().url(),
+        label: z.string().nullable().optional(),
+        labelAf: z.string().nullable().optional(),
+      })
+      .parse(i),
   )
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _role: "admin",
-      _user_id: user.id,
-    });
-    if (!isAdmin) throw new Error("Admin only");
-
-    const { count } = await supabase
+    const { count } = await sb
       .from("event_concours_vehicles")
       .select("*", { count: "exact", head: true })
       .eq("event_id", data.eventId);
 
-    const { data: row, error } = await supabase
+    const { data: row, error } = await sb
       .from("event_concours_vehicles")
       .insert({
         event_id: data.eventId,
@@ -314,67 +280,67 @@ export const addConcoursVehicle = createServerFn({ method: "POST" })
       })
       .select()
       .single();
-
     if (error) throw new Error(error.message);
     return row as ConcoursVehicle;
   });
 
 export const deleteConcoursVehicle = createServerFn({ method: "POST" })
-  .validator(z.object({ vehicleId: z.string().uuid() }))
-  .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ vehicleId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _role: "admin",
-      _user_id: user.id,
-    });
-    if (!isAdmin) throw new Error("Admin only");
-
-    const { error } = await supabase
-      .from("event_concours_vehicles")
-      .delete()
-      .eq("id", data.vehicleId);
-
+    const { error } = await sb.from("event_concours_vehicles").delete().eq("id", data.vehicleId);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true as const };
   });
 
 // ---------------------------------------------------------------------------
-// Scoring
+// Scoring — public allowed (50% questions, 0.5 weight); members full + 1.0
 // ---------------------------------------------------------------------------
 
 export const submitConcoursScore = createServerFn({ method: "POST" })
-  .validator(
-    z.object({
-      eventId: z.string().uuid(),
-      vehicleId: z.string().uuid(),
-      answers: z.record(z.union([z.number(), z.string(), z.null()])),
-    }),
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        vehicleId: z.string().uuid(),
+        answers: z.record(z.union([z.number(), z.string(), z.null()])),
+      })
+      .parse(i),
   )
   .handler(async ({ data }) => {
-    const supabase = getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase() as unknown as AnyClient;
 
+    let userId: string | null = null;
     let isMember = false;
-    let weight = 0.5; // public default
+    let weight = 0.5;
 
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("membership_status")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      isMember =
-        profile?.membership_status === "active" ||
-        profile?.membership_status === "member";
-      weight = isMember ? 1.0 : 0.5;
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const request = getRequest();
+      const authHeader = request?.headers?.get("authorization");
+      if (authHeader?.startsWith("Bearer ")) {
+        const token = authHeader.slice(7);
+        const { data: userData } = await supabase.auth.getUser(token);
+        if (userData?.user?.id) {
+          userId = userData.user.id;
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("membership_status")
+            .eq("id", userId)
+            .maybeSingle();
+          isMember =
+            profile?.membership_status === "active" ||
+            profile?.membership_status === "member";
+          weight = isMember ? 1.0 : 0.5;
+        }
+      }
+    } catch {
+      // stay as public
     }
 
     const { data: ec } = await supabase
@@ -385,10 +351,9 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
 
     if (!ec?.enabled) throw new Error("Concours is not enabled for this event");
 
-    const selectedIds: string[] = ec.selected_question_ids ?? [];
+    const selectedIds: string[] = (ec.selected_question_ids as string[]) ?? [];
     if (selectedIds.length === 0) throw new Error("No questions configured");
 
-    // Public users only answer 50 % of the questions
     let allowedIds = selectedIds;
     if (!isMember) {
       const half = Math.ceil(selectedIds.length / 2);
@@ -400,16 +365,16 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     for (const [qid, val] of Object.entries(data.answers)) {
       if (!allowedIds.includes(qid)) continue;
       if (typeof val === "number" && !Number.isNaN(val)) {
-        sum += val;
+        const n = Math.max(0, Math.min(10, val > 10 ? 10 : val));
+        sum += n;
         count += 1;
-      } else if (val === "yes" || val === true) {
+      } else if (val === "yes") {
         sum += 10;
         count += 1;
-      } else if (val === "no" || val === false) {
+      } else if (val === "no") {
         sum += 0;
         count += 1;
       }
-      // N/A skipped
     }
 
     const totalScore = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
@@ -417,7 +382,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     const payload = {
       event_id: data.eventId,
       vehicle_id: data.vehicleId,
-      user_id: user?.id ?? null,
+      user_id: userId,
       is_member: isMember,
       weight,
       answers: data.answers,
@@ -425,12 +390,15 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       submitted_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from("event_concours_scores")
-      .upsert(payload, {
+    if (userId) {
+      const { error } = await supabase.from("event_concours_scores").upsert(payload, {
         onConflict: "event_id,vehicle_id,user_id",
       });
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabase.from("event_concours_scores").insert(payload);
+      if (error) throw new Error(error.message);
+    }
 
-    if (error) throw new Error(error.message);
-    return { ok: true, totalScore, isMember, weight };
+    return { ok: true as const, totalScore, isMember, weight };
   });

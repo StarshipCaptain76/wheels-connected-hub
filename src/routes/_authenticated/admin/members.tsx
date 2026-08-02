@@ -148,63 +148,37 @@ function AdminMembersPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((m: AdminMember) => {
-              const busy = busyId === m.user_id;
-              return (
-                <tr key={m.user_id} className="border-t border-ink/10 bg-paper align-top">
-                  <td className="px-3 py-2 font-mono text-ink/70">
-                    {String(m.member_number).padStart(4, "0")}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="font-semibold text-ink">{m.display_name ?? "—"}</div>
-                    <div className="text-xs text-ink/60">{m.town ?? ""}</div>
-                    {m.favourite_ride && (
-                      <div className="text-xs text-ink/60">🚗 {m.favourite_ride}</div>
+            {groups.pending.length > 0 && (
+              <SectionRow label={`Pending approval (${groups.pending.length})`} />
+            )}
+            {groups.pending.map(renderRow)}
+
+            {groups.members.length > 0 && (
+              <SectionRow label={`Members (${groups.members.length})`} />
+            )}
+            {groups.members.map(renderRow)}
+
+            {groups.admins.length > 0 && (
+              <tr className="border-t-2 border-ink bg-ink/5">
+                <td colSpan={5} className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminsOpen((v) => !v)}
+                    className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink"
+                  >
+                    {adminsOpen ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
                     )}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-ink">
-                    <div>{m.email ?? "—"}</div>
-                    {m.phone && <div className="text-ink/60">{m.phone}</div>}
-                  </td>
-                  <td className="px-3 py-2">
-                    <select
-                      disabled={busy}
-                      value={m.membership_status}
-                      onChange={(e) =>
-                        run(m.user_id, () =>
-                          setStatus({
-                            data: {
-                              userId: m.user_id,
-                              status: e.target.value as "pending" | "active" | "suspended",
-                            },
-                          }),
-                        )
-                      }
-                      className="rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink"
-                    >
-                      <option value="pending">pending</option>
-                      <option value="active">active</option>
-                      <option value="suspended">suspended</option>
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        run(m.user_id, () => setRole({ data: { userId: m.user_id, isAdmin: !m.is_admin } }))
-                      }
-                      className={`inline-flex items-center gap-1 rounded border-2 border-ink px-2 py-1 text-xs font-bold uppercase ${
-                        m.is_admin ? "bg-black text-white" : "bg-paper text-ink"
-                      }`}
-                    >
-                      <Shield className="h-3 w-3" /> {m.is_admin ? "Admin" : "Grant"}
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-            {filtered.length === 0 && (
+                    Admins ({groups.admins.length})
+                  </button>
+                </td>
+              </tr>
+            )}
+            {adminsOpen && groups.admins.map(renderRow)}
+
+            {totalShown === 0 && (
               <tr>
                 <td colSpan={5} className="px-3 py-8 text-center text-ink/50">
                   No members match.
@@ -212,6 +186,7 @@ function AdminMembersPage() {
               </tr>
             )}
           </tbody>
+
         </table>
       </div>
     </div>

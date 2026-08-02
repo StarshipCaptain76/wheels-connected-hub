@@ -38,6 +38,7 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const [q, setQ] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
 
   const tagsQuery = useQuery({

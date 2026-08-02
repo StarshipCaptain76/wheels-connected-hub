@@ -279,15 +279,35 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
               <MessageCircle className="h-3.5 w-3.5 text-primary" />
               {af ? "Of nooi per WhatsApp" : "Or invite by WhatsApp"}
             </p>
+            {contactsSupported && (
+              <button
+                type="button"
+                onClick={() => void pickFromContacts()}
+                className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-card px-3 py-2 text-sm font-bold text-ink"
+              >
+                <BookUser className="h-4 w-4 text-primary" />
+                {af ? "Kies uit kontakte" : "Choose from contacts"}
+              </button>
+            )}
+            {pickedName && (
+              <p className="mt-2 text-[11px] font-bold text-ink/70">
+                {af ? "Gekose kontak: " : "Selected contact: "}
+                {pickedName}
+              </p>
+            )}
             <input
               type="tel"
               inputMode="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                setPickedName("");
+              }}
               maxLength={20}
               placeholder={af ? "bv. 0821234567 of +27821234567" : "e.g. 0821234567 or +27821234567"}
               className="mt-2 w-full rounded-lg border-2 border-ink bg-card px-2 py-2 text-sm text-ink outline-none"
             />
+
             <button
               type="button"
               disabled={!normalisePhone(phone)}

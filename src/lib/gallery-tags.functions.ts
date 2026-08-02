@@ -56,6 +56,7 @@ export const listTaggedPhotosForUser = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ userId: z.string().uuid() }).parse(i))
   .handler(async ({ context, data }): Promise<TaggedPhoto[]> => {
     const { supabase } = context;
+    const { signStoredUrls } = await import("./storage-urls.server");
     const { data: tags, error } = await supabase
       .from("gallery_tags")
       .select("gallery_item_id")
@@ -69,15 +70,20 @@ export const listTaggedPhotosForUser = createServerFn({ method: "GET" })
       .in("id", ids)
       .eq("is_published", true)
       .order("created_at", { ascending: false });
+    const signed = await signStoredUrls(
+      supabase,
+      (items ?? []).map((it) => it.image_url as string),
+    );
     return (items ?? []).map((it) => ({
       id: it.id as string,
-      image_url: it.image_url as string,
+      image_url: signed.get(it.image_url as string) ?? (it.image_url as string),
       title: (it.title as string) ?? null,
       caption: (it.caption as string) ?? null,
       category: (it.category as string) ?? null,
       taken_at: (it.taken_at as string) ?? null,
     }));
   });
+
 
 export const addPhotoTag = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

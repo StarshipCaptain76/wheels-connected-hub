@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { EventMap } from "@/components/EventMap";
 import { EventPhotosGallery } from "@/components/EventPhotosGallery";
+import { ConcoursChallenge } from "@/components/ConcoursChallenge";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   getEventDetail,
@@ -313,6 +314,8 @@ function EventDetailPage() {
         {!isPast && <RsvpSection eventId={data.id} />}
 
         <EventPhotosGallery eventId={data.id} lang={lang} />
+
+        <ConcoursChallenge eventId={data.id} eventStartsAt={data.starts_at} />
       </section>
     </SiteLayout>
   );

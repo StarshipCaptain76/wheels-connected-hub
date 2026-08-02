@@ -50,6 +50,51 @@ export type Database = {
         }
         Relationships: []
       }
+      event_checkins: {
+        Row: {
+          checked_in_at: string
+          distance_m: number
+          event_id: string
+          id: string
+          lat: number
+          lng: number
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          distance_m: number
+          event_id: string
+          id?: string
+          lat: number
+          lng: number
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          distance_m?: number
+          event_id?: string
+          id?: string
+          lat?: number
+          lng?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_checkins_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_checkins_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_concours: {
         Row: {
           created_at: string
@@ -167,6 +212,7 @@ export type Database = {
       }
       event_concours_vehicles: {
         Row: {
+          added_by: string | null
           created_at: string
           event_id: string
           id: string
@@ -174,8 +220,12 @@ export type Database = {
           label_af: string | null
           photo_url: string
           sort_order: number
+          tagged_display_name: string | null
+          tagged_member_number: number | null
+          tagged_user_id: string | null
         }
         Insert: {
+          added_by?: string | null
           created_at?: string
           event_id: string
           id?: string
@@ -183,8 +233,12 @@ export type Database = {
           label_af?: string | null
           photo_url: string
           sort_order?: number
+          tagged_display_name?: string | null
+          tagged_member_number?: number | null
+          tagged_user_id?: string | null
         }
         Update: {
+          added_by?: string | null
           created_at?: string
           event_id?: string
           id?: string
@@ -192,6 +246,9 @@ export type Database = {
           label_af?: string | null
           photo_url?: string
           sort_order?: number
+          tagged_display_name?: string | null
+          tagged_member_number?: number | null
+          tagged_user_id?: string | null
         }
         Relationships: [
           {

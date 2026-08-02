@@ -31,7 +31,7 @@ function specRows(v: GarageVehicle, af: boolean): SpecRow[] {
     [L("Engine", "Enjin"), v.engine],
     [L("Power", "Krag"), v.power],
     [L("Torque", "Wringkrag"), v.torque],
-    [L("0 – 100 km/h", "0 – 100 km/h"), v.acceleration],
+    [L("0 - 100 km/h", "0 - 100 km/h"), v.acceleration],
     [L("Quarter mile", "Kwartmyl"), v.quarter_mile],
     [L("Top speed", "Topspoed"), v.top_speed],
     [L("Fuel economy", "Brandstofverbruik"), v.fuel_economy],
@@ -216,15 +216,14 @@ export async function downloadDisplayBoard(opts: {
   if (rows.length === 0) {
     // No structured specs yet — fall back to the vehicle story so the board is never blank.
     const story = (af ? v.story_af || v.story : v.story) || "";
-    console.log("[board] story len", story.length);
     doc.setTextColor(INK);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(story ? 17 : 18);
     const text = story
       ? story
       : af
-        ? "Voeg spesifikasies by in My Garage → Wysig voertuig → Spesifikasieblad."
-        : "Add specs in My Garage → Edit vehicle → Spec sheet.";
+        ? "Voeg spesifikasies by in My Garage > Wysig voertuig > Spesifikasieblad."
+        : "Add specs in My Garage > Edit vehicle > Spec sheet.";
     const lines = doc.splitTextToSize(text, heroW) as string[];
     const maxLines = Math.floor((footerTop - y - 10) / 9);
     doc.text(lines.slice(0, maxLines), M, y, { lineHeightFactor: 1.5 });

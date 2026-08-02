@@ -4,11 +4,17 @@ export type NotificationType =
   | "new_listing"
   | "new_event"
   | "new_newsletter"
+  | "photo_tag"
   | "admin_new_sponsor"
   | "admin_new_member"
   | "admin_listing_review";
 
-export const MEMBER_TYPES: NotificationType[] = ["new_listing", "new_event", "new_newsletter"];
+export const MEMBER_TYPES: NotificationType[] = [
+  "new_listing",
+  "new_event",
+  "new_newsletter",
+  "photo_tag",
+];
 export const ADMIN_TYPES: NotificationType[] = [
   "admin_new_sponsor",
   "admin_new_member",
@@ -33,6 +39,7 @@ export const DEFAULT_PREFS: NotificationPrefs = {
   new_listing: true,
   new_event: true,
   new_newsletter: true,
+  photo_tag: true,
   admin_new_sponsor: true,
   admin_new_member: true,
   admin_listing_review: true,

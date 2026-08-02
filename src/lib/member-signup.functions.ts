@@ -32,5 +32,20 @@ export const notifyAdminNewMember = createServerFn({ method: "POST" })
       console.error("Admin new-member notification failed", err);
       return { ok: false as const };
     }
+
+    try {
+      const { fanOut } = await import("./notify.server");
+      await fanOut({
+        type: "admin_new_member",
+        title_en: "New member awaiting approval",
+        title_af: "Nuwe lid wag vir goedkeuring",
+        body_en: name + " (" + data.email + ")",
+        body_af: name + " (" + data.email + ")",
+        link: "/admin/members",
+      });
+    } catch (e) {
+      console.error("[members] in-app notification failed", e);
+    }
+
     return { ok: true as const };
   });

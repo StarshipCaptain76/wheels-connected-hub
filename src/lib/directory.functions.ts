@@ -84,30 +84,8 @@ async function resolveGarageUrls(
   supabase: any,
   paths: string[],
 ): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
-  const unique = [...new Set(paths.filter(Boolean))];
-  for (const path of unique) {
-    try {
-      const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
-      if (pub?.publicUrl) map.set(path, pub.publicUrl);
-    } catch {
-      /* ignore */
-    }
-  }
-  const missing = unique.filter((p) => !map.get(p));
-  if (missing.length > 0) {
-    try {
-      const { data } = await supabase.storage
-        .from("garage")
-        .createSignedUrls(missing, 60 * 60 * 24 * 7);
-      for (const row of data ?? []) {
-        if (row?.path && row?.signedUrl) map.set(row.path, row.signedUrl);
-      }
-    } catch (e) {
-      console.error("[directory] garage sign failed", e);
-    }
-  }
-  return map;
+  const { signPaths } = await import("./storage-urls.server");
+  return signPaths(supabase, "garage", paths);
 }
 
 export const listDirectoryMembers = createServerFn({ method: "GET" })
@@ -232,6 +210,16 @@ export const listDirectoryMembers = createServerFn({ method: "GET" })
         newest_year,
       };
     });
+
+    const { signStoredUrls } = await import("./storage-urls.server");
+    const avatarSigned = await signStoredUrls(
+      supabase,
+      rows.map((r) => r.avatar_url),
+    );
+    rows = rows.map((r) => ({
+      ...r,
+      avatar_url: r.avatar_url ? (avatarSigned.get(r.avatar_url) ?? r.avatar_url) : null,
+    }));
 
     const q = (data.search ?? "").toLowerCase().trim();
     if (q) {

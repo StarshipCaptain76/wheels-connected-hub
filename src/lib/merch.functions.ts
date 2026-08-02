@@ -21,6 +21,7 @@ export type MerchItem = {
 export const listMerchItems = createServerFn({ method: "GET" }).handler(
   async (): Promise<MerchItem[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
+    const { signStoredUrls } = await import("./storage-urls.server");
     const sb = createPublicSupabase();
     const { data, error } = await sb
       .from("merch_items")
@@ -32,7 +33,12 @@ export const listMerchItems = createServerFn({ method: "GET" }).handler(
       console.error("listMerchItems failed", error);
       return [];
     }
-    return (data ?? []) as MerchItem[];
+    const rows = (data ?? []) as MerchItem[];
+    const signed = await signStoredUrls(sb, rows.map((r) => r.image_url));
+    return rows.map((r) => ({
+      ...r,
+      image_url: r.image_url ? (signed.get(r.image_url) ?? r.image_url) : null,
+    }));
   },
 );
 
@@ -40,6 +46,7 @@ export const listAllMerchItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<MerchItem[]> => {
     const { supabase, userId } = context;
+    const { signStoredUrls } = await import("./storage-urls.server");
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
@@ -47,8 +54,14 @@ export const listAllMerchItems = createServerFn({ method: "GET" })
       .select("id, name, name_af, description, description_af, price_zar, sizes, image_url, is_active, sort")
       .order("sort", { ascending: true });
     if (error) throw error;
-    return (data ?? []) as MerchItem[];
+    const rows = (data ?? []) as MerchItem[];
+    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
+    return rows.map((r) => ({
+      ...r,
+      image_url: r.image_url ? (signed.get(r.image_url) ?? r.image_url) : null,
+    }));
   });
+
 
 const upsertSchema = z.object({
   id: z.string().uuid().optional().nullable(),

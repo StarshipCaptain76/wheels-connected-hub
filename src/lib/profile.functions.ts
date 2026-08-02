@@ -32,8 +32,10 @@ export const getMyProfile = createServerFn({ method: "GET" })
       .maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("Profile not found");
+    const { signStoredUrl } = await import("./storage-urls.server");
     return {
       ...data,
+      avatar_url: await signStoredUrl(supabase, data.avatar_url as string | null),
       preferred_lang: (data.preferred_lang as "en" | "af" | null) ?? null,
       directory_visible: data.directory_visible !== false,
       email: (claims as { email?: string })?.email ?? null,

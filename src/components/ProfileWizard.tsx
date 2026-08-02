@@ -31,10 +31,8 @@ function pickImageFile(): Promise<File | null> {
 async function signedGarageUrl(path: string): Promise<string> {
   const { data: signed } = await supabase.storage
     .from("garage")
-    .createSignedUrl(path, 60 * 60 * 24 * 365);
-  if (signed?.signedUrl) return signed.signedUrl;
-  const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
-  return pub?.publicUrl ?? "";
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  return signed?.signedUrl ?? "";
 }
 
 type Copy = { title: string; help: string; placeholder: string };

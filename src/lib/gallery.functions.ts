@@ -17,6 +17,7 @@ export type GalleryItem = {
 export const listGalleryItems = createServerFn({ method: "GET" }).handler(
   async (): Promise<GalleryItem[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
+    const { signStoredUrls } = await import("./storage-urls.server");
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("gallery_items")
@@ -25,7 +26,9 @@ export const listGalleryItems = createServerFn({ method: "GET" }).handler(
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
-    return (data ?? []) as GalleryItem[];
+    const rows = (data ?? []) as GalleryItem[];
+    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
+    return rows.map((r) => ({ ...r, image_url: signed.get(r.image_url) ?? r.image_url }));
   },
 );
 
@@ -33,6 +36,7 @@ export const listAllGalleryItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GalleryItem[]> => {
     const { supabase, userId } = context;
+    const { signStoredUrls } = await import("./storage-urls.server");
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
@@ -40,8 +44,11 @@ export const listAllGalleryItems = createServerFn({ method: "GET" })
       .select("id, title, caption, image_url, event_id, taken_at, category, created_at, is_published")
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as GalleryItem[];
+    const rows = (data ?? []) as GalleryItem[];
+    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
+    return rows.map((r) => ({ ...r, image_url: signed.get(r.image_url) ?? r.image_url }));
   });
+
 
 const createSchema = z.object({
   title: z.string().trim().max(120).nullable().optional(),

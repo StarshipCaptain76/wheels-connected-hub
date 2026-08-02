@@ -15,25 +15,30 @@ export type FeaturedMember = {
 
 export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handler(
   async (): Promise<FeaturedMember | null> => {
-    const { createPublicSupabase } = await import("./public-supabase.server");
-    const supabase = createPublicSupabase();
-    const { data, error } = await supabase
-      .from("featured_member_public")
+    // Featured data is public, but the rotation helper is privileged, so this
+    // read runs server-side with an explicit, narrow column projection.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: featuredId } = await supabaseAdmin.rpc("daily_featured_id");
+    if (!featuredId) return null;
+
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
       .select(
         "id, display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, avatar_url, featured_since",
       )
+      .eq("id", featuredId as string)
       .maybeSingle();
-    if (error || !data || !data.id) return null;
+    if (error || !data) return null;
 
     let garage_thumb_url: string | null = null;
     try {
-      const { data: vehicles } = await supabase
+      const { data: vehicles } = await supabaseAdmin
         .from("garage_vehicles")
         .select("id")
         .eq("user_id", data.id as string);
       const vehicleIds = (vehicles ?? []).map((v: { id: string }) => v.id);
       if (vehicleIds.length > 0) {
-        const { data: photos } = await supabase
+        const { data: photos } = await supabaseAdmin
           .from("garage_vehicle_photos")
           .select("storage_path")
           .in("vehicle_id", vehicleIds);
@@ -45,20 +50,17 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
           const day = Math.floor(Date.now() / 86_400_000);
           const pick = paths.sort()[day % paths.length];
 
-          const { data: pub } = supabase.storage.from("garage").getPublicUrl(pick);
-          if (pub?.publicUrl) {
-            garage_thumb_url = pub.publicUrl;
-          } else {
-            const { data: signed } = await supabase.storage
-              .from("garage")
-              .createSignedUrl(pick, 60 * 60 * 24 * 7);
-            garage_thumb_url = signed?.signedUrl ?? null;
-          }
+          const { data: signed } = await supabaseAdmin.storage
+            .from("garage")
+            .createSignedUrl(pick, 60 * 60 * 24 * 7);
+          garage_thumb_url = signed?.signedUrl ?? null;
         }
       }
     } catch {
       garage_thumb_url = null;
     }
+
+    const { signStoredUrl } = await import("./storage-urls.server");
 
     return {
       display_name: data.display_name,
@@ -66,10 +68,11 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
       town: data.town,
       favourite_ride: data.favourite_ride,
       featured_bio: data.featured_bio,
-      featured_photo_url: data.featured_photo_url,
-      avatar_url: data.avatar_url,
+      featured_photo_url: await signStoredUrl(supabaseAdmin, data.featured_photo_url),
+      avatar_url: await signStoredUrl(supabaseAdmin, data.avatar_url),
       featured_since: data.featured_since,
       garage_thumb_url,
     };
   },
 );
+

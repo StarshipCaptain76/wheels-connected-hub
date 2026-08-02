@@ -51,17 +51,9 @@ function storageErrorMessage(msg: string): string {
 }
 
 async function publicOrSignedUrl(path: string): Promise<string> {
-  const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
-  if (pub?.publicUrl) {
-    // Prefer signed URL — more reliable if bucket is not fully public
-    const { data: signed } = await supabase.storage
-      .from("garage")
-      .createSignedUrl(path, 60 * 60 * 24 * 365);
-    return signed?.signedUrl ?? pub.publicUrl;
-  }
   const { data: signed, error } = await supabase.storage
     .from("garage")
-    .createSignedUrl(path, 60 * 60 * 24 * 365);
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
   if (error) console.warn("sign url", error);
   return signed?.signedUrl ?? "";
 }

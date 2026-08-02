@@ -25,7 +25,18 @@ export async function profilesByIds(ids: string[]): Promise<Map<string, ProfileL
     .from("profiles")
     .select("id, display_name, member_number, avatar_url")
     .in("id", ids);
-  for (const p of data ?? []) map.set(p.id as string, p as ProfileLite);
+  const { signStoredUrls } = await import("./storage-urls.server");
+  const signed = await signStoredUrls(
+    supabaseAdmin,
+    (data ?? []).map((p) => p.avatar_url as string | null),
+  );
+  for (const p of data ?? []) {
+    const row = p as ProfileLite;
+    map.set(row.id, {
+      ...row,
+      avatar_url: row.avatar_url ? (signed.get(row.avatar_url) ?? row.avatar_url) : null,
+    });
+  }
   return map;
 }
 

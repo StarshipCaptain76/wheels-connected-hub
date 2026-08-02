@@ -10,6 +10,7 @@ import {
   type MerchItem,
 } from "@/lib/merch.functions";
 import { Trash2, Plus, X, Upload } from "lucide-react";
+import { TranslateButton } from "@/components/TranslateButton";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 

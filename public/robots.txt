@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /auth
-Disallow: /members
-Disallow: /admin
-
-Sitemap: https://justwheels.co.za/sitemap.xml

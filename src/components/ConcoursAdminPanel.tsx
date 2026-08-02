@@ -419,7 +419,12 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                 Scoring
                 <select
                   value={editingQ.scoring_type ?? "scale_1_10"}
-                  onChange={(e) => setEditingQ({ ...editingQ, scoring_type: e.target.value })}
+                  onChange={(e) =>
+                    setEditingQ({
+                      ...editingQ,
+                      scoring_type: e.target.value as NonNullable<typeof editingQ.scoring_type>,
+                    })
+                  }
                   className={inp}
                 >
                   <option value="scale_1_10">1–10 scale</option>

@@ -6,6 +6,7 @@ import { LOGO_URL } from "@/lib/brand";
 import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { NotificationBell } from "@/components/NotificationBell";
 
 function LangToggle() {
   const { lang, setLang } = useI18n();

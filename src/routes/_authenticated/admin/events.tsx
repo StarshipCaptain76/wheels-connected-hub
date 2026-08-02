@@ -18,6 +18,7 @@ import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X, MapPin, ExternalLink, Mail } from "lucide-react";
 import { getEventInviteStatus, sendEventInvites } from "@/lib/event-invites.functions";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const eventsAdminQuery = queryOptions({
   queryKey: ["events", "admin"],
@@ -62,6 +63,7 @@ function AdminEvents() {
   const upsert = useServerFn(upsertEvent);
   const del = useServerFn(deleteEvent);
   const [editing, setEditing] = useState<FormState | null>(null);
+  const confirm = useConfirm();
 
   async function save(form: FormState, waypoints: Array<Partial<EventWaypoint>>) {
     const res = await upsert({
@@ -109,7 +111,7 @@ function AdminEvents() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this event?")) return;
+    if (!(await confirm({ title: "Delete this event?", description: "RSVPs and invites for this event are removed too." }))) return;
     try {
       await del({ data: { id } });
       await qc.invalidateQueries({ queryKey: ["events"] });

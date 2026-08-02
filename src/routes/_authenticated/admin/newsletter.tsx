@@ -6,6 +6,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listSubscribers, sendNewsletter } from "@/lib/newsletter.functions";
 import { Send, Users, Mail } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const subsQuery = queryOptions({
   queryKey: ["newsletter", "subscribers"],
@@ -41,6 +42,7 @@ function AdminNewsletter() {
   const [bodyAf, setBodyAf] = useState("");
   const [status, setStatus] = useState<null | string>(null);
   const [sending, setSending] = useState(false);
+  const confirm = useConfirm();
 
   const active = subs.filter((s) => !s.unsubscribed_at);
   const unsubscribed = subs.length - active.length;
@@ -164,13 +166,14 @@ function AdminNewsletter() {
           <button
             type="button"
             disabled={sending || !subjectEn || !bodyEn || active.length === 0}
-            onClick={() => {
-              if (
-                confirm(
-                  `Send to ${active.length} active subscriber${active.length === 1 ? "" : "s"}?`,
-                )
-              )
-                submit(false);
+            onClick={async () => {
+              const ok = await confirm({
+                title: `Send to ${active.length} active subscriber${active.length === 1 ? "" : "s"}?`,
+                description: "The newsletter goes out immediately and cannot be recalled.",
+                confirmLabel: "Send now",
+                destructive: false,
+              });
+              if (ok) submit(false);
             }}
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none disabled:opacity-50"
           >

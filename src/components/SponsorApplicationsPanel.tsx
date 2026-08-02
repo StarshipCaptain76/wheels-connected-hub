@@ -10,6 +10,7 @@ import {
 } from "@/lib/sponsor-applications.functions";
 import { listAllMembers } from "@/lib/admin-members.functions";
 import { Check, Inbox, Trash2, X } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const DEFAULT_START = new Date().toISOString().slice(0, 10);
 const DEFAULT_END = (() => {
@@ -23,6 +24,7 @@ type Tab = "pending" | "approved" | "declined";
 export function SponsorApplicationsPanel() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Tab>("pending");
+  const confirm = useConfirm();
   const [approving, setApproving] = useState<SponsorApplication | null>(null);
 
   const listFn = useServerFn(listSponsorApplications);
@@ -117,7 +119,7 @@ export function SponsorApplicationsPanel() {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!confirm("Decline this application?")) return;
+                          if (!(await confirm({ title: "Decline this application?", description: "The applicant will not become a sponsor." }))) return;
                           await declineFn({ data: { id: a.id } });
                           await refresh();
                         }}
@@ -130,7 +132,7 @@ export function SponsorApplicationsPanel() {
                   <button
                     type="button"
                     onClick={async () => {
-                      if (!confirm("Delete this application?")) return;
+                      if (!(await confirm({ title: "Delete this application?" }))) return;
                       await deleteFn({ data: { id: a.id } });
                       await refresh();
                     }}

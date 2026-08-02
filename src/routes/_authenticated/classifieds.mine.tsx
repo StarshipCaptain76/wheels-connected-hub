@@ -13,6 +13,7 @@ import {
   type ListingStatus,
 } from "@/lib/listings.functions";
 import { Plus, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 const myListingsQuery = queryOptions({
   queryKey: ["listings", "mine"],
@@ -55,14 +56,19 @@ function MyListingsPage() {
   const delFn = useServerFn(deleteListing);
   const soldFn = useServerFn(markSold);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   async function run(id: string, action: "delete" | "sold") {
     if (action === "delete") {
-      const ok = confirm(
-        lang === "af"
-          ? "Skrap hierdie advertensie permanent? Dit kan nie ontdoen word nie."
-          : "Permanently delete this listing? This cannot be undone.",
-      );
+      const ok = await confirm({
+        title: lang === "af" ? "Skrap hierdie advertensie?" : "Delete this listing?",
+        description:
+          lang === "af"
+            ? "Dit kan nie ontdoen word nie."
+            : "This cannot be undone.",
+        confirmLabel: lang === "af" ? "Skrap" : "Delete",
+        cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
+      });
       if (!ok) return;
     }
     setBusyId(id);

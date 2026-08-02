@@ -5,7 +5,7 @@
  */
 import { jsPDF } from "jspdf";
 import type { GarageVehicle } from "@/lib/garage.functions";
-import { LOGO_URL_FULL } from "@/lib/brand";
+import { LOGO_URL } from "@/lib/brand";
 
 const W = 600;
 const H = 900;
@@ -214,16 +214,19 @@ export async function downloadDisplayBoard(opts: {
   y += 26;
 
   if (rows.length === 0) {
+    // No structured specs yet — fall back to the vehicle story so the board is never blank.
+    const story = (af ? v.story_af || v.story : v.story) || "";
     doc.setTextColor(INK);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(18);
-    doc.text(
-      af
+    doc.setFontSize(story ? 17 : 18);
+    const text = story
+      ? story
+      : af
         ? "Voeg spesifikasies by in My Garage → Wysig voertuig → Spesifikasieblad."
-        : "Add specs in My Garage → Edit vehicle → Spec sheet.",
-      M,
-      y,
-    );
+        : "Add specs in My Garage → Edit vehicle → Spec sheet.";
+    const lines = doc.splitTextToSize(text, heroW) as string[];
+    const maxLines = Math.floor((footerTop - y - 10) / 9);
+    doc.text(lines.slice(0, maxLines), M, y, { lineHeightFactor: 1.5 });
   } else {
     const cols = rows.length > 9 ? 2 : 1;
     const colW = cols === 2 ? (heroW - 24) / 2 : heroW;
@@ -273,7 +276,7 @@ export async function downloadDisplayBoard(opts: {
   doc.text("justwheels.co.za", M, footerTop + 60);
 
   try {
-    const logo = await circlePng(LOGO_URL_FULL, 800);
+    const logo = await circlePng(LOGO_URL, 800);
     const d = 62;
     doc.addImage(logo, "PNG", W - M - d, footerTop + (H - footerTop - d) / 2, d, d);
   } catch {

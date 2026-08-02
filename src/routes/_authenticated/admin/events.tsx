@@ -14,6 +14,7 @@ import {
   type EventWaypoint,
 } from "@/lib/events-detail.functions";
 import { PlacePicker } from "@/components/PlacePicker";
+import { eventImageUrl } from "@/lib/event-image-url";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X, MapPin, ExternalLink, Mail } from "lucide-react";
@@ -145,9 +146,9 @@ function AdminEvents() {
             key={e.id}
             className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4"
           >
-            {e.cover_url ? (
+            {e.cover_display_url ?? e.cover_url ? (
               <img
-                src={e.cover_url}
+                src={e.cover_display_url ?? e.cover_url ?? ""}
                 alt=""
                 className="h-20 w-full rounded border-2 border-ink object-cover sm:h-20 sm:w-28 sm:flex-none"
               />
@@ -480,6 +481,7 @@ function EditModal({
               label="Cover image (card thumbnail)"
               value={form.cover_url ?? ""}
               onChange={(v) => set("cover_url", v || null)}
+              previewSrc={form.id && form.cover_url ? eventImageUrl(form.id, "cover") : null}
               bucket="gallery"
               folder="events/covers"
               maxMb={5}
@@ -488,6 +490,7 @@ function EditModal({
               label="Hero image (event page)"
               value={form.hero_image_url ?? ""}
               onChange={(v) => set("hero_image_url", v || null)}
+              previewSrc={form.id && form.hero_image_url ? eventImageUrl(form.id, "hero") : null}
               bucket="gallery"
               folder="events/heroes"
               maxMb={8}

@@ -1,48 +1,39 @@
-## Goal
+## What I verified
 
-Logged-in members can tag other members in gallery photos. If the person isn't a member yet, they can send them an invite email (sent on behalf of the tagging member). Tagged photos appear on the tagged member's profile as part of their photo carousel.
+- The uploads **did** save. Both recent events have `cover_url` (and one has `hero_image_url`) stored in the database, pointing at `gallery/events/covers/...` and `gallery/events/heroes/...`.
+- The images don't display because the `gallery` bucket is private and the server-side signing step is skipped: the backend environment currently has `SUPABASE_URL` and the publishable key but **no `SUPABASE_SERVICE_ROLE_KEY`**, which `signCovers()` requires. Fetching the stored URL directly returns HTTP 400.
+- Result: on public pages the code deliberately drops unsigned private URLs to `null` (the red chevron placeholder), and in the admin list it keeps the URL, which then 404s (broken thumbnail).
+- The `gallery` bucket's only public read rule covers published gallery items and active shop items — event covers/heroes are not included, so anonymous visitors can never read them even when a URL is correct.
+- On the event page, the "Who's coming / Wie kom" block renders unconditionally (`src/routes/events.$id.tsx`, around line 300).
 
-## 1. Database
+## Corrective plan
 
-New table `gallery_tags`
-- `gallery_item_id` (photo), `tagged_user_id` (member), `tagged_by` (who tagged), `created_at`
-- Unique on (photo, tagged member) so nobody is tagged twice in one picture
-- Access rules: anyone can see tags on published photos; any approved member can add a tag; a tag can be removed by the person who created it, the person tagged, or an admin
+**1. Stop depending on the service key for event images (root fix)**
 
-New table `gallery_tag_invites`
-- Photo, invited email, who invited, message, sent time, status (sent / joined)
-- Only the inviter and admins can see their invite rows
+Add a storage read rule so objects referenced by a **published** event's `cover_url` or `hero_image_url` are readable by everyone — the same pattern already used for published gallery items and active shop items. Event covers are promotional images shown on the public events page, so this matches their intent.
 
-Both get standard grants + row-level security.
+With that in place the stored `/object/public/gallery/...` URLs work directly, in the browser, in the admin list, and in emails — no signing, no expiry, no service key.
 
-## 2. Tagging in the gallery
+**2. Keep signing as a fallback, but stop blanking images**
 
-On `/gallery`, when a signed-in member opens a photo:
-- A **Tag members** control shows existing tags as removable chips (with member avatars, linking to that member's profile).
-- **Add tag** opens a searchable member picker (name / member number / town), built from the existing directory list, excluding already-tagged people.
-- Bottom of the picker: *"Can't find them? Invite by email"* — email field + optional short note, which sends the invite and records it.
-- Bilingual EN/AF labels, consistent with the rest of the app.
-- Members who aren't signed in see the tag names only (no editing).
+In `src/lib/events.functions.ts`, keep `signCovers()` for when the service key is present, but no longer null out event cover URLs when signing is unavailable — the public policy from step 1 makes the plain URL valid. This removes the red-chevron placeholders on `/events` and restores admin thumbnails.
 
-## 3. Invite email (on behalf of the member)
+**3. Hero image on the event detail page**
 
-New elegant HTML email in the club's style (red/ink/paper palette, logo, single call-to-action):
-- Subject: e.g. *"Dawie tagged you in a Just Wheels photo"*
-- Body: the photo thumbnail, who tagged them, their optional note, and a **Join Just Wheels Hessequa** button to `/join`
-- Sent through Resend from the club's notify subdomain with **reply-to set to the tagging member's email**, so replies go to that member
-- Recorded in `gallery_tag_invites`; the same email can't be spammed repeatedly for the same photo
-- Rate-limited per member per day to prevent abuse
+Confirm the detail route passes `hero_image_url` through the same resolution path as the cover, falling back to the cover when no hero is set.
 
-## 4. Tagged photos on member profiles
+**4. Hide "Who's coming" for past events**
 
-- New server function returns published gallery photos a member is tagged in.
-- On `/members/:number` (public member profile) a **Tagged photos** section renders in the existing lightbox/carousel style, above or beside the Garage vehicles.
-- On the member's own profile page, the same section appears with the option to untag themselves.
-- In-app notification when someone tags you (reuses the existing notification system and settings, with a new "Tagged in a photo" toggle).
+In `src/routes/events.$id.tsx`, only render the attendee/RSVP frame while the event is still upcoming (end time if set, otherwise start time, compared to now). Past events keep their details, map, and photo gallery; the RSVP buttons and attendee list disappear.
+
+**5. Verify**
+
+- Reload `/admin/events` and confirm thumbnails render for both existing events.
+- Reload `/events` and the detail page and confirm cover/hero images render, logged out as well.
+- Re-upload one image end-to-end to confirm the save/display round trip.
+- Open a past event and confirm the "Who's coming" frame is gone; open an upcoming one and confirm it still works.
 
 ## Technical notes
 
-- New `src/lib/gallery-tags.functions.ts` (server functions: list tags for photo, list tags for member, add tag, remove tag, invite by email) and `src/lib/gallery-tag-email.server.ts` for the HTML email, following the existing `email.server.ts` helpers.
-- Tag UI lives in a new `src/components/PhotoTagger.tsx`, used from `src/routes/gallery.tsx`.
-- Profile carousel reuses the existing `LightboxItem` pattern already used for garage vehicle photos.
-- Notification fan-out added in `src/lib/notify.server.ts` with a new preference column.
+- New policy on `storage.objects` for `bucket_id = 'gallery'`, matching object names against `events.cover_url` / `events.hero_image_url` where `is_published = true`, mirroring the existing `gallery_public_read_published` policy shape.
+- No change to `garage`, `listings`, or `sponsors` buckets; unpublished events' images remain unreadable to the public.

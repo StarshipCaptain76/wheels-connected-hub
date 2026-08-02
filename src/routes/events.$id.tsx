@@ -295,21 +295,23 @@ function EventDetailPage() {
           </section>
         )}
 
-        <section className="mt-8 rounded-lg border-2 border-ink bg-paper p-4">
-          <p className="text-xs font-bold uppercase tracking-wider text-primary">
-            {lang === "af" ? "Wie kom" : "Who's coming"}
-          </p>
-          <p className="mt-1 text-ink/80">
-            <span className="font-bold">{data.counts.going}</span>{" "}
-            {lang === "af" ? "gaan" : "going"}
-            {" · "}
-            <span className="font-bold">{data.counts.going_party_total}</span>{" "}
-            {lang === "af" ? "mense in totaal" : "people total"}
-            {" · "}
-            <span className="font-bold">{data.counts.maybe}</span>{" "}
-            {lang === "af" ? "dalk" : "maybe"}
-          </p>
-        </section>
+        {!isPast && (
+          <section className="mt-8 rounded-lg border-2 border-ink bg-paper p-4">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              {lang === "af" ? "Wie kom" : "Who's coming"}
+            </p>
+            <p className="mt-1 text-ink/80">
+              <span className="font-bold">{data.counts.going}</span>{" "}
+              {lang === "af" ? "gaan" : "going"}
+              {" · "}
+              <span className="font-bold">{data.counts.going_party_total}</span>{" "}
+              {lang === "af" ? "mense in totaal" : "people total"}
+              {" · "}
+              <span className="font-bold">{data.counts.maybe}</span>{" "}
+              {lang === "af" ? "dalk" : "maybe"}
+            </p>
+          </section>
+        )}
 
         {!isPast && <RsvpSection eventId={data.id} />}
 

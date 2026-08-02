@@ -43,9 +43,6 @@ const CORE_COLS =
 const EXTENDED_COLS =
   "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, hero_image_url, details_md, details_af_md, destination_lat, destination_lng, destination_place_id, destination_address, is_published";
 
-function isPrivateStorageUrl(url: string): boolean {
-  return /\/object\/(?:public|sign|authenticated)\/(gallery|garage|listings|sponsors)\//.test(url);
-}
 
 export const getEventDetail = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
@@ -112,29 +109,9 @@ export const getEventDetail = createServerFn({ method: "GET" })
       console.warn("[getEventDetail] counts skipped", e);
     }
 
-    // Soft-fail image signing — never take the page down if SERVICE_ROLE_KEY is missing
-    let signed = new Map<string, string>();
-    try {
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.SUPABASE_URL) {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { signStoredUrls } = await import("./storage-urls.server");
-        signed = await signStoredUrls(supabaseAdmin, [
-          event.cover_url as string | null,
-          event.hero_image_url as string | null,
-        ]);
-      } else {
-        console.warn("[getEventDetail] SERVICE_ROLE_KEY missing — covers may not display");
-      }
-    } catch (e) {
-      console.error("[getEventDetail] sign failed (continuing)", e);
-    }
-
-    const sign = (u: string | null) => {
-      if (!u) return null;
-      const s = signed.get(u);
-      if (s) return s;
-      return isPrivateStorageUrl(u) ? null : u;
-    };
+    const { eventImageUrl, isPrivateStorageUrl } = await import("./event-image-url");
+    const display = (u: string | null, kind: "cover" | "hero") =>
+      u && isPrivateStorageUrl(u) ? eventImageUrl(event.id as string, kind) : u;
 
     return {
       id: event.id as string,
@@ -145,8 +122,8 @@ export const getEventDetail = createServerFn({ method: "GET" })
       location: (event.location as string | null) ?? null,
       starts_at: event.starts_at as string,
       ends_at: (event.ends_at as string | null) ?? null,
-      cover_url: sign((event.cover_url as string | null) ?? null),
-      hero_image_url: sign((event.hero_image_url as string | null) ?? null),
+      cover_url: display((event.cover_url as string | null) ?? null, "cover"),
+      hero_image_url: display((event.hero_image_url as string | null) ?? null, "hero"),
       details_md: (event.details_md as string | null) ?? null,
       details_af_md: (event.details_af_md as string | null) ?? null,
       destination_lat: (event.destination_lat as number | null) ?? null,

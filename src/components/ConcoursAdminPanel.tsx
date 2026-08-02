@@ -29,6 +29,8 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const publish = useServerFn(publishConcoursResults);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
+  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
+
 
   const concoursQ = useQuery({
     queryKey: ["concours", eventId],
@@ -59,7 +61,6 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const [sponsorLogoUrl, setSponsorLogoUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
 
   // Results form
   const [winnerVehicleId, setWinnerVehicleId] = useState<string>("");
@@ -430,7 +431,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                 Scoring
                 <select
                   value={editingQ.scoring_type ?? "scale_1_10"}
-                  onChange={(e) => setEditingQ({ ...editingQ, scoring_type: e.target.value })}
+                  onChange={(e) => setEditingQ({ ...editingQ, scoring_type: e.target.value as NonNullable<typeof editingQ.scoring_type> })}
                   className={inp}
                 >
                   <option value="scale_1_10">1–10 scale</option>

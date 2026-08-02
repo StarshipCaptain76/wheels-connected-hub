@@ -135,7 +135,7 @@ function AdminShop() {
                   onClick={() => setEditing({ ...item, sizesText: item.sizes.join(", ") })}
                   className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
                 >
-                  Edit
+                  {lang === "af" ? "Wysig" : "Edit"}
                 </button>
                 <button
                   type="button"
@@ -146,7 +146,8 @@ function AdminShop() {
                 </button>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}

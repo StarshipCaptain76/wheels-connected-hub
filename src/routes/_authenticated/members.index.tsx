@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { ProfileWizard } from "@/components/ProfileWizard";
 import { missingProfileFields } from "@/lib/profile-completeness";

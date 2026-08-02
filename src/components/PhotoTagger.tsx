@@ -242,10 +242,21 @@ export function PhotoTagger({
           <UserPlus className="h-3.5 w-3.5" />
           {af ? "Merk lid" : "Tag member"}
         </button>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={af ? "Maak toe" : "Close"}
+            className="ml-auto inline-flex items-center gap-1 rounded-full border-2 border-ink bg-card px-2.5 py-1 text-xs font-bold text-ink"
+          >
+            <X className="h-3.5 w-3.5" />
+            {af ? "Toe" : "Close"}
+          </button>
+        )}
       </div>
 
       {open && (
-        <div className="mt-3 space-y-3 border-t-2 border-ink/10 pt-3">
+        <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain border-t-2 border-ink/10 pt-3">
           <div className="flex items-center gap-2 rounded-lg border-2 border-ink bg-card px-2">
             <Search className="h-4 w-4 text-ink/50" />
             <input

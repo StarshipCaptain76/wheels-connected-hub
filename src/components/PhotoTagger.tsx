@@ -246,6 +246,36 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
                 : "The email is sent on your behalf — replies come back to you."}
             </p>
           </div>
+
+          <div className="rounded-lg border-2 border-dashed border-ink/30 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink/70">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              {af ? "Of nooi per WhatsApp" : "Or invite by WhatsApp"}
+            </p>
+            <input
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              maxLength={20}
+              placeholder={af ? "bv. 0821234567 of +27821234567" : "e.g. 0821234567 or +27821234567"}
+              className="mt-2 w-full rounded-lg border-2 border-ink bg-card px-2 py-2 text-sm text-ink outline-none"
+            />
+            <button
+              type="button"
+              disabled={!normalisePhone(phone)}
+              onClick={onWhatsApp}
+              className="mt-2 w-full rounded-lg border-2 border-ink bg-primary px-3 py-2 text-sm font-bold text-paper disabled:opacity-50"
+            >
+              {af ? "Stuur WhatsApp-uitnodiging" : "Send WhatsApp invite"}
+            </button>
+            <p className="mt-1.5 text-[11px] text-ink/50">
+              {af
+                ? "WhatsApp open met 'n klaar geskrewe boodskap — jy stuur dit self."
+                : "WhatsApp opens with a ready-written message — you send it yourself."}
+            </p>
+          </div>
+
         </div>
       )}
     </div>

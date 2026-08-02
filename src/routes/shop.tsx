@@ -85,7 +85,7 @@ function Shop() {
                       <Package className="h-14 w-14 text-ink/40" />
                     )}
                   </div>
-                  <h3 className="font-display text-2xl tracking-wide text-ink">{name}</h3>
+                  <h2 className="font-display text-2xl tracking-wide text-ink">{name}</h2>
                   {desc && <p className="mt-1 flex-1 text-sm text-ink/70">{desc}</p>}
                   <div className="mt-4 flex items-center justify-between">
                     <span className="font-display text-2xl text-rust">

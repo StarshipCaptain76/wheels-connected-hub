@@ -278,11 +278,15 @@ export const applySponsor = createServerFn({ method: "POST" })
         to: [ADMIN_EMAIL],
         reply_to: data.email,
         subject,
-        html:
-          html +
-          (stored
-            ? '<p style="margin:16px 0 0;color:#555">Review it under Admin → Sponsors → Applications.</p>'
-            : ""),
+        html: buildSponsorApplicationAdminEmail({
+          business: data.business,
+          contact: data.contact,
+          email: data.email,
+          phone: data.phone,
+          website: data.website,
+          message: data.message,
+          stored,
+        }),
       }),
     });
 

@@ -174,6 +174,10 @@ function AdminEvents() {
               <button
                 type="button"
                 onClick={() => remove(e.id)}
+              <InviteButton eventId={e.id} published={Boolean(e.is_published)} />
+              <button
+                type="button"
+                onClick={() => remove(e.id)}
                 className="rounded border-2 border-primary bg-primary p-2 text-paper"
               >
                 <Trash2 className="h-4 w-4" />

@@ -53,19 +53,31 @@ function AdminMembersPage() {
   const qc = useQueryClient();
   const setStatus = useServerFn(updateMemberStatus);
   const setRole = useServerFn(setAdminRole);
+  const approveAll = useServerFn(approveAllPendingMembers);
 
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const pendingCount = useMemo(
+    () => members.filter((m: AdminMember) => m.membership_status === "pending").length,
+    [members],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m: AdminMember) =>
-      [m.display_name, m.email, m.town, String(m.member_number)]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
+    const base = !q
+      ? members
+      : members.filter((m: AdminMember) =>
+          [m.display_name, m.email, m.town, String(m.member_number)]
+            .filter(Boolean)
+            .some((v) => String(v).toLowerCase().includes(q)),
+        );
+    // Admins first, then by member number descending
+    return [...base].sort((a: AdminMember, b: AdminMember) => {
+      if (a.is_admin !== b.is_admin) return a.is_admin ? -1 : 1;
+      return b.member_number - a.member_number;
+    });
   }, [members, query]);
 
   async function run(id: string, fn: () => Promise<unknown>) {
@@ -86,16 +98,30 @@ function AdminMembersPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="font-display text-4xl tracking-wide text-ink">Members</h1>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, email, town, number…"
-            className="w-64 rounded-md border-2 border-ink bg-paper py-2 pl-8 pr-3 text-sm text-ink"
-          />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={pendingCount === 0 || busyId === "__all__"}
+            onClick={() => run("__all__", () => approveAll({}))}
+            className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            <CheckCheck className="h-4 w-4" />
+            {busyId === "__all__"
+              ? "Approving…"
+              : `Approve all pending${pendingCount ? ` (${pendingCount})` : ""}`}
+          </button>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, email, town, number…"
+              className="w-64 rounded-md border-2 border-ink bg-paper py-2 pl-8 pr-3 text-sm text-ink"
+            />
+          </div>
         </div>
       </div>
+
 
       {error && (
         <p className="mt-3 rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">

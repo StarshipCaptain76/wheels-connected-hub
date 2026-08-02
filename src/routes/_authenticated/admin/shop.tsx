@@ -12,6 +12,7 @@ import {
 import { Trash2, Plus, X, Upload } from "lucide-react";
 import { TranslateButton } from "@/components/TranslateButton";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 
 

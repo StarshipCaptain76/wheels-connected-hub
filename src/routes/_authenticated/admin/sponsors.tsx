@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
@@ -8,9 +8,12 @@ import {
   deleteSponsor,
   type AdminSponsor,
 } from "@/lib/sponsors.functions";
+import { listAllMembers } from "@/lib/admin-members.functions";
+import { SponsorApplicationsPanel } from "@/components/SponsorApplicationsPanel";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
 import { Trash2, Plus, X } from "lucide-react";
+
 
 const TAGLINE_MAX = 200;
 const DEFAULT_START = "2026-07-01";

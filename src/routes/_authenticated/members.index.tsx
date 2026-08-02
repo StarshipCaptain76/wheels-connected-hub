@@ -11,7 +11,9 @@ import { getMyProfile, updateMyProfile, type MemberProfile } from "@/lib/profile
 import { getMyRoles } from "@/lib/roles.functions";
 import { listMyGarage } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
-import { IdCard, LogOut, Shield, Users } from "lucide-react";
+import { getMySponsor } from "@/lib/sponsors.functions";
+import { Handshake, IdCard, LogOut, Shield, Users } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/members/")({
   head: () => ({

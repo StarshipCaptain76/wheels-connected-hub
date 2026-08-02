@@ -164,6 +164,7 @@ export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
     window.open(`https://wa.me/${to}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
     toast.success(af ? "WhatsApp geopen" : "WhatsApp opened");
     setPhone("");
+    setPickedName("");
   }
 
   async function pickFromContacts() {

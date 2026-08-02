@@ -55,20 +55,26 @@ export function NotificationBell() {
   // Live updates
   useEffect(() => {
     if (!userId) return;
-    const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        () => {
-          void qc.invalidateQueries({ queryKey: ["notifications", userId] });
-        },
-      )
-      .subscribe();
+    // Unique topic per mount avoids reusing an already-subscribed channel
+    const topic = `notifications-${userId}-${Math.random().toString(36).slice(2)}`;
+    const channel = supabase.channel(topic);
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+      () => {
+        void qc.invalidateQueries({ queryKey: ["notifications", userId] });
+      },
+    );
+    try {
+      channel.subscribe();
+    } catch {
+      /* realtime is best-effort; polling/invalidation still works */
+    }
     return () => {
       void supabase.removeChannel(channel);
     };
   }, [userId, qc]);
+
 
   useEffect(() => {
     if (!open) return;

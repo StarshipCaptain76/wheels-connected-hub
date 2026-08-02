@@ -253,6 +253,22 @@ export const createListing = createServerFn({ method: "POST" })
       const { error: pErr } = await supabase.from("listing_photos").insert(photos);
       if (pErr) throw new Error(pErr.message);
     }
+    try {
+      const { fanOut } = await import("./notify.server");
+      await fanOut({
+        type: "admin_listing_review",
+        title_en: "New listing awaiting approval",
+        title_af: "Nuwe advertensie wag vir goedkeuring",
+        body_en: listing.title,
+        body_af: listing.title_af ?? listing.title,
+        link: "/admin/classifieds",
+        related_id: row.id as string,
+        excludeUserId: userId,
+      });
+    } catch (e) {
+      console.error("[listings] admin notification failed", e);
+    }
+
     return { id: row.id };
   });
 
@@ -420,5 +436,29 @@ export const moderateListing = createServerFn({ method: "POST" })
       if (error) throw new Error(`Could not update listing: ${error.message}`);
       if (e instanceof Error) console.error("[admin listings] service role moderate failed", e);
     }
+
+    if (data.status === "approved") {
+      try {
+        const { data: row } = await supabase
+          .from("listings")
+          .select("title, title_af, user_id")
+          .eq("id", data.id)
+          .maybeSingle();
+        const { fanOut } = await import("./notify.server");
+        await fanOut({
+          type: "new_listing",
+          title_en: "New listing in the classifieds",
+          title_af: "Nuwe advertensie in die markplek",
+          body_en: (row?.title as string) ?? null,
+          body_af: ((row?.title_af as string | null) ?? (row?.title as string)) ?? null,
+          link: `/classifieds/${data.id}`,
+          related_id: data.id,
+          excludeUserId: (row?.user_id as string | null) ?? null,
+        });
+      } catch (e) {
+        console.error("[listings] member notification failed", e);
+      }
+    }
     return { ok: true };
   });
+

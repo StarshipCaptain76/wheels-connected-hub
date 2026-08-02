@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { ChangePassword } from "@/components/ChangePassword";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { ProfileWizard } from "@/components/ProfileWizard";
 import { missingProfileFields } from "@/lib/profile-completeness";
@@ -394,6 +395,8 @@ function MembersPage() {
                   <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
                 </Link>
                 <ChangePassword lang={lang === "af" ? "af" : "en"} />
+                <NotificationSettings isAdmin={Boolean(roles?.isAdmin)} />
+
                 <div className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
 
                   <p className="font-display text-xs tracking-[0.3em] text-primary">

@@ -6,6 +6,7 @@ import { LOGO_URL } from "@/lib/brand";
 import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
+import { NotificationBell } from "@/components/NotificationBell";
 
 function LangToggle() {
   const { lang, setLang } = useI18n();
@@ -214,9 +215,11 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             <div className="hidden md:block">
               <LangToggle />
             </div>
+            <NotificationBell />
             <div className="hidden md:block">
               <AuthAffordance />
             </div>
+
 
             <button
               type="button"

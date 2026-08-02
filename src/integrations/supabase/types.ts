@@ -626,6 +626,84 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_prefs: {
+        Row: {
+          admin_listing_review: boolean
+          admin_new_member: boolean
+          admin_new_sponsor: boolean
+          created_at: string
+          new_event: boolean
+          new_listing: boolean
+          new_newsletter: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_listing_review?: boolean
+          admin_new_member?: boolean
+          admin_new_sponsor?: boolean
+          created_at?: string
+          new_event?: boolean
+          new_listing?: boolean
+          new_newsletter?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_listing_review?: boolean
+          admin_new_member?: boolean
+          admin_new_sponsor?: boolean
+          created_at?: string
+          new_event?: boolean
+          new_listing?: boolean
+          new_newsletter?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body_af: string | null
+          body_en: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          related_id: string | null
+          title_af: string
+          title_en: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body_af?: string | null
+          body_en?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          title_af: string
+          title_en: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body_af?: string | null
+          body_en?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          related_id?: string | null
+          title_af?: string
+          title_en?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

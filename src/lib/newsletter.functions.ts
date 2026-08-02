@@ -217,5 +217,21 @@ export const sendNewsletter = createServerFn({ method: "POST" })
       }
     }
 
+    if (!data.testOnly && sent > 0) {
+      try {
+        const { fanOut } = await import("./notify.server");
+        await fanOut({
+          type: "new_newsletter",
+          title_en: "New club newsletter",
+          title_af: "Nuwe klubnuusbrief",
+          body_en: data.subjectEn,
+          body_af: data.subjectAf || data.subjectEn,
+          link: "/",
+        });
+      } catch (e) {
+        console.error("[newsletter] notification failed", e);
+      }
+    }
+
     return { ok: true as const, sent, failed: failures.length, test: data.testOnly };
   });

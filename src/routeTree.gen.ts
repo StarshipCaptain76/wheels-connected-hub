@@ -32,6 +32,7 @@ import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
 import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
+import { Route as AuthenticatedMembersNotificationsRouteImport } from './routes/_authenticated/members.notifications'
 import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
@@ -162,6 +163,12 @@ const AuthenticatedMembersSponsorRoute =
     path: '/sponsor',
     getParentRoute: () => AuthenticatedMembersRoute,
   } as any)
+const AuthenticatedMembersNotificationsRoute =
+  AuthenticatedMembersNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
 const AuthenticatedMembersDirectoryRoute =
   AuthenticatedMembersDirectoryRouteImport.update({
     id: '/directory',
@@ -271,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -304,6 +312,7 @@ export interface FileRoutesByTo {
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -343,6 +352,7 @@ export interface FileRoutesById {
   '/_authenticated/members/$number': typeof AuthenticatedMembersNumberRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
   '/_authenticated/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/_authenticated/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/_authenticated/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -382,6 +392,7 @@ export interface FileRouteTypes {
     | '/members/$number'
     | '/members/card'
     | '/members/directory'
+    | '/members/notifications'
     | '/members/sponsor'
     | '/api/public/event-rsvp'
     | '/admin/'
@@ -415,6 +426,7 @@ export interface FileRouteTypes {
     | '/members/$number'
     | '/members/card'
     | '/members/directory'
+    | '/members/notifications'
     | '/members/sponsor'
     | '/api/public/event-rsvp'
     | '/admin'
@@ -453,6 +465,7 @@ export interface FileRouteTypes {
     | '/_authenticated/members/$number'
     | '/_authenticated/members/card'
     | '/_authenticated/members/directory'
+    | '/_authenticated/members/notifications'
     | '/_authenticated/members/sponsor'
     | '/api/public/event-rsvp'
     | '/_authenticated/admin/'
@@ -641,6 +654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMembersSponsorRouteImport
       parentRoute: typeof AuthenticatedMembersRoute
     }
+    '/_authenticated/members/notifications': {
+      id: '/_authenticated/members/notifications'
+      path: '/notifications'
+      fullPath: '/members/notifications'
+      preLoaderRoute: typeof AuthenticatedMembersNotificationsRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
     '/_authenticated/members/directory': {
       id: '/_authenticated/members/directory'
       path: '/directory'
@@ -767,6 +787,7 @@ interface AuthenticatedMembersRouteChildren {
   AuthenticatedMembersNumberRoute: typeof AuthenticatedMembersNumberRoute
   AuthenticatedMembersCardRoute: typeof AuthenticatedMembersCardRoute
   AuthenticatedMembersDirectoryRoute: typeof AuthenticatedMembersDirectoryRoute
+  AuthenticatedMembersNotificationsRoute: typeof AuthenticatedMembersNotificationsRoute
   AuthenticatedMembersSponsorRoute: typeof AuthenticatedMembersSponsorRoute
   AuthenticatedMembersIndexRoute: typeof AuthenticatedMembersIndexRoute
 }
@@ -775,6 +796,8 @@ const AuthenticatedMembersRouteChildren: AuthenticatedMembersRouteChildren = {
   AuthenticatedMembersNumberRoute: AuthenticatedMembersNumberRoute,
   AuthenticatedMembersCardRoute: AuthenticatedMembersCardRoute,
   AuthenticatedMembersDirectoryRoute: AuthenticatedMembersDirectoryRoute,
+  AuthenticatedMembersNotificationsRoute:
+    AuthenticatedMembersNotificationsRoute,
   AuthenticatedMembersSponsorRoute: AuthenticatedMembersSponsorRoute,
   AuthenticatedMembersIndexRoute: AuthenticatedMembersIndexRoute,
 }

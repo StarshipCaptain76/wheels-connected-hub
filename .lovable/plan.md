@@ -1,43 +1,53 @@
 ## Goal
 
-After an event is created/published, an admin can press **Invite all members** and every approved member receives a branded HTML email with the event details, a map image, and three one-click voting buttons (Going / Maybe / Can't make it) that record their RSVP without needing to log in.
+A bell icon in the header showing in-app notifications, with per-user on/off switches for each notification type.
 
-## What the admin sees
+## Notification types
 
-On each event row in Admin → Events:
-- A new **Invite all members** button (only for published events).
-- A confirm dialog showing the recipient count ("Send invite to 42 members?").
-- After sending: a small note "Invited 42 members · 2 Aug 14:30" stored on the event, plus a **Resend / send to new members only** option so nobody gets spammed twice.
-- Bilingual: each member gets the email in their own language preference (EN/AF), defaulting to English.
+Members (all active members):
+- New classified listing published
+- New event published
+- New newsletter sent
 
-## What the member receives
+Admins only:
+- New sponsor application received
+- New member signed up (awaiting approval)
+- New listing awaiting moderation
 
-A single-column mobile-friendly email in club styling (red/ink/paper, cartoon logo header):
-- Event title, date & time (SA format), location.
-- Short description / details excerpt.
-- A static Google map image of the destination (with pins for meet-up waypoints), clickable through to the event page.
-- Waypoint/meet-time list if the event has them.
-- Three big buttons: **I'm going · Maybe · Can't make it**.
-- A "View full event & route" link to `justwheels.co.za/events/<id>`.
+## Database
 
-Clicking a vote button opens a Just Wheels confirmation page saying "Thanks, you're marked as Going" with links to the event page — no login required.
+New table `public.notifications`
+- recipient (user), type, title/body (English + Afrikaans), link path, related record id, read flag, created timestamp
+- Members read/update only their own rows (marking read); inserts happen server-side only
+- Realtime enabled so the bell updates live
 
-## Technical section
+New table `public.notification_prefs`
+- one row per user, one boolean per notification type (default all on)
+- Users read and edit only their own row
 
-**Database (one migration)**
-- `public.event_invites` — `event_id`, `user_id`, `email`, `token` (uuid, unique), `sent_at`, `responded_at`, `response`. Unique on (event_id, user_id) so resends skip already-invited members. RLS: admin-only read/write via `has_role`; GRANTs for `authenticated` + `service_role` (tokens are consumed server-side through the service role, not the Data API).
-- `public.events`: add `invites_sent_at timestamptz`, `invites_sent_count int`.
+Both tables get grants + RLS following project conventions.
 
-**Server**
-- `src/lib/event-invites.functions.ts` (createServerFn, `requireSupabaseAuth` + `has_role` admin check):
-  - `getEventInviteStatus({ eventId })` — counts of eligible members / already invited.
-  - `sendEventInvites({ eventId, onlyNew })` — loads approved, non-suspended members with emails via `supabaseAdmin` (inside the handler), creates invite tokens, renders the HTML per member language, sends through Resend in batches (Resend batch endpoint, ≤100 per call, sequential with small delay), then updates `invites_sent_at/count`. Returns `{ sent, skipped, failed }`.
-- `src/lib/event-invite-email.server.ts` — HTML builder reusing `emailShell`/`escapeHtml` from `email.server.ts`; static map URL built from `destination_lat/lng` + waypoints using the existing Google Maps key (Static Maps API), with graceful fallback to a text-only email if no coordinates.
-- `src/routes/api/public/event-rsvp.ts` — `GET ?token=…&r=going|maybe|not_going`: looks up the token, upserts into `event_rsvps` for that user, marks the invite responded, returns a styled HTML confirmation page (and handles unknown/expired token gracefully). Token in the URL is the only credential, so it does nothing except set that one RSVP.
+A shared server helper `fanOut(type, payload)` inserts one notification per eligible recipient (all approved members, or admins for the admin-only types), skipping anyone who has that type switched off.
 
-**UI**
-- `src/routes/_authenticated/admin/events.tsx`: invite button, confirm dialog with counts, sending state, success toast, and the "last invited" line. No changes to the public event page.
+## Wiring into existing flows
 
-**Notes**
-- Emails are per-recipient (personalised token), triggered by an admin action for a specific event — no marketing list involved; unsubscribed newsletter status is irrelevant since this is club-member notification.
-- `From: Just Wheels <events@notify.justwheels.co.za>` on the existing verified subdomain.
+- `listings.functions.ts` — on submit → admin "needs moderation"; on approve/publish → member "new classified"
+- `events.functions.ts` — on publish → member "new event"
+- `newsletter.functions.ts` — on send → member "new newsletter"
+- `sponsor-applications.functions.ts` — on submit → admin
+- `member-signup.functions.ts` — on signup → admin
+
+Existing emails stay as-is; in-app notifications are additive.
+
+## UI
+
+- `NotificationBell.tsx` in the header (signed-in only): unread count badge, dropdown list of the latest 20, each row links to the relevant page and marks itself read, plus "Mark all read".
+- Notifications page at `/members/notifications` for the full history.
+- Settings section in the member profile sidebar: a toggle per notification type, saved immediately, bilingual labels. Admin-only toggles show only for admins.
+- All strings added to the EN/AF translation files; styling uses existing design tokens.
+
+## Technical notes
+
+- Fan-out runs inside existing server functions using the admin client after the caller is authorised; failures are logged and never block the primary action.
+- Realtime subscription set up in a `useEffect` with channel teardown; query cache invalidated on new rows.
+- Preference check happens at insert time, so switching a type off stops future notifications (existing ones stay).

@@ -16,7 +16,8 @@ import {
 import { PlacePicker } from "@/components/PlacePicker";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Trash2, Plus, X, MapPin, ExternalLink } from "lucide-react";
+import { Trash2, Plus, X, MapPin, ExternalLink, Mail } from "lucide-react";
+import { getEventInviteStatus, sendEventInvites } from "@/lib/event-invites.functions";
 
 const eventsAdminQuery = queryOptions({
   queryKey: ["events", "admin"],

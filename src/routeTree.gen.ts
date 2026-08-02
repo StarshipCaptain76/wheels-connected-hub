@@ -30,6 +30,7 @@ import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
 import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
 import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
@@ -150,6 +151,11 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const ApiPublicEventRsvpRoute = ApiPublicEventRsvpRouteImport.update({
+  id: '/api/public/event-rsvp',
+  path: '/api/public/event-rsvp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedMembersSponsorRoute =
   AuthenticatedMembersSponsorRouteImport.update({
     id: '/sponsor',
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
+  '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -298,6 +305,7 @@ export interface FileRoutesByTo {
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
+  '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
   '/_authenticated/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/_authenticated/members/sponsor': typeof AuthenticatedMembersSponsorRoute
+  '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -374,6 +383,7 @@ export interface FileRouteTypes {
     | '/members/card'
     | '/members/directory'
     | '/members/sponsor'
+    | '/api/public/event-rsvp'
     | '/admin/'
     | '/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/members/card'
     | '/members/directory'
     | '/members/sponsor'
+    | '/api/public/event-rsvp'
     | '/admin'
     | '/members'
     | '/api/public/newsletter/unsubscribe'
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/_authenticated/members/card'
     | '/_authenticated/members/directory'
     | '/_authenticated/members/sponsor'
+    | '/api/public/event-rsvp'
     | '/_authenticated/admin/'
     | '/_authenticated/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -462,6 +474,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
+  ApiPublicEventRsvpRoute: typeof ApiPublicEventRsvpRoute
   ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
 
@@ -613,6 +626,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/api/public/event-rsvp': {
+      id: '/api/public/event-rsvp'
+      path: '/api/public/event-rsvp'
+      fullPath: '/api/public/event-rsvp'
+      preLoaderRoute: typeof ApiPublicEventRsvpRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/members/sponsor': {
       id: '/_authenticated/members/sponsor'
@@ -820,6 +840,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,
+  ApiPublicEventRsvpRoute: ApiPublicEventRsvpRoute,
   ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }
 export const routeTree = rootRouteImport

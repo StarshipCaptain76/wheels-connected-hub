@@ -83,6 +83,8 @@ export const dictionaries = {
     "contact.error": "Something broke. Try again or message us on WhatsApp.",
     "contact.whatsapp": "WhatsApp Hugo van Dyk",
     "contact.whatsappSub": "+27 83 686 9237",
+    "contact.whatsappDawie": "WhatsApp Dawie",
+    "contact.whatsappDawieSub": "App bug reports, fixes, suggestions & how-to",
 
     "footer.tagline": "If it's got wheels, it belongs here.",
     "footer.rights": "All rights reserved.",
@@ -320,6 +322,8 @@ export const dictionaries = {
     "contact.error": "Iets het gebreek. Probeer weer of stuur 'n WhatsApp.",
     "contact.whatsapp": "WhatsApp Hugo van Dyk",
     "contact.whatsappSub": "+27 83 686 9237",
+    "contact.whatsappDawie": "WhatsApp Dawie",
+    "contact.whatsappDawieSub": "App-foutverslae, regmaaks, voorstelle & hoe-tot",
 
     "footer.tagline": "As dit wiele het, hoort dit hier.",
     "footer.rights": "Alle regte voorbehou.",

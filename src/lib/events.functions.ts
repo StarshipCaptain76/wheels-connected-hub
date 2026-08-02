@@ -17,7 +17,7 @@ export type PublicEvent = {
 };
 
 /** Event covers live in the private `gallery` bucket — re-sign for display. */
-async function signCovers<T extends { cover_url: string | null }>(rows: T[]): Promise<T[]> {
+async function signCovers<T extends { id: string; cover_url: string | null; is_published?: boolean }>(rows: T[]): Promise<T[]> {
   const urls = rows.map((r) => r.cover_url).filter(Boolean) as string[];
   if (urls.length === 0) return rows;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -25,6 +25,9 @@ async function signCovers<T extends { cover_url: string | null }>(rows: T[]): Pr
   const map = await signStoredUrls(supabaseAdmin, urls);
   return rows.map((r) => {
     if (!r.cover_url) return r;
+    if (r.is_published !== false) {
+      return { ...r, cover_url: `/api/public/event-image?id=${encodeURIComponent(r.id)}&kind=cover` };
+    }
     const signed = map.get(r.cover_url);
     if (signed) return { ...r, cover_url: signed };
     // Signing failed and the object lives in a private bucket: a raw
@@ -45,7 +48,7 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
+        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published",
       )
       .eq("is_published", true)
       .gte("starts_at", new Date().toISOString())
@@ -64,7 +67,7 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
+        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published",
       )
       .eq("is_published", true)
       .lt("starts_at", new Date().toISOString())
@@ -82,7 +85,7 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
     const { data, error } = await supabase
       .from("events")
       .select(
-        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
+        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published",
       )
       .eq("is_published", true)
       .gte("starts_at", new Date().toISOString())

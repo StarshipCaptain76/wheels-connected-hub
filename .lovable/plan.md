@@ -1,42 +1,46 @@
 ## Goal
 
-When a member signs in and their profile is missing information, show them exactly what is missing and walk them through a short wizard to fill it in. Skipping is allowed, but a reminder stays until the profile is complete.
+Replace the two long, fake-mockup admin emails (new member sign-up, new sponsor application) with short, visual emails built around **real mobile screenshots** of the actual admin pages, each screenshot clickable and linking straight to the page it shows.
 
-## What counts as "complete"
+## What changes for the reader
 
-Five things, all already stored on the member profile:
+Current: walls of text, CSS-drawn fake buttons, 4–5 verbose steps.
 
-1. Full name
-2. Phone number
-3. Town
-4. Profile photo
-5. Favourite ride
-6. Short bio (the one used when they are the featured member)
-
-## Member experience
-
-On the members home page only:
-
-- If anything is missing, a red-bordered card appears at the top: "Your profile is X% complete" with a plain-language list of what is still needed and a big **COMPLETE MY PROFILE** button.
-- The wizard opens automatically the first time they land on the page in a session; after that the card stays but does not pop up again.
-- The wizard is one question per screen with a progress dot row, Back / Next, and a **Skip for now** link. It only shows the steps that are actually missing.
-- Photo step reuses the existing avatar upload.
-- Last screen confirms "All done" and closes back to the profile page.
-- Everything bilingual (English / Afrikaans), matching the existing club styling.
+New shape, same for both emails:
 
 ```text
-+------------------------------------------+
-|  YOUR PROFILE IS 60% COMPLETE            |
-|  Still needed: photo, town, short bio    |
-|  [ COMPLETE MY PROFILE ]   skip for now  |
-+------------------------------------------+
+[ red header: what happened + who ]
+[ small detail box: name / email ]
+
+  1  Open the approvals page      → [ real mobile screenshot, tappable ]
+     one short line of text
+
+  2  Find the orange PENDING row  → [ real mobile screenshot, tappable ]
+     one short line of text
+
+  3  Tap the green APPROVE button → [ real mobile screenshot, tappable ]
+     one short line of text
+
+[ big black button: OPEN APPROVALS ]
+[ plain link URL underneath, for copy/paste ]
 ```
 
-## Technical notes
+Rules applied: max one short sentence per step, step number in a red circle beside the picture, every picture wrapped in a link to the live page, phone-width images (max-width 320px, auto-scaling), no fake CSS buttons, no tips paragraph buried at the end (the "approve all pending" tip becomes one line under step 3).
 
-- New `src/lib/profile-completeness.ts`: pure helper returning missing field keys + percentage from a `MemberProfile`; shared by the banner and the wizard.
-- New `src/components/ProfileWizard.tsx`: modal stepper, one field per step, saves through the existing `updateMyProfile` server function (and `updateMyAvatar` for the photo step, same upload logic as `GarageManager`). Saves each step as you advance so partial progress is never lost.
-- New `src/components/ProfileCompletionBanner.tsx`: the summary card + open button.
-- `src/routes/_authenticated/members.index.tsx`: render the banner above the existing content, auto-open the wizard once per session (`sessionStorage` flag), invalidate the `["profile","me"]` query on save so the member card preview updates immediately.
-- Translation keys added to the existing i18n dictionary.
-- No database or schema changes needed — all fields already exist on `profiles`.
+## Screenshots
+
+Capture real mobile-viewport (390px wide) screenshots of `/admin/members` and `/admin/sponsors` as an admin, cropped to the relevant region per step:
+
+- members: page top, a pending row, the approve action
+- sponsors: applications block, an application row, the approve dialog
+
+Store them as static files in `public/email/` (e.g. `public/email/members-1.png`), served from `https://justwheels.co.za/email/...` so email clients can load them. Screenshots contain demo/blurred names, not real member PII.
+
+If a page can't be captured cleanly for a step, that step falls back to text-only rather than a fake mockup.
+
+## Technical details
+
+- New `src/lib/email-shot.server.ts`: `shot(step, caption, imgUrl, linkUrl)` helper rendering the numbered row + linked, width-constrained `<img>` with alt text, and `compactShell(kicker, title, body)` for the outer frame.
+- Rewrite `src/lib/sponsor-application-email.server.ts` to use it; delete the fake-mockup helpers from `src/lib/email-steps.server.ts` once unused.
+- Rewrite the HTML block in `src/lib/member-signup.functions.ts` into a new `src/lib/member-signup-email.server.ts` so the server function stays a thin wrapper.
+- Image URLs are absolute against `SITE_ORIGIN`; images use `width`/`style="max-width:320px"` for Gmail/Outlook mobile.

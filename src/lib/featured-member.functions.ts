@@ -41,7 +41,10 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
           .map((p: { storage_path: string }) => p.storage_path)
           .filter(Boolean);
         if (paths.length > 0) {
-          const pick = paths[Math.floor(Math.random() * paths.length)];
+          // Deterministic per-day pick so SSR and client render the same image
+          const day = Math.floor(Date.now() / 86_400_000);
+          const pick = paths.sort()[day % paths.length];
+
           const { data: pub } = supabase.storage.from("garage").getPublicUrl(pick);
           if (pub?.publicUrl) {
             garage_thumb_url = pub.publicUrl;

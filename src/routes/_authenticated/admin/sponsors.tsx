@@ -91,6 +91,8 @@ function AdminSponsors() {
           ? String(form.billing_starts_at).slice(0, 10)
           : null,
         billing_ends_at: form.billing_ends_at ? String(form.billing_ends_at).slice(0, 10) : null,
+        owner_user_id: form.owner_user_id ?? null,
+
       },
     });
     await qc.invalidateQueries({ queryKey: ["sponsors"] });

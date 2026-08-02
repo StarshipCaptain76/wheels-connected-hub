@@ -7,6 +7,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listMerchItems, sendMerchEnquiry, type MerchItem } from "@/lib/merch.functions";
 import { ShoppingBag, Mail, Package, X } from "lucide-react";
+import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
@@ -44,6 +45,7 @@ function Shop() {
   const { t, lang } = useI18n();
   const { data: items } = useSuspenseQuery(shopQuery);
   const [openItem, setOpenItem] = useState<MerchItem | null>(null);
+  const [photo, setPhoto] = useState<LightboxItem | null>(null);
 
   return (
     <SiteLayout>
@@ -80,7 +82,16 @@ function Shop() {
                 >
                   <div className="mb-4 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-steel/20">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setPhoto({ url: item.image_url!, caption: name })}
+                        aria-label={
+                          lang === "af" ? `Bekyk foto van ${name}` : `View photo of ${name}`
+                        }
+                        className="h-full w-full cursor-zoom-in"
+                      >
+                        <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                      </button>
                     ) : (
                       <Package className="h-14 w-14 text-ink/40" />
                     )}
@@ -118,6 +129,15 @@ function Shop() {
       </section>
 
       {openItem && <EnquiryModal item={openItem} onClose={() => setOpenItem(null)} />}
+
+      {photo && (
+        <ImageLightbox
+          items={[photo]}
+          index={0}
+          onClose={() => setPhoto(null)}
+          onIndex={() => {}}
+        />
+      )}
     </SiteLayout>
   );
 }

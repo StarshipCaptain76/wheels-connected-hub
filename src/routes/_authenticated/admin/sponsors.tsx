@@ -279,6 +279,23 @@ function EditModal({
           <input required value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
         </Row>
 
+        <Row label="Owner (member who can edit this card)">
+          <select
+            value={form.owner_user_id ?? ""}
+            onChange={(e) => set("owner_user_id", e.target.value || null)}
+            className={input}
+          >
+            <option value="">— no owner (admin only) —</option>
+            {members.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                #{m.member_number} {m.display_name ?? "(no name)"} {m.email ? `· ${m.email}` : ""}
+              </option>
+            ))}
+          </select>
+        </Row>
+
+
+
         {/* Billing dates — top of form so they are always visible */}
         <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3">
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-primary">Billing period</p>

@@ -9,6 +9,7 @@ export type GalleryItem = {
   image_url: string;
   event_id: string | null;
   taken_at: string | null;
+  category: string | null;
   created_at: string;
   is_published?: boolean;
 };
@@ -19,7 +20,7 @@ export const listGalleryItems = createServerFn({ method: "GET" }).handler(
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("gallery_items")
-      .select("id, title, caption, image_url, event_id, taken_at, created_at")
+      .select("id, title, caption, image_url, event_id, taken_at, category, created_at")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -36,7 +37,7 @@ export const listAllGalleryItems = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("gallery_items")
-      .select("id, title, caption, image_url, event_id, taken_at, created_at, is_published")
+      .select("id, title, caption, image_url, event_id, taken_at, category, created_at, is_published")
       .order("created_at", { ascending: false });
     if (error) throw error;
     return (data ?? []) as GalleryItem[];
@@ -46,6 +47,7 @@ const createSchema = z.object({
   title: z.string().trim().max(120).nullable().optional(),
   caption: z.string().trim().max(500).nullable().optional(),
   image_url: z.string().trim().min(1).max(1000),
+  category: z.string().trim().max(120).nullable().optional(),
   is_published: z.boolean().default(true),
 });
 

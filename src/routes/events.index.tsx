@@ -221,11 +221,7 @@ function EventCard({
     <>
       {event.cover_url ? (
         <img
-          src={
-            isDbEvent
-              ? `/api/public/event-image?id=${encodeURIComponent(event.id)}&kind=cover`
-              : event.cover_url
-          }
+          src={event.cover_url}
           alt=""
           className={`h-40 w-full border-b-2 border-ink object-cover ${past ? "opacity-90" : ""}`}
         />

@@ -29,6 +29,8 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const publish = useServerFn(publishConcoursResults);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
+  const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
+
 
   const concoursQ = useQuery({
     queryKey: ["concours", eventId],

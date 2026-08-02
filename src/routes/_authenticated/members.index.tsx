@@ -415,6 +415,9 @@ function MembersPage() {
             </div>
 
             <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
+
+            <TaggedPhotos userId={profile.id} canUntag />
+
           </>
         )}
       </section>

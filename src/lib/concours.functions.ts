@@ -44,6 +44,8 @@ export type ConcoursVehicle = {
   tagged_user_id?: string | null;
   tagged_member_number?: number | null;
   tagged_display_name?: string | null;
+  garage_vehicle_id?: string | null;
+  garage_label?: string | null;
   average_score?: number | null;
   submission_count?: number;
 };
@@ -450,6 +452,7 @@ export const tagConcoursVehicle = createServerFn({ method: "POST" })
         taggedUserId: z.string().uuid().nullable(),
         taggedDisplayName: z.string().nullable().optional(),
         taggedMemberNumber: z.number().int().nullable().optional(),
+        garageVehicleId: z.string().uuid().nullable().optional(),
       })
       .parse(i),
   )
@@ -458,16 +461,111 @@ export const tagConcoursVehicle = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
 
     // Any signed-in user can tag (member or admin)
+    const payload: Record<string, unknown> = {
+      tagged_user_id: data.taggedUserId,
+      tagged_display_name: data.taggedDisplayName ?? null,
+      tagged_member_number: data.taggedMemberNumber ?? null,
+    };
+    if (data.garageVehicleId !== undefined) {
+      payload.garage_vehicle_id = data.garageVehicleId;
+    }
     const { error } = await sb
       .from("event_concours_vehicles")
-      .update({
-        tagged_user_id: data.taggedUserId,
-        tagged_display_name: data.taggedDisplayName ?? null,
-        tagged_member_number: data.taggedMemberNumber ?? null,
-      })
+      .update(payload)
       .eq("id", data.vehicleId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
+  });
+
+/** Member links a concours car to one of their garage entries (and tags themselves). */
+export const linkConcoursToGarage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        concoursVehicleId: z.string().uuid(),
+        garageVehicleId: z.string().uuid().nullable(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+
+    const { data: profile } = await sb
+      .from("profiles")
+      .select("display_name, member_number")
+      .eq("id", userId)
+      .maybeSingle();
+
+    let garageLabel: string | null = null;
+    if (data.garageVehicleId) {
+      const { data: gv } = await sb
+        .from("garage_vehicles")
+        .select("id, user_id, make, model, year, nickname")
+        .eq("id", data.garageVehicleId)
+        .maybeSingle();
+      if (!gv) throw new Error("Garage vehicle not found");
+      // Owner or admin only
+      const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+      if (gv.user_id !== userId && !isAdmin) {
+        throw new Error("You can only link your own garage vehicles");
+      }
+      garageLabel =
+        (gv.nickname as string) ||
+        [gv.year, gv.make, gv.model].filter(Boolean).join(" ") ||
+        null;
+    }
+
+    const { error } = await sb
+      .from("event_concours_vehicles")
+      .update({
+        garage_vehicle_id: data.garageVehicleId,
+        tagged_user_id: data.garageVehicleId ? userId : null,
+        tagged_display_name: data.garageVehicleId
+          ? ((profile?.display_name as string | null) ?? null)
+          : null,
+        tagged_member_number: data.garageVehicleId
+          ? ((profile?.member_number as number | null) ?? null)
+          : null,
+        label: garageLabel,
+      })
+      .eq("id", data.concoursVehicleId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const, garageLabel };
+  });
+
+export type MyGaragePick = {
+  id: string;
+  label: string;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  nickname: string | null;
+};
+
+export const listMyGaragePicks = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<MyGaragePick[]> => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    const { data, error } = await sb
+      .from("garage_vehicles")
+      .select("id, make, model, year, nickname")
+      .eq("user_id", userId)
+      .order("sort", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((g: Record<string, unknown>) => ({
+      id: g.id as string,
+      year: (g.year as number | null) ?? null,
+      make: (g.make as string | null) ?? null,
+      model: (g.model as string | null) ?? null,
+      nickname: (g.nickname as string | null) ?? null,
+      label:
+        (g.nickname as string) ||
+        [g.year, g.make, g.model].filter(Boolean).join(" ") ||
+        "Vehicle",
+    }));
   });
 
 
@@ -779,4 +877,137 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
 );
 
 /** Alias used by Lovable fix — same as getLatestConcoursHomeWinner */
+
+
+// ---------------------------------------------------------------------------
+// Admin: individual score management
+// ---------------------------------------------------------------------------
+
+export type ConcoursScoreRow = {
+  id: string;
+  event_id: string;
+  vehicle_id: string;
+  user_id: string | null;
+  is_member: boolean;
+  weight: number;
+  total_score: number | null;
+  answers: Record<string, number | string | null>;
+  submitted_at: string | null;
+  display_name: string | null;
+  member_number: number | null;
+  vehicle_label: string | null;
+};
+
+export const listConcoursScoresAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }): Promise<ConcoursScoreRow[]> => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const { data: scores, error } = await sb
+      .from("event_concours_scores")
+      .select("id, event_id, vehicle_id, user_id, is_member, weight, total_score, answers, submitted_at")
+      .eq("event_id", data.eventId)
+      .order("submitted_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    if (!scores?.length) return [];
+
+    const userIds = [...new Set(scores.map((s: { user_id: string | null }) => s.user_id).filter(Boolean))] as string[];
+    const vehicleIds = [...new Set(scores.map((s: { vehicle_id: string }) => s.vehicle_id))];
+
+    const [{ data: profiles }, { data: vehicles }] = await Promise.all([
+      userIds.length
+        ? sb.from("profiles").select("id, display_name, member_number").in("id", userIds)
+        : Promise.resolve({ data: [] }),
+      sb
+        .from("event_concours_vehicles")
+        .select("id, label, tagged_display_name")
+        .in("id", vehicleIds),
+    ]);
+
+    const byUser = new Map((profiles ?? []).map((p: Record<string, unknown>) => [p.id as string, p]));
+    const byVeh = new Map((vehicles ?? []).map((v: Record<string, unknown>) => [v.id as string, v]));
+
+    return scores.map((s: Record<string, unknown>) => {
+      const p = s.user_id ? byUser.get(s.user_id as string) : null;
+      const v = byVeh.get(s.vehicle_id as string);
+      return {
+        id: s.id as string,
+        event_id: s.event_id as string,
+        vehicle_id: s.vehicle_id as string,
+        user_id: (s.user_id as string | null) ?? null,
+        is_member: Boolean(s.is_member),
+        weight: Number(s.weight) || 1,
+        total_score: s.total_score == null ? null : Number(s.total_score),
+        answers: (s.answers as Record<string, number | string | null>) ?? {},
+        submitted_at: (s.submitted_at as string | null) ?? null,
+        display_name: (p?.display_name as string | null) ?? null,
+        member_number: (p?.member_number as number | null) ?? null,
+        vehicle_label:
+          ((v?.tagged_display_name as string | null) || (v?.label as string | null)) ?? null,
+      };
+    });
+  });
+
+export const updateConcoursScoreAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        scoreId: z.string().uuid(),
+        totalScore: z.number().min(0).max(10).nullable().optional(),
+        weight: z.number().min(0).max(2).optional(),
+        answers: z.record(z.union([z.number(), z.string(), z.null()])).optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const patch: Record<string, unknown> = {};
+    if (data.totalScore !== undefined) patch.total_score = data.totalScore;
+    if (data.weight !== undefined) patch.weight = data.weight;
+    if (data.answers !== undefined) {
+      patch.answers = data.answers;
+      // Recompute total if answers provided and total not explicitly set
+      if (data.totalScore === undefined) {
+        let sum = 0;
+        let count = 0;
+        for (const val of Object.values(data.answers)) {
+          if (typeof val === "number" && !Number.isNaN(val)) {
+            sum += Math.max(0, Math.min(10, val));
+            count += 1;
+          } else if (val === "yes") {
+            sum += 10;
+            count += 1;
+          } else if (val === "no") {
+            count += 1;
+          }
+        }
+        patch.total_score = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
+      }
+    }
+    if (Object.keys(patch).length === 0) return { ok: true as const };
+
+    const { error } = await sb.from("event_concours_scores").update(patch).eq("id", data.scoreId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const deleteConcoursScoreAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ scoreId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+    const { error } = await sb.from("event_concours_scores").delete().eq("id", data.scoreId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
 export const getLatestConcoursWinner = getLatestConcoursHomeWinner;

@@ -9,8 +9,10 @@ import {
   deleteMerchItem,
   type MerchItem,
 } from "@/lib/merch.functions";
-import { Trash2, Plus, X } from "lucide-react";
+import { Trash2, Plus, X, Upload } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+
 
 const merchAdminQuery = queryOptions({
   queryKey: ["merch", "admin"],

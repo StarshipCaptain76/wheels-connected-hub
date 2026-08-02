@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
 import { listGalleryItems, type GalleryItem } from "@/lib/gallery.functions";
 import { Camera } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PhotoTagger } from "@/components/PhotoTagger";
 
 const galleryQuery = queryOptions({
   queryKey: ["gallery"],
@@ -58,23 +60,39 @@ function GalleryPage() {
   const { data: items } = useSuspenseQuery(galleryQuery);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const categories = Array.from(
     new Set(items.map((it) => it.category).filter(Boolean) as string[]),
   ).sort();
   const visible = activeCat ? items.filter((it) => it.category === activeCat) : items;
 
-  const lightboxItems = visible
-    .filter((it) => it.image_url)
-    .map((it) => ({
-      url: it.image_url,
-      caption: it.title || it.caption || null,
-    }));
+  const lightboxSource = visible.filter((it) => it.image_url);
+  const lightboxItems = lightboxSource.map((it) => ({
+    url: it.image_url,
+    caption: it.title || it.caption || null,
+  }));
+  const activeItem = lightboxIndex != null ? lightboxSource[lightboxIndex] : null;
 
   function openItem(it: GalleryItem) {
     const idx = lightboxItems.findIndex((x) => x.url === it.image_url);
     if (idx >= 0) setLightboxIndex(idx);
   }
+
 
   return (
     <SiteLayout>
@@ -175,6 +193,12 @@ function GalleryPage() {
           onClose={() => setLightboxIndex(null)}
           onIndex={setLightboxIndex}
         />
+      )}
+
+      {lightboxIndex != null && signedIn && activeItem && (
+        <div className="safe-bottom fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-3xl p-3">
+          <PhotoTagger key={activeItem.id} galleryItemId={activeItem.id} />
+        </div>
       )}
     </SiteLayout>
   );

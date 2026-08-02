@@ -7,6 +7,7 @@ import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMemberByNumber, type MemberGarage } from "@/lib/member-lookup.functions";
 import { listGarageForUser } from "@/lib/garage.functions";
+import { TaggedPhotos } from "@/components/TaggedPhotos";
 import { ArrowLeft, Star, Car } from "lucide-react";
 
 const memberQuery = (number: number) =>
@@ -144,6 +145,8 @@ function MemberPage() {
             </div>
           )}
         </div>
+
+        <TaggedPhotos userId={m.user_id} />
 
         <section className="mt-8">
           <h2 className="flex items-center gap-2 font-display text-2xl text-ink">

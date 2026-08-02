@@ -341,6 +341,76 @@ export type Database = {
           },
         ]
       }
+      gallery_tag_invites: {
+        Row: {
+          created_at: string
+          email: string
+          gallery_item_id: string | null
+          id: string
+          invited_by: string
+          note: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          gallery_item_id?: string | null
+          id?: string
+          invited_by: string
+          note?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          gallery_item_id?: string | null
+          id?: string
+          invited_by?: string
+          note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_tag_invites_gallery_item_id_fkey"
+            columns: ["gallery_item_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_tags: {
+        Row: {
+          created_at: string
+          gallery_item_id: string
+          id: string
+          tagged_by: string
+          tagged_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_item_id: string
+          id?: string
+          tagged_by: string
+          tagged_user_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_item_id?: string
+          id?: string
+          tagged_by?: string
+          tagged_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_tags_gallery_item_id_fkey"
+            columns: ["gallery_item_id"]
+            isOneToOne: false
+            referencedRelation: "gallery_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       garage_vehicle_photos: {
         Row: {
           caption: string | null
@@ -689,6 +759,7 @@ export type Database = {
           new_event: boolean
           new_listing: boolean
           new_newsletter: boolean
+          photo_tag: boolean
           updated_at: string
           user_id: string
         }
@@ -700,6 +771,7 @@ export type Database = {
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
+          photo_tag?: boolean
           updated_at?: string
           user_id: string
         }
@@ -711,6 +783,7 @@ export type Database = {
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
+          photo_tag?: boolean
           updated_at?: string
           user_id?: string
         }

@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
+import { TaggedPhotos } from "@/components/TaggedPhotos";
 import { ChangePassword } from "@/components/ChangePassword";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
@@ -415,6 +416,9 @@ function MembersPage() {
             </div>
 
             <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
+
+            <TaggedPhotos userId={profile.id} canUntag />
+
           </>
         )}
       </section>

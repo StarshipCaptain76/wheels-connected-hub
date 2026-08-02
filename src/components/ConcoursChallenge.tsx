@@ -8,6 +8,8 @@ import {
   submitConcoursScore,
   addConcoursVehicle,
   tagConcoursVehicle,
+  linkConcoursToGarage,
+  listMyGaragePicks,
   getMyEventCheckIn,
   checkInToEvent,
   type ConcoursVehicle,
@@ -28,6 +30,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
   const submit = useServerFn(submitConcoursScore);
   const addVehicle = useServerFn(addConcoursVehicle);
   const tagVehicle = useServerFn(tagConcoursVehicle);
+  const linkGarage = useServerFn(linkConcoursToGarage);
   const doCheckIn = useServerFn(checkInToEvent);
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
@@ -88,6 +91,12 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
     queryKey: ["event-checkin", eventId],
     enabled: !!signedIn && !!concoursQ.data?.enabled,
     queryFn: () => getMyEventCheckIn({ data: { eventId } }),
+  });
+
+  const garagePicksQ = useQuery({
+    queryKey: ["garage-picks", "me"],
+    enabled: !!signedIn && isMember,
+    queryFn: () => listMyGaragePicks(),
   });
 
   const [checkInBusy, setCheckInBusy] = useState(false);
@@ -684,6 +693,11 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
                     v.label ||
                     (lang === "af" ? "Voertuig" : "Vehicle")}
                 </p>
+                {v.garage_vehicle_id && (
+                  <p className="text-[10px] font-bold uppercase text-primary">
+                    {lang === "af" ? "Garage gekoppel" : "Garage linked"}
+                  </p>
+                )}
                 {v.tagged_member_number != null && (
                   <p className="text-xs text-ink/50">#{v.tagged_member_number}</p>
                 )}
@@ -710,6 +724,39 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
                       <User className="h-3 w-3" />
                       {lang === "af" ? "Dis myne" : "This is mine"}
                     </button>
+                    {(garagePicksQ.data?.length ?? 0) > 0 && (
+                      <select
+                        className="w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs"
+                        defaultValue=""
+                        onChange={async (e) => {
+                          const gid = e.target.value || null;
+                          setBusy(true);
+                          try {
+                            await linkGarage({
+                              data: {
+                                concoursVehicleId: v.id,
+                                garageVehicleId: gid,
+                              },
+                            });
+                            await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+                            setTaggingId(null);
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Link failed");
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        <option value="">
+                          {lang === "af" ? "— Koppel aan my garage —" : "— Link to my garage —"}
+                        </option>
+                        {(garagePicksQ.data ?? []).map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <input
                       value={memberSearch}
                       onChange={(e) => searchMembers(e.target.value)}

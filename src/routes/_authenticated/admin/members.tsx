@@ -6,10 +6,9 @@ import {
   listAllMembers,
   updateMemberStatus,
   setAdminRole,
-  setFeaturedMember,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, Star } from "lucide-react";
+import { Search, Shield } from "lucide-react";
 
 const membersQuery = queryOptions({
   queryKey: ["admin", "members"],
@@ -54,7 +53,6 @@ function AdminMembersPage() {
   const qc = useQueryClient();
   const setStatus = useServerFn(updateMemberStatus);
   const setRole = useServerFn(setAdminRole);
-  const setFeatured = useServerFn(setFeaturedMember);
 
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -114,7 +112,6 @@ function AdminMembersPage() {
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Contact</th>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Status</th>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Admin</th>
-              <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Featured</th>
             </tr>
           </thead>
           <tbody>
@@ -171,32 +168,12 @@ function AdminMembersPage() {
                       <Shield className="h-3 w-3" /> {m.is_admin ? "Admin" : "Grant"}
                     </button>
                   </td>
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        run(m.user_id, () =>
-                          setFeatured({
-                            data: m.is_featured
-                              ? { userId: null }
-                              : { userId: m.user_id, bio: null, photoUrl: null },
-                          }),
-                        )
-                      }
-                      className={`inline-flex items-center gap-1 rounded border-2 border-ink px-2 py-1 text-xs font-bold uppercase ${
-                        m.is_featured ? "bg-primary text-white" : "bg-paper text-ink"
-                      }`}
-                    >
-                      <Star className="h-3 w-3" /> {m.is_featured ? "Featured" : "Feature"}
-                    </button>
-                  </td>
                 </tr>
               );
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-8 text-center text-ink/50">
+                <td colSpan={5} className="px-3 py-8 text-center text-ink/50">
                   No members match.
                 </td>
               </tr>

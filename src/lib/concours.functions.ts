@@ -405,8 +405,12 @@ export type ConcoursWinner = {
   sponsorName: string | null;
   vehicleLabel: string | null;
   vehicleLabelAf: string | null;
-  photoUrl: string | null;
+  winnerPhotoUrl: string | null;
+  winnerHeadlineEn: string | null;
+  winnerHeadlineAf: string | null;
+  taggedDisplayName: string | null;
   averageScore: number | null;
+  submissionCount: number;
 };
 
 export const getLatestConcoursWinner = createServerFn({ method: "GET" }).handler(
@@ -449,8 +453,12 @@ export const getLatestConcoursWinner = createServerFn({ method: "GET" }).handler
       sponsorName: top.sponsor_name,
       vehicleLabel: winner?.label ?? null,
       vehicleLabelAf: winner?.label_af ?? null,
-      photoUrl: winner?.photo_url ?? null,
+      winnerPhotoUrl: winner?.photo_url ?? null,
+      winnerHeadlineEn: "Concours winner",
+      winnerHeadlineAf: "Concours-wenner",
+      taggedDisplayName: null,
       averageScore: winner?.average_score ?? null,
+      submissionCount: winner?.submission_count ?? 0,
     };
   },
 );

@@ -30,6 +30,7 @@ import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
 import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
 import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
 import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
@@ -149,6 +150,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
+const AuthenticatedMembersSponsorRoute =
+  AuthenticatedMembersSponsorRouteImport.update({
+    id: '/sponsor',
+    path: '/sponsor',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
 const AuthenticatedMembersDirectoryRoute =
   AuthenticatedMembersDirectoryRouteImport.update({
     id: '/directory',
@@ -258,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/members/$number': typeof AuthenticatedMembersNumberRoute
   '/members/card': typeof AuthenticatedMembersCardRoute
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/members/$number': typeof AuthenticatedMembersNumberRoute
   '/_authenticated/members/card': typeof AuthenticatedMembersCardRoute
   '/_authenticated/members/directory': typeof AuthenticatedMembersDirectoryRoute
+  '/_authenticated/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/members/$number'
     | '/members/card'
     | '/members/directory'
+    | '/members/sponsor'
     | '/admin/'
     | '/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/members/$number'
     | '/members/card'
     | '/members/directory'
+    | '/members/sponsor'
     | '/admin'
     | '/members'
     | '/api/public/newsletter/unsubscribe'
@@ -430,6 +442,7 @@ export interface FileRouteTypes {
     | '/_authenticated/members/$number'
     | '/_authenticated/members/card'
     | '/_authenticated/members/directory'
+    | '/_authenticated/members/sponsor'
     | '/_authenticated/admin/'
     | '/_authenticated/members/'
     | '/api/public/newsletter/unsubscribe'
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/members/sponsor': {
+      id: '/_authenticated/members/sponsor'
+      path: '/sponsor'
+      fullPath: '/members/sponsor'
+      preLoaderRoute: typeof AuthenticatedMembersSponsorRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
     '/_authenticated/members/directory': {
       id: '/_authenticated/members/directory'
       path: '/directory'
@@ -727,6 +747,7 @@ interface AuthenticatedMembersRouteChildren {
   AuthenticatedMembersNumberRoute: typeof AuthenticatedMembersNumberRoute
   AuthenticatedMembersCardRoute: typeof AuthenticatedMembersCardRoute
   AuthenticatedMembersDirectoryRoute: typeof AuthenticatedMembersDirectoryRoute
+  AuthenticatedMembersSponsorRoute: typeof AuthenticatedMembersSponsorRoute
   AuthenticatedMembersIndexRoute: typeof AuthenticatedMembersIndexRoute
 }
 
@@ -734,6 +755,7 @@ const AuthenticatedMembersRouteChildren: AuthenticatedMembersRouteChildren = {
   AuthenticatedMembersNumberRoute: AuthenticatedMembersNumberRoute,
   AuthenticatedMembersCardRoute: AuthenticatedMembersCardRoute,
   AuthenticatedMembersDirectoryRoute: AuthenticatedMembersDirectoryRoute,
+  AuthenticatedMembersSponsorRoute: AuthenticatedMembersSponsorRoute,
   AuthenticatedMembersIndexRoute: AuthenticatedMembersIndexRoute,
 }
 

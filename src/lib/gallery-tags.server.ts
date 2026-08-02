@@ -35,12 +35,19 @@ export async function profileEmail(
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
     .from("profiles")
-    .select("display_name, email")
+    .select("display_name")
     .eq("id", userId)
     .maybeSingle();
+  let email: string | null = null;
+  try {
+    const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+    email = u.user?.email ?? null;
+  } catch {
+    email = null;
+  }
   return {
     name: (data?.display_name as string) || "A Just Wheels member",
-    email: (data?.email as string) ?? null,
+    email,
   };
 }
 

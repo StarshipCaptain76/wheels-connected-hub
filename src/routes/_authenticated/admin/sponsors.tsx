@@ -239,6 +239,12 @@ function EditModal({
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   const taglineEn = form.tagline ?? "";
   const taglineAf = form.tagline_af ?? "";
+  const membersFn = useServerFn(listAllMembers);
+  const { data: members = [] } = useQuery({
+    queryKey: ["admin", "members"],
+    queryFn: () => membersFn(),
+  });
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>

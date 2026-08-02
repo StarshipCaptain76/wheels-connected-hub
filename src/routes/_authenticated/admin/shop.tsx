@@ -145,7 +145,39 @@ function EditModal({
 }) {
   const [form, setForm] = useState<FormState>(state);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [upErr, setUpErr] = useState<string | null>(null);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  /** Upload an item photo to the public gallery bucket under merch/. */
+  async function uploadPhoto(file: File | null) {
+    if (!file) return;
+    setUpErr(null);
+    if (!file.type.startsWith("image/")) {
+      setUpErr("Please choose an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUpErr("Max 5MB per photo");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `merch/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("gallery")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("gallery").getPublicUrl(path);
+      set("image_url", data.publicUrl);
+    } catch (e) {
+      setUpErr(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

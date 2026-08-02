@@ -12,7 +12,17 @@ import {
   removePhotoTag,
 } from "@/lib/gallery-tags.functions";
 
-/** Tag club members in a gallery photo, or invite someone by email. */
+/** Turn a local or international SA number into WhatsApp's digits-only format. */
+function normalisePhone(raw: string) {
+  const digits = raw.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  if (raw.trim().startsWith("+")) return digits.length >= 10 ? digits : "";
+  if (digits.startsWith("0")) return digits.length === 10 ? "27" + digits.slice(1) : "";
+  if (digits.startsWith("27")) return digits.length === 11 ? digits : "";
+  return digits.length >= 10 ? digits : "";
+}
+
+/** Tag club members in a gallery photo, or invite someone by email/WhatsApp. */
 export function PhotoTagger({ galleryItemId }: { galleryItemId: string }) {
   const { lang } = useI18n();
   const qc = useQueryClient();

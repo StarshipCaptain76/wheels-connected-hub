@@ -31,7 +31,6 @@ import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
-import { Route as ApiPublicEventImageRouteImport } from './routes/api/public/event-image'
 import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
 import { Route as AuthenticatedMembersNotificationsRouteImport } from './routes/_authenticated/members.notifications'
 import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
@@ -158,11 +157,6 @@ const ApiPublicEventRsvpRoute = ApiPublicEventRsvpRouteImport.update({
   path: '/api/public/event-rsvp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicEventImageRoute = ApiPublicEventImageRouteImport.update({
-  id: '/api/public/event-image',
-  path: '/api/public/event-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedMembersSponsorRoute =
   AuthenticatedMembersSponsorRouteImport.update({
     id: '/sponsor',
@@ -286,7 +280,6 @@ export interface FileRoutesByFullPath {
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
-  '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
@@ -321,7 +314,6 @@ export interface FileRoutesByTo {
   '/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
-  '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
@@ -362,7 +354,6 @@ export interface FileRoutesById {
   '/_authenticated/members/directory': typeof AuthenticatedMembersDirectoryRoute
   '/_authenticated/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/_authenticated/members/sponsor': typeof AuthenticatedMembersSponsorRoute
-  '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
@@ -403,7 +394,6 @@ export interface FileRouteTypes {
     | '/members/directory'
     | '/members/notifications'
     | '/members/sponsor'
-    | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/admin/'
     | '/members/'
@@ -438,7 +428,6 @@ export interface FileRouteTypes {
     | '/members/directory'
     | '/members/notifications'
     | '/members/sponsor'
-    | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/admin'
     | '/members'
@@ -478,7 +467,6 @@ export interface FileRouteTypes {
     | '/_authenticated/members/directory'
     | '/_authenticated/members/notifications'
     | '/_authenticated/members/sponsor'
-    | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/_authenticated/admin/'
     | '/_authenticated/members/'
@@ -499,7 +487,6 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
-  ApiPublicEventImageRoute: typeof ApiPublicEventImageRoute
   ApiPublicEventRsvpRoute: typeof ApiPublicEventRsvpRoute
   ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -658,13 +645,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/event-rsvp'
       fullPath: '/api/public/event-rsvp'
       preLoaderRoute: typeof ApiPublicEventRsvpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/event-image': {
-      id: '/api/public/event-image'
-      path: '/api/public/event-image'
-      fullPath: '/api/public/event-image'
-      preLoaderRoute: typeof ApiPublicEventImageRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/members/sponsor': {
@@ -883,7 +863,6 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,
-  ApiPublicEventImageRoute: ApiPublicEventImageRoute,
   ApiPublicEventRsvpRoute: ApiPublicEventRsvpRoute,
   ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }

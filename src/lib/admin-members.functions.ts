@@ -143,6 +143,9 @@ export const approveAllPendingMembers = createServerFn({ method: "POST" })
       .select("id");
     if (error) throw new Error(`Could not approve pending members: ${error.message}`);
     return { approved: (data ?? []).length };
+  });
+
+
 
 export const setAdminRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

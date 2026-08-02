@@ -243,6 +243,7 @@ export type Database = {
           added_by: string | null
           created_at: string
           event_id: string
+          garage_vehicle_id: string | null
           id: string
           label: string | null
           label_af: string | null
@@ -256,6 +257,7 @@ export type Database = {
           added_by?: string | null
           created_at?: string
           event_id: string
+          garage_vehicle_id?: string | null
           id?: string
           label?: string | null
           label_af?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           added_by?: string | null
           created_at?: string
           event_id?: string
+          garage_vehicle_id?: string | null
           id?: string
           label?: string | null
           label_af?: string | null
@@ -291,6 +294,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_concours_vehicles_garage_vehicle_id_fkey"
+            columns: ["garage_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "garage_vehicles"
             referencedColumns: ["id"]
           },
         ]

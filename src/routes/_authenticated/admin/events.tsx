@@ -147,7 +147,7 @@ function AdminEvents() {
           >
             {e.cover_url ? (
               <img
-                src={e.cover_url}
+                src={`/api/public/event-image?id=${encodeURIComponent(e.id)}&kind=cover`}
                 alt=""
                 className="h-20 w-full rounded border-2 border-ink object-cover sm:h-20 sm:w-28 sm:flex-none"
               />

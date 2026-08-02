@@ -42,7 +42,7 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: true })
       .limit(24);
     if (error) throw new Error(error.message);
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -61,7 +61,7 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
       .order("starts_at", { ascending: false })
       .limit(48);
     if (error) throw new Error(error.message);
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   },
 );
 
@@ -80,7 +80,8 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
       .limit(1)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data as PublicEvent | null) ?? null;
+    const row = (data as PublicEvent | null) ?? null;
+    return row ? (await signCovers([row]))[0] : null;
   },
 );
 
@@ -97,7 +98,7 @@ export const listAllEvents = createServerFn({ method: "GET" })
       )
       .order("starts_at", { ascending: false });
     if (error) throw error;
-    return (data ?? []) as PublicEvent[];
+    return signCovers((data ?? []) as PublicEvent[]);
   });
 
 const upsertSchema = z.object({

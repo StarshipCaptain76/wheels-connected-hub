@@ -51,33 +51,9 @@ async function resolveUrls(
   const map = new Map<string, string>();
   const unique = [...new Set(paths.filter(Boolean))];
   if (unique.length === 0) return map;
-
-  for (const path of unique) {
-    try {
-      const { data: pub } = supabase.storage.from("garage").getPublicUrl(path);
-      if (pub?.publicUrl) {
-        map.set(path, pub.publicUrl);
-        continue;
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-
-  // Signed URLs for anything still missing (private bucket)
-  const missing = unique.filter((p) => !map.get(p));
-  if (missing.length > 0) {
-    try {
-      const { data } = await supabase.storage
-        .from("garage")
-        .createSignedUrls(missing, 60 * 60 * 24 * 30);
-      for (const row of data ?? []) {
-        if (row?.path && row?.signedUrl) map.set(row.path, row.signedUrl);
-      }
-    } catch (e) {
-      console.error("garage signPaths failed", e);
-    }
-  }
+  const { signPaths } = await import("./storage-urls.server");
+  const signed = await signPaths(supabase, "garage", unique);
+  for (const [k, v] of signed) map.set(k, v);
   return map;
 }
 

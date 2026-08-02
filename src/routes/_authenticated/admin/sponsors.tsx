@@ -130,7 +130,13 @@ function AdminSponsors() {
         </button>
       </div>
 
-      <ul className="mt-6 space-y-3">
+      <div className="mt-6">
+        <SponsorApplicationsPanel />
+      </div>
+
+      <h2 className="mt-8 font-display text-2xl tracking-wide text-ink">Sponsor cards</h2>
+      <ul className="mt-4 space-y-3">
+
         {sponsors.map((s) => {
           const expired = isExpired(s.billing_ends_at);
           return (

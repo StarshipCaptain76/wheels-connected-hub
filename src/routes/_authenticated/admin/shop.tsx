@@ -12,6 +12,7 @@ import {
 import { Trash2, Plus, X, Upload } from "lucide-react";
 import { TranslateButton } from "@/components/TranslateButton";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -37,6 +38,7 @@ type FormState = Partial<MerchItem> & { sizesText?: string };
 
 function AdminShop() {
   const { data: items } = useSuspenseQuery(merchAdminQuery);
+  const { lang } = useI18n();
   const qc = useQueryClient();
   const upsert = useServerFn(upsertMerchItem);
   const del = useServerFn(deleteMerchItem);
@@ -76,7 +78,9 @@ function AdminShop() {
     <SiteLayout>
       <div className="mx-auto max-w-5xl px-4 py-10">
         <div className="flex items-end justify-between gap-4">
-          <h1 className="font-display text-4xl tracking-wide text-ink">Manage shop</h1>
+          <h1 className="font-display text-4xl tracking-wide text-ink">
+            {lang === "af" ? "Bestuur winkel" : "Manage shop"}
+          </h1>
           <button
             type="button"
             onClick={() =>
@@ -84,12 +88,15 @@ function AdminShop() {
             }
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
           >
-            <Plus className="h-4 w-4" /> New item
+            <Plus className="h-4 w-4" /> {lang === "af" ? "Nuwe item" : "New item"}
           </button>
         </div>
 
         <ul className="mt-6 space-y-3">
-          {items.map((item) => (
+          {items.map((item) => {
+            const name = lang === "af" && item.name_af ? item.name_af : item.name;
+            const desc = lang === "af" && item.description_af ? item.description_af : item.description;
+            return (
             <li
               key={item.id}
               className="flex gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
@@ -101,21 +108,34 @@ function AdminShop() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary">
-                  {item.is_active ? "Active" : "Hidden"} · sort {item.sort}
+                  {item.is_active
+                    ? lang === "af"
+                      ? "Aktief"
+                      : "Active"
+                    : lang === "af"
+                      ? "Versteek"
+                      : "Hidden"}{" "}
+                  · {lang === "af" ? "volgorde" : "sort"} {item.sort}
                 </div>
-                <p className="font-display text-lg text-ink">{item.name}</p>
+                <p className="font-display text-lg text-ink">{name}</p>
+                {desc ? <p className="text-sm text-ink/70">{desc}</p> : null}
                 <p className="text-sm text-ink/70">
-                  {item.price_zar != null ? `R${item.price_zar}` : "Price on request"}
+                  {item.price_zar != null
+                    ? `R${item.price_zar}`
+                    : lang === "af"
+                      ? "Prys op aanvraag"
+                      : "Price on request"}
                   {item.sizes.length > 0 ? ` · ${item.sizes.join(", ")}` : ""}
                 </p>
               </div>
+
               <div className="flex flex-col gap-2">
                 <button
                   type="button"
                   onClick={() => setEditing({ ...item, sizesText: item.sizes.join(", ") })}
                   className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
                 >
-                  Edit
+                  {lang === "af" ? "Wysig" : "Edit"}
                 </button>
                 <button
                   type="button"
@@ -126,7 +146,8 @@ function AdminShop() {
                 </button>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}

@@ -129,6 +129,15 @@ function Shop() {
       </section>
 
       {openItem && <EnquiryModal item={openItem} onClose={() => setOpenItem(null)} />}
+
+      {photo && (
+        <ImageLightbox
+          items={[photo]}
+          index={0}
+          onClose={() => setPhoto(null)}
+          onIndex={() => {}}
+        />
+      )}
     </SiteLayout>
   );
 }

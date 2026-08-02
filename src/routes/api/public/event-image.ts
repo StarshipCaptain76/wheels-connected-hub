@@ -20,16 +20,16 @@ export const Route = createFileRoute("/api/public/event-image")({
 
         const { createPublicSupabase } = await import("@/lib/public-supabase.server");
         const publicClient = createPublicSupabase();
-        const column = parsed.data.kind === "hero" ? "hero_image_url" : "cover_url";
         const { data: event, error } = await publicClient
           .from("events")
-          .select(column)
+          .select("cover_url, hero_image_url")
           .eq("id", parsed.data.id)
           .eq("is_published", true)
           .maybeSingle();
 
         if (error || !event) return new Response("Image not found", { status: 404 });
-        const storedUrl = event[column];
+        const storedUrl =
+          parsed.data.kind === "hero" ? event.hero_image_url : event.cover_url;
         const ref = parseStorageUrl(typeof storedUrl === "string" ? storedUrl : null);
         if (!ref) return new Response("Image not found", { status: 404 });
 

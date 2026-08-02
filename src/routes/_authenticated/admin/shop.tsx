@@ -9,8 +9,10 @@ import {
   deleteMerchItem,
   type MerchItem,
 } from "@/lib/merch.functions";
-import { Trash2, Plus, X } from "lucide-react";
+import { Trash2, Plus, X, Upload } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
+
 
 const merchAdminQuery = queryOptions({
   queryKey: ["merch", "admin"],
@@ -143,7 +145,39 @@ function EditModal({
 }) {
   const [form, setForm] = useState<FormState>(state);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [upErr, setUpErr] = useState<string | null>(null);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+
+  /** Upload an item photo to the public gallery bucket under merch/. */
+  async function uploadPhoto(file: File | null) {
+    if (!file) return;
+    setUpErr(null);
+    if (!file.type.startsWith("image/")) {
+      setUpErr("Please choose an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUpErr("Max 5MB per photo");
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `merch/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("gallery")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from("gallery").getPublicUrl(path);
+      set("image_url", data.publicUrl);
+    } catch (e) {
+      setUpErr(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -207,14 +241,39 @@ function EditModal({
             className={input}
           />
         </Row>
-        <Row label="Image URL">
-          <input
-            value={form.image_url ?? ""}
-            onChange={(e) => set("image_url", e.target.value)}
-            placeholder="https://..."
-            className={input}
-          />
+        <Row label="Item photo">
+          <div className="mt-1 flex items-center gap-3">
+            <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20">
+              {form.image_url ? (
+                <img src={form.image_url} alt="" className="h-full w-full object-cover" />
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider">
+                <Upload className="h-4 w-4" />
+                {uploading ? "Uploading…" : form.image_url ? "Replace photo" : "Upload photo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => void uploadPhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              {form.image_url ? (
+                <button
+                  type="button"
+                  onClick={() => set("image_url", null)}
+                  className="text-xs font-bold uppercase tracking-wider text-primary"
+                >
+                  Remove photo
+                </button>
+              ) : null}
+              {upErr ? <p className="text-xs text-primary">{upErr}</p> : null}
+            </div>
+          </div>
         </Row>
+
         <label className="flex items-center gap-2">
           <input
             type="checkbox"

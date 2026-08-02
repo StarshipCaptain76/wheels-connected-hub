@@ -201,8 +201,8 @@ export function PhotoTagger({
 
 
   return (
-    <div className="rounded-xl border-2 border-ink bg-paper p-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex max-h-[80vh] flex-col rounded-xl border-2 border-ink bg-paper p-2 sm:p-3">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-ink/70">
           <Tag className="h-3.5 w-3.5 text-primary" />
           {af ? "Gemerkte lede" : "Tagged members"}

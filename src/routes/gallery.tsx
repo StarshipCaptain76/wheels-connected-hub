@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
 import { listGalleryItems, type GalleryItem } from "@/lib/gallery.functions";
 import { Camera } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { PhotoTagger } from "@/components/PhotoTagger";
 
 const galleryQuery = queryOptions({
   queryKey: ["gallery"],
@@ -191,6 +193,12 @@ function GalleryPage() {
           onClose={() => setLightboxIndex(null)}
           onIndex={setLightboxIndex}
         />
+      )}
+
+      {lightboxIndex != null && signedIn && activeItem && (
+        <div className="safe-bottom fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-3xl p-3">
+          <PhotoTagger key={activeItem.id} galleryItemId={activeItem.id} />
+        </div>
       )}
     </SiteLayout>
   );

@@ -187,8 +187,11 @@ function RootComponent() {
       <ConfirmProvider>
         <OfflineBanner />
         <Outlet />
-        <InstallPrompt />
-        <DeviceNotifyPrompt />
+        <div className="pointer-events-none fixed inset-x-3 bottom-3 z-50 mx-auto flex max-w-md flex-col gap-2 sm:inset-x-auto sm:right-4">
+          <InstallPrompt />
+          <DeviceNotifyPrompt />
+        </div>
+
 
       </ConfirmProvider>
       <Toaster position="top-center" richColors closeButton />

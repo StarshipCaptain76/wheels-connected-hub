@@ -1,5 +1,5 @@
 /**
- * Exhibition display board — 600 x 900 mm portrait PDF.
+ * Exhibition display board — 600 x 400 mm landscape PDF.
  * Printed and propped next to the car at shows.
  * Client-side only (uses canvas + jsPDF).
  */
@@ -8,11 +8,12 @@ import type { GarageVehicle } from "@/lib/garage.functions";
 import { LOGO_URL } from "@/lib/brand";
 
 const W = 600;
-const H = 900;
-const M = 34; // margin
+const H = 400;
+const M = 26; // margin
 
 const INK = "#140e0c";
-const PAPER = "#f5f0e8";
+const PAPER = "#ffffff";
+const MUTED = "#8a8078";
 const RED = "#cc2222";
 
 export type BoardOwner = {

@@ -77,7 +77,7 @@ async function coverJpeg(src: string, ratio: number, maxW = 2400): Promise<strin
   canvas.height = targetH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unsupported");
-  ctx.fillStyle = INK;
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, targetW, targetH);
   const scale = Math.max(targetW / img.width, targetH / img.height);
   const w = img.width * scale;

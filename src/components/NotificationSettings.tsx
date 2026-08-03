@@ -11,6 +11,12 @@ import {
   type NotificationPrefs,
   type NotificationType,
 } from "@/lib/notifications";
+import {
+  iosNeedsInstall,
+  notificationPermission,
+  requestNotificationPermission,
+  showDeviceNotification,
+} from "@/lib/device-notifications";
 
 function Toggle({
   checked,
@@ -45,10 +51,29 @@ export function NotificationSettings({ isAdmin }: { isAdmin?: boolean }) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["notification-prefs"], queryFn: fetchPrefs });
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [needsInstall, setNeedsInstall] = useState(false);
+
+  useEffect(() => {
+    setPerm(notificationPermission());
+    setNeedsInstall(iosNeedsInstall());
+  }, []);
+
+  const deviceBody =
+    perm === "unsupported"
+      ? t("notif.deviceUnsupported")
+      : needsInstall
+        ? t("notif.deviceIos")
+        : perm === "granted"
+          ? t("notif.deviceOn")
+          : perm === "denied"
+            ? t("notif.deviceBlocked")
+            : t("notif.deviceBody");
 
   useEffect(() => {
     if (data) setPrefs(data);
   }, [data]);
+
 
   async function update(type: NotificationType, value: boolean) {
     const next = { ...prefs, [type]: value };

@@ -44,6 +44,12 @@ export const Route = createFileRoute("/events/$id")({
   head: ({ loaderData, params }) => {
     const ev = loaderData as EventDetail | null | undefined;
     const title = ev ? `${ev.title} | Just Wheels Hessequa` : "Event | Just Wheels Hessequa";
+    // Social/Schema crawlers need absolute URLs — our proxy path is relative.
+    const shareImage = ev?.cover_url
+      ? ev.cover_url.startsWith("http")
+        ? ev.cover_url
+        : `${SITE_ORIGIN}${ev.cover_url}`
+      : null;
     return {
       meta: [
         { title },

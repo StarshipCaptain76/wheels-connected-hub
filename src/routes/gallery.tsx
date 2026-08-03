@@ -93,6 +93,7 @@ function GalleryPage() {
   ).sort();
   const visible = activeCat ? items.filter((it) => it.category === activeCat) : items;
 
+  // Lightbox always uses the full-size image
   const lightboxSource = visible.filter((it) => it.image_url);
   const lightboxItems = lightboxSource.map((it) => ({
     url: it.image_url,
@@ -104,7 +105,6 @@ function GalleryPage() {
     const idx = lightboxItems.findIndex((x) => x.url === it.image_url);
     if (idx >= 0) setLightboxIndex(idx);
   }
-
 
   return (
     <SiteLayout>
@@ -168,32 +168,38 @@ function GalleryPage() {
           </div>
         ) : (
           <ul className="columns-2 gap-3 sm:columns-3 sm:gap-4 md:columns-4 lg:columns-5 xl:columns-6">
-            {visible.map((it) => (
-              <li key={it.id} className="mb-3 break-inside-avoid sm:mb-4">
-                <button
-                  type="button"
-                  onClick={() => openItem(it)}
-                  className="group block w-full overflow-hidden rounded-lg border-2 border-ink bg-card text-left shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
-                >
-                  <img
-                    src={it.image_url}
-                    alt={it.title ?? it.caption ?? "Just Wheels Hessequa"}
-                    loading="lazy"
-                    className="w-full object-cover transition-transform group-hover:scale-[1.02]"
-                  />
-                  {(it.title || it.caption) && (
-                    <div className="border-t border-ink/10 px-2 py-1.5">
-                      {it.title && (
-                        <p className="truncate text-xs font-bold text-ink">{it.title}</p>
-                      )}
-                      {it.caption && (
-                        <p className="line-clamp-2 text-[11px] text-ink/60">{it.caption}</p>
-                      )}
-                    </div>
-                  )}
-                </button>
-              </li>
-            ))}
+            {visible.map((it) => {
+              // Prefer the small thumb; fall back to full image for older uploads
+              const gridSrc = it.thumb_url?.trim() || it.image_url;
+              return (
+                <li key={it.id} className="mb-3 break-inside-avoid sm:mb-4">
+                  <button
+                    type="button"
+                    onClick={() => openItem(it)}
+                    className="group block w-full overflow-hidden rounded-lg border-2 border-ink bg-card text-left shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:-translate-y-0.5"
+                  >
+                    <img
+                      src={gridSrc}
+                      alt={it.title ?? it.caption ?? "Just Wheels Hessequa"}
+                      loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                      className="w-full bg-ink/5 object-cover transition-transform group-hover:scale-[1.02]"
+                    />
+                    {(it.title || it.caption) && (
+                      <div className="border-t border-ink/10 px-2 py-1.5">
+                        {it.title && (
+                          <p className="truncate text-xs font-bold text-ink">{it.title}</p>
+                        )}
+                        {it.caption && (
+                          <p className="line-clamp-2 text-[11px] text-ink/60">{it.caption}</p>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

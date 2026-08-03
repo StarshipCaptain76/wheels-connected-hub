@@ -464,7 +464,10 @@ export const dictionaries = {
 
     "pwa.installTitle": "Installeer Just Wheels",
     "pwa.installBody": "Voeg die klub by jou tuisskerm. Jou lidkaart werk aflyn.",
+    "pwa.installIos": "Tik die Deel-knoppie hieronder en kies \u201cAdd to Home Screen\u201d.",
     "pwa.install": "Installeer",
+    "pwa.installApp": "Installeer app",
+    "pwa.gotIt": "Reg so",
     "pwa.later": "Later",
     "pwa.offline": "Jy is aflyn — wys gekasde inhoud",
 

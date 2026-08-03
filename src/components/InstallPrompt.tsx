@@ -24,13 +24,18 @@ export function isStandalone(): boolean {
   );
 }
 
-export function isIosSafari(): boolean {
+/** True for any browser on iOS/iPadOS — none of them fire beforeinstallprompt. */
+export function isIos(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const iOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  const webkit = /WebKit/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-  return iOS && webkit;
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
 }
+
+/** Safari specifically (other iOS browsers put "Add to Home Screen" elsewhere). */
+export function isIosSafari(): boolean {
+  return isIos() && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+}
+
 
 function snoozed(): boolean {
   try {

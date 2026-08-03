@@ -45,15 +45,12 @@ function storageErrorMessage(msg: string): string {
   if (msg.includes("Bucket not found")) return "Bucket 'garage' missing — run the SQL setup";
   if (msg.includes("row-level security") || msg.includes("policy") || msg.includes("403"))
     return "Upload blocked by storage policy — re-run the permissive garage storage SQL";
-  if (msg.includes("mime") || msg.includes("not allowed"))
-    return "File type not allowed — use JPG, PNG or WebP";
+  if (msg.includes("mime") || msg.includes("not allowed")) return "File type not allowed — use JPG, PNG or WebP";
   return msg;
 }
 
 async function publicOrSignedUrl(path: string): Promise<string> {
-  const { data: signed, error } = await supabase.storage
-    .from("garage")
-    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  const { data: signed, error } = await supabase.storage.from("garage").createSignedUrl(path, 60 * 60 * 24 * 7);
   if (error) console.warn("sign url", error);
   return signed?.signedUrl ?? "";
 }
@@ -81,13 +78,7 @@ function pickImageFiles(multiple: boolean): Promise<File[]> {
   });
 }
 
-export function GarageManager({
-  avatarUrl,
-  lang = "en",
-}: {
-  avatarUrl: string | null;
-  lang?: "en" | "af";
-}) {
+export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | null; lang?: "en" | "af" }) {
   const qc = useQueryClient();
   const listFn = useServerFn(listMyGarage);
   const upsertFn = useServerFn(upsertGarageVehicle);
@@ -249,8 +240,8 @@ export function GarageManager({
             ? "Bord afgelaai — die motorfoto is lae resolusie, dit mag korrelig druk."
             : "Board downloaded — the car photo is low resolution and may print grainy."
           : lang === "af"
-            ? "Vertoonbord afgelaai (600 x 900 mm)"
-            : "Display board downloaded (600 x 900 mm)",
+            ? "Vertoonbord afgelaai (400 x 600 mm)"
+            : "Display board downloaded (400 x 600 mm)",
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Board download failed");
@@ -261,11 +252,13 @@ export function GarageManager({
   }
 
   async function removeVehicle(id: string) {
-    if (!(await confirm({
-      title: lang === "af" ? "Verwyder hierdie voertuig?" : "Delete this vehicle?",
-      confirmLabel: lang === "af" ? "Verwyder" : "Delete",
-      cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
-    })))
+    if (
+      !(await confirm({
+        title: lang === "af" ? "Verwyder hierdie voertuig?" : "Delete this vehicle?",
+        confirmLabel: lang === "af" ? "Verwyder" : "Delete",
+        cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
+      }))
+    )
       return;
     setBusy(true);
     try {
@@ -311,8 +304,7 @@ export function GarageManager({
           continue;
         }
 
-        const ext =
-          (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
         // Same root folder style as the working avatar: avatars/{userId}/...
         // Vehicles: vehicles/{userId}/{vehicleId}/{uuid}.ext
         const path = `vehicles/${userId}/${vehicleId}/${crypto.randomUUID()}.${ext}`;
@@ -354,15 +346,10 @@ export function GarageManager({
 
       if (failures.length && uploaded === 0) throw new Error(failures.join(" · "));
       if (failures.length) {
-        setError(
-          (lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") +
-            failures.join(" · "),
-        );
+        setError((lang === "af" ? "Sommige foto's het misluk: " : "Some photos failed: ") + failures.join(" · "));
       }
       if (uploaded > 0) {
-        setOkMsg(
-          lang === "af" ? `${uploaded} foto(s) gelaai` : `${uploaded} photo(s) uploaded`,
-        );
+        setOkMsg(lang === "af" ? `${uploaded} foto(s) gelaai` : `${uploaded} photo(s) uploaded`);
       }
       setStatus(null);
     } catch (e) {
@@ -423,9 +410,7 @@ export function GarageManager({
           {error}
         </p>
       )}
-      {okMsg && (
-        <p className="rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">{okMsg}</p>
-      )}
+      {okMsg && <p className="rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">{okMsg}</p>}
       {status && (
         <p className="flex items-center gap-2 rounded border-2 border-ink/20 bg-paper px-3 py-2 text-sm text-ink/70">
           <Loader2 className="h-4 w-4 animate-spin" /> {status}
@@ -584,9 +569,7 @@ function VehicleCard({
           </div>
 
           {[v.year, v.make, v.model].filter(Boolean).length > 0 && v.nickname && (
-            <p className="mt-1 text-sm text-ink/55">
-              {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-            </p>
+            <p className="mt-1 text-sm text-ink/55">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</p>
           )}
 
           {story ? (
@@ -598,33 +581,27 @@ function VehicleCard({
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-          {hero?.url && (
-            <button
-              type="button"
-              disabled={busy || cardPhotoUrl === hero.url}
-              onClick={() => onSetCardPhoto(hero.url)}
-              className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper disabled:opacity-50"
-            >
-              <IdCard className="h-3.5 w-3.5" />
-              {cardPhotoUrl === hero.url
-                ? lang === "af"
-                  ? "Op lidkaart"
-                  : "On member card"
-                : lang === "af"
-                  ? "Gebruik op lidkaart"
-                  : "Use on member card"}
-            </button>
-          )}
+            {hero?.url && (
+              <button
+                type="button"
+                disabled={busy || cardPhotoUrl === hero.url}
+                onClick={() => onSetCardPhoto(hero.url)}
+                className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-ink px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+              >
+                <IdCard className="h-3.5 w-3.5" />
+                {cardPhotoUrl === hero.url
+                  ? lang === "af"
+                    ? "Op lidkaart"
+                    : "On member card"
+                  : lang === "af"
+                    ? "Gebruik op lidkaart"
+                    : "Use on member card"}
+              </button>
+            )}
             <button
               type="button"
               disabled={busy || !hero?.url}
-              title={
-                hero?.url
-                  ? undefined
-                  : lang === "af"
-                    ? "Laai eers ’n foto op"
-                    : "Upload a photo first"
-              }
+              title={hero?.url ? undefined : lang === "af" ? "Laai eers ’n foto op" : "Upload a photo first"}
               onClick={onDownloadBoard}
               className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink/5 disabled:opacity-50"
             >
@@ -685,9 +662,7 @@ function VehicleCard({
               className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/40 text-ink/50 hover:border-ink hover:text-ink disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              <span className="text-[9px] font-bold uppercase">
-                {lang === "af" ? "Laai" : "Upload"}
-              </span>
+              <span className="text-[9px] font-bold uppercase">{lang === "af" ? "Laai" : "Upload"}</span>
             </button>
           )}
         </div>
@@ -711,8 +686,7 @@ function VehicleModal({
   onSave: (s: Partial<GarageVehicle>) => Promise<void>;
 }) {
   const [form, setForm] = useState(state);
-  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof GarageVehicle>(k: K, v: GarageVehicle[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
@@ -790,9 +764,7 @@ function VehicleModal({
 
         <details className="rounded-md border-2 border-ink/30 p-3">
           <summary className="cursor-pointer text-xs font-bold uppercase tracking-wider text-ink/70">
-            {lang === "af"
-              ? "Spesifikasieblad (vir vertoonbord)"
-              : "Spec sheet (for display board)"}
+            {lang === "af" ? "Spesifikasieblad (vir vertoonbord)" : "Spec sheet (for display board)"}
           </summary>
           <p className="mt-2 text-[11px] text-ink/50">
             {lang === "af"
@@ -804,9 +776,7 @@ function VehicleModal({
               <Field key={String(f.key)} label={lang === "af" ? f.af : f.en}>
                 <input
                   value={(form[f.key] as string | null) ?? ""}
-                  onChange={(e) =>
-                    setForm((s2) => ({ ...s2, [f.key]: e.target.value }))
-                  }
+                  onChange={(e) => setForm((s2) => ({ ...s2, [f.key]: e.target.value }))}
                   className={inp}
                 />
               </Field>

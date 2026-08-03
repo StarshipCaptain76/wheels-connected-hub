@@ -6,11 +6,15 @@ import { z } from "zod";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { listMerchItems, sendMerchEnquiry, type MerchItem } from "@/lib/merch.functions";
-import { ShoppingBag, Mail, Package, X } from "lucide-react";
+import { ShoppingBag, Mail, Package, X, MapPin } from "lucide-react";
 import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
+
+function formatPrice(n: number) {
+  return `R${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const shopQuery = queryOptions({
   queryKey: ["merch", "public"],
@@ -55,10 +59,12 @@ function Shop() {
             <ShoppingBag className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-display text-5xl tracking-wide text-ink sm:text-6xl">{t("shop.title")}</h1>
+            <h1 className="font-display text-5xl tracking-wide text-ink sm:text-6xl">
+              {t("shop.title")}
+            </h1>
             <p className="mt-2 max-w-2xl text-lg text-ink/70">{t("shop.subtitle")}</p>
             <p className="mt-2 flex items-center gap-2 text-sm text-ink/60">
-              <Mail className="h-4 w-4" /> {t("shop.masked")}
+              <Mail className="h-4 w-4" /> {t("shop.howto")}
             </p>
           </div>
         </div>
@@ -74,7 +80,8 @@ function Shop() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) => {
               const name = lang === "af" && item.name_af ? item.name_af : item.name;
-              const desc = lang === "af" && item.description_af ? item.description_af : item.description;
+              const desc =
+                lang === "af" && item.description_af ? item.description_af : item.description;
               return (
                 <article
                   key={item.id}
@@ -90,7 +97,11 @@ function Shop() {
                         }
                         className="h-full w-full cursor-zoom-in"
                       >
-                        <img src={item.image_url} alt={name} className="h-full w-full object-cover" />
+                        <img
+                          src={item.image_url}
+                          alt={name}
+                          className="h-full w-full object-cover"
+                        />
                       </button>
                     ) : (
                       <Package className="h-14 w-14 text-ink/40" />
@@ -98,14 +109,25 @@ function Shop() {
                   </div>
                   <h2 className="font-display text-2xl tracking-wide text-ink">{name}</h2>
                   {desc && <p className="mt-1 flex-1 text-sm text-ink/70">{desc}</p>}
-                  <div className="mt-4 flex items-center justify-between">
+                  {item.available_from?.trim() && (
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-ink/60">
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        <span className="font-bold uppercase tracking-wider">
+                          {lang === "af" ? "Beskikbaar by" : "Available from"}:
+                        </span>{" "}
+                        {item.available_from.trim()}
+                      </span>
+                    </p>
+                  )}
+                  <div className="mt-4 flex items-center justify-between gap-2">
                     <span className="font-display text-2xl text-rust">
                       {item.price_zar != null ? (
                         <>
                           <span className="text-xs uppercase tracking-widest text-ink/60">
                             {t("shop.priceFrom")}{" "}
                           </span>
-                          R{item.price_zar.toLocaleString("en-ZA")}
+                          {formatPrice(item.price_zar)}
                         </>
                       ) : (
                         <span className="text-sm italic text-ink/60">
@@ -116,7 +138,7 @@ function Shop() {
                     <button
                       type="button"
                       onClick={() => setOpenItem(item)}
-                      className="rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
+                      className="shrink-0 rounded-full border-2 border-ink bg-rust px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper transition hover:-translate-y-0.5"
                     >
                       {t("shop.enquire")}
                     </button>
@@ -146,7 +168,7 @@ const enquirySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().max(40).optional(),
-  size: z.string().trim().max(20).optional(),
+  size: z.string().trim().max(40).optional(),
   quantity: z.coerce.number().int().min(1).max(50),
   notes: z.string().trim().max(1000).optional(),
 });
@@ -197,7 +219,10 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-lg rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]"
         onClick={(e) => e.stopPropagation()}
@@ -207,7 +232,13 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
             <p className="text-xs uppercase tracking-widest text-ink/60">{t("shop.enquireFor")}</p>
             <h2 className="font-display text-3xl tracking-wide text-ink">{displayName}</h2>
             {item.price_zar != null && (
-              <p className="text-sm text-rust">R{item.price_zar.toLocaleString("en-ZA")}</p>
+              <p className="text-sm text-rust">{formatPrice(item.price_zar)}</p>
+            )}
+            {item.available_from?.trim() && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-ink/60">
+                <MapPin className="h-3 w-3" />
+                {lang === "af" ? "Beskikbaar by" : "Available from"}: {item.available_from.trim()}
+              </p>
             )}
           </div>
           <button
@@ -224,7 +255,9 @@ function EnquiryModal({ item, onClose }: { item: MerchItem; onClose: () => void 
           <div className="rounded-xl border-2 border-ink bg-emerald-50 p-6 text-center">
             <p className="font-display text-2xl text-ink">{t("shop.sent")}</p>
             <p className="mt-2 text-sm text-ink/60">
-              {lang === "af" ? "Hierdie venster maak outomaties toe…" : "This window will close automatically…"}
+              {lang === "af"
+                ? "Hierdie venster maak outomaties toe…"
+                : "This window will close automatically…"}
             </p>
             <button
               type="button"

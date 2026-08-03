@@ -118,104 +118,113 @@ export async function downloadDisplayBoard(opts: {
   const af = lang === "af";
   let lowRes = false;
 
-  const doc = new jsPDF({ unit: "mm", format: [W, H], orientation: "portrait" });
+  const doc = new jsPDF({ unit: "mm", format: [W, H], orientation: "landscape" });
 
-  // Paper
+  // Paper — all white
   doc.setFillColor(PAPER);
   doc.rect(0, 0, W, H, "F");
 
-  // ---- Header band -------------------------------------------------------
-  const headerH = 96;
-  doc.setFillColor(INK);
-  doc.rect(0, 0, W, headerH, "F");
+  // ---- Header (no band) --------------------------------------------------
+  const headerBase = M + 26;
+  doc.setTextColor(INK);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  doc.text("JUST WHEELS", M, headerBase);
+  const jwW = doc.getTextWidth("JUST WHEELS");
+  doc.setTextColor(RED);
+  doc.setFontSize(18);
+  doc.text("HESSEQUA", M + jwW + 8, headerBase);
 
-  const faceSrc = owner.avatar_url;
-  if (faceSrc) {
-    try {
-      const face = await circlePng(faceSrc);
-      const d = 62;
-      doc.addImage(face, "PNG", M, (headerH - d) / 2, d, d);
-    } catch {
-      /* skip portrait */
-    }
+  const numTxt = owner.member_number
+    ? `${af ? "LIDNOMMER" : "MEMBER NO."}  #${String(owner.member_number).padStart(4, "0")}`
+    : "";
+  if (numTxt) {
+    doc.setTextColor(INK);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(numTxt, W - M, headerBase, { align: "right" });
   }
 
-  doc.setTextColor(PAPER);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(52);
-  doc.text("JUST WHEELS", W - M, 46, { align: "right" });
-  doc.setTextColor(RED);
-  doc.setFontSize(26);
-  doc.text("HESSEQUA", W - M, 72, { align: "right" });
+  const headerRule = headerBase + 8;
+  doc.setDrawColor(RED);
+  doc.setLineWidth(1.2);
+  doc.line(M, headerRule, W - M, headerRule);
 
-  // ---- Hero photo --------------------------------------------------------
-  const heroTop = headerH + 24;
-  const heroH = 330;
-  const heroW = W - M * 2;
+  // ---- Columns -----------------------------------------------------------
+  const footerTop = H - 46;
+  const bodyTop = headerRule + 16;
+  const bodyH = footerTop - 14 - bodyTop;
+  const gap = 20;
+  const leftW = Math.round((W - M * 2 - gap) * 0.52);
+  const rightX = M + leftW + gap;
+  const rightW = W - M - rightX;
+
+  // ---- Hero photo (left) -------------------------------------------------
   const heroPhoto = v.photos.find((p) => p.url)?.url ?? null;
+  let drew = false;
   if (heroPhoto) {
     try {
       const img = await loadImage(heroPhoto);
       if (img.naturalWidth < 1000) lowRes = true;
-      const data = await coverJpeg(heroPhoto, heroW / heroH);
-      doc.addImage(data, "JPEG", M, heroTop, heroW, heroH);
+      const data = await coverJpeg(heroPhoto, leftW / bodyH);
+      doc.addImage(data, "JPEG", M, bodyTop, leftW, bodyH);
+      drew = true;
     } catch {
-      doc.setFillColor(INK);
-      doc.rect(M, heroTop, heroW, heroH, "F");
+      /* placeholder below */
     }
-  } else {
-    doc.setFillColor(INK);
-    doc.rect(M, heroTop, heroW, heroH, "F");
+  }
+  if (!drew) {
+    doc.setFillColor(238, 234, 229);
+    doc.rect(M, bodyTop, leftW, bodyH, "F");
   }
   doc.setDrawColor(INK);
-  doc.setLineWidth(2);
-  doc.rect(M, heroTop, heroW, heroH);
+  doc.setLineWidth(0.8);
+  doc.rect(M, bodyTop, leftW, bodyH);
 
-  // ---- Title block -------------------------------------------------------
-  let y = heroTop + heroH + 44;
+  // ---- Title block (right) ----------------------------------------------
+  let y = bodyTop + 20;
   const title = [v.make, v.model].filter(Boolean).join(" ").toUpperCase() || "MY RIDE";
   doc.setTextColor(INK);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(58);
+  let titleSize = 34;
+  doc.setFontSize(titleSize);
   const yearTxt = v.year ? String(v.year) : "";
-  const yearW = yearTxt ? doc.getTextWidth(yearTxt) : 0;
-  let titleSize = 58;
-  while (titleSize > 26 && doc.getTextWidth(title) > heroW - yearW - 20) {
-    titleSize -= 2;
+  doc.setFontSize(24);
+  const yearW = yearTxt ? doc.getTextWidth(yearTxt) + 12 : 0;
+  doc.setFontSize(titleSize);
+  while (titleSize > 14 && doc.getTextWidth(title) > rightW - yearW) {
+    titleSize -= 1;
     doc.setFontSize(titleSize);
   }
-  doc.text(title, M, y);
+  doc.text(title, rightX, y);
   if (yearTxt) {
     doc.setTextColor(RED);
-    doc.setFontSize(58);
+    doc.setFontSize(24);
     doc.text(yearTxt, W - M, y, { align: "right" });
   }
 
-  y += 20;
-  const sub = [
-    v.nickname ? `"${v.nickname}"` : null,
-    owner.display_name,
-    owner.town,
-  ]
+  y += 13;
+  const sub = [v.nickname ? `"${v.nickname}"` : null, owner.display_name, owner.town]
     .filter(Boolean)
     .join("   ·   ");
-  doc.setTextColor(INK);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(20);
-  doc.text(sub, M, y);
+  if (sub) {
+    doc.setTextColor(INK);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(13);
+    doc.text(sub, rightX, y);
+  }
 
-  y += 16;
+  y += 8;
   doc.setDrawColor(RED);
-  doc.setLineWidth(1.6);
-  doc.line(M, y, W - M, y);
+  doc.setLineWidth(1);
+  doc.line(rightX, y, W - M, y);
 
   // ---- Spec table --------------------------------------------------------
   const rows = specRows(v, af);
-  const footerTop = H - 86;
-  y += 26;
+  y += 16;
+  const panelBottom = bodyTop + bodyH;
 
   if (rows.length === 0) {
-    // No structured specs yet — fall back to the vehicle story so the board is never blank.
     const story = (af ? v.story_af || v.story : v.story) || "";
     doc.setTextColor(INK);
     doc.setFont("helvetica", "normal");
@@ -224,31 +233,31 @@ export async function downloadDisplayBoard(opts: {
       : af
         ? "Voeg spesifikasies by in My Garage > Wysig voertuig > Spesifikasieblad."
         : "Add specs in My Garage > Edit vehicle > Spec sheet.";
-    // Scale the copy up until it fills the panel without spilling into the footer.
-    const boxH = footerTop - y - 14;
-    let size = 30;
+    const boxH = panelBottom - y;
+    let size = 20;
     let lines: string[] = [];
-    for (; size >= 11; size -= 1) {
+    for (; size >= 9; size -= 1) {
       doc.setFontSize(size);
-      lines = doc.splitTextToSize(text, heroW) as string[];
+      lines = doc.splitTextToSize(text, rightW) as string[];
       const step = size * 0.3528 * 1.45;
       if (lines.length * step <= boxH) break;
     }
     doc.setFontSize(size);
-    doc.text(lines, M, y, { lineHeightFactor: 1.45 });
+    doc.text(lines, rightX, y, { lineHeightFactor: 1.45 });
   } else {
-    const cols = rows.length > 9 ? 2 : 1;
-    const colW = cols === 2 ? (heroW - 24) / 2 : heroW;
+    const cols = rows.length > 8 ? 2 : 1;
+    const colGap = 14;
+    const colW = cols === 2 ? (rightW - colGap) / 2 : rightW;
     const perCol = Math.ceil(rows.length / cols);
-    const available = footerTop - y - 10;
-    const rowH = Math.min(30, Math.max(16, available / perCol));
-    const labelSize = Math.min(14, Math.max(10, rowH * 0.42));
-    const valueSize = Math.min(18, Math.max(11, rowH * 0.55));
+    const available = panelBottom - y;
+    const rowH = Math.min(26, Math.max(12, available / perCol));
+    const labelSize = Math.min(9, Math.max(6.5, rowH * 0.34));
+    const valueSize = Math.min(13, Math.max(8, rowH * 0.45));
 
     rows.forEach((row, i) => {
       const col = Math.floor(i / perCol);
       const idx = i % perCol;
-      const x = M + col * (colW + 24);
+      const x = rightX + col * (colW + colGap);
       const ry = y + idx * rowH;
 
       doc.setFont("helvetica", "bold");
@@ -262,32 +271,40 @@ export async function downloadDisplayBoard(opts: {
       const value = doc.splitTextToSize(row.value, colW)[0] as string;
       doc.text(value, x, ry + valueSize * 0.42 + 2);
 
-      doc.setDrawColor(20, 14, 12);
+      doc.setDrawColor(220, 214, 208);
       doc.setLineWidth(0.3);
-      doc.line(x, ry + rowH - 7, x + colW, ry + rowH - 7);
+      doc.line(x, ry + rowH - 5, x + colW, ry + rowH - 5);
     });
   }
 
-  // ---- Footer ------------------------------------------------------------
-  doc.setFillColor(INK);
-  doc.rect(0, footerTop, W, H - footerTop, "F");
+  // ---- Footer (white, thin rule) -----------------------------------------
+  doc.setDrawColor(220, 214, 208);
+  doc.setLineWidth(0.6);
+  doc.line(M, footerTop, W - M, footerTop);
 
-  const numTxt = owner.member_number
-    ? `${af ? "LIDNOMMER" : "MEMBER NO."}  #${String(owner.member_number).padStart(4, "0")}`
-    : "";
-  doc.setTextColor(PAPER);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text(numTxt, M, footerTop + 38);
+  const footMid = footerTop + (H - footerTop) / 2;
+  let textX = M;
+  const faceSrc = owner.avatar_url;
+  if (faceSrc) {
+    try {
+      const face = await circlePng(faceSrc);
+      const d = 26;
+      doc.addImage(face, "PNG", M, footMid - d / 2, d, d);
+      textX = M + d + 8;
+    } catch {
+      /* skip portrait */
+    }
+  }
+
+  doc.setTextColor(MUTED);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(14);
-  doc.setTextColor(200, 190, 178);
-  doc.text("justwheels.co.za", M, footerTop + 60);
+  doc.setFontSize(12);
+  doc.text("justwheels.co.za", textX, footMid + 4);
 
   try {
     const logo = await circlePng(LOGO_URL, 800);
-    const d = 62;
-    doc.addImage(logo, "PNG", W - M - d, footerTop + (H - footerTop - d) / 2, d, d);
+    const d = 30;
+    doc.addImage(logo, "PNG", W - M - d, footMid - d / 2, d, d);
   } catch {
     /* skip logo */
   }
@@ -299,3 +316,4 @@ export async function downloadDisplayBoard(opts: {
 
   return { lowRes };
 }
+

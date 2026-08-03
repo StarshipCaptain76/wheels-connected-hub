@@ -36,6 +36,8 @@ export const Route = createFileRoute("/_authenticated/admin/gallery")({
 
 const MAX_MB = 8;
 const MAX_FILES = 24;
+const THUMB_MAX_WIDTH = 480;
+const THUMB_QUALITY = 0.72;
 
 function pickImageFiles(): Promise<File[]> {
   return new Promise((resolve) => {
@@ -56,6 +58,38 @@ function pickImageFiles(): Promise<File[]> {
     });
     input.click();
   });
+}
+
+/** Create a small WebP (or JPEG fallback) for the public grid. */
+async function createThumbnail(file: File): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, THUMB_MAX_WIDTH / bitmap.width);
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      bitmap.close();
+      return null;
+    }
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+
+    const webp = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/webp", THUMB_QUALITY);
+    });
+    if (webp && webp.size > 0) return webp;
+
+    // Fallback if browser doesn't produce WebP
+    return await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/jpeg", THUMB_QUALITY);
+    });
+  } catch {
+    return null;
+  }
 }
 
 async function resolveUrl(path: string): Promise<string> {
@@ -125,7 +159,8 @@ function AdminGallery() {
 
         const ext =
           (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-        const path = `photos/${userId}/${crypto.randomUUID()}.${ext}`;
+        const uuid = crypto.randomUUID();
+        const path = `photos/${userId}/${uuid}.${ext}`;
 
         const { error: upErr } = await supabase.storage.from("gallery").upload(path, file, {
           cacheControl: "3600",
@@ -143,12 +178,35 @@ function AdminGallery() {
           continue;
         }
 
+        // Generate + upload a small thumb for the public grid
+        let thumbUrl: string | null = null;
+        try {
+          const thumbBlob = await createThumbnail(file);
+          if (thumbBlob) {
+            const thumbExt = thumbBlob.type === "image/webp" ? "webp" : "jpg";
+            const thumbPath = `photos/${userId}/${uuid}_thumb.${thumbExt}`;
+            const { error: thumbErr } = await supabase.storage
+              .from("gallery")
+              .upload(thumbPath, thumbBlob, {
+                cacheControl: "3600",
+                upsert: false,
+                contentType: thumbBlob.type,
+              });
+            if (!thumbErr) {
+              thumbUrl = (await resolveUrl(thumbPath)) || null;
+            }
+          }
+        } catch {
+          // Non-fatal — grid will fall back to full image_url
+        }
+
         try {
           await create({
             data: {
               title: file.name.replace(/\.[^.]+$/, "").slice(0, 120) || null,
               caption: null,
               image_url: url,
+              thumb_url: thumbUrl,
               category: category.trim() || null,
               is_published: true,
             },
@@ -262,10 +320,16 @@ function AdminGallery() {
             key={it.id}
             className="overflow-hidden rounded-lg border-2 border-ink bg-card shadow-[3px_3px_0_0_var(--color-ink)]"
           >
-            <img src={it.image_url} alt={it.title ?? ""} className="h-48 w-full object-cover" />
+            <img
+              src={it.thumb_url || it.image_url}
+              alt={it.title ?? ""}
+              className="h-48 w-full object-cover"
+              loading="lazy"
+            />
             <div className="p-3">
               <div className="text-xs uppercase tracking-wider text-primary">
                 {it.is_published ? "Published" : "Hidden"}
+                {it.thumb_url ? " · has thumb" : ""}
               </div>
               <p className="font-display text-base text-ink">{it.title ?? "(untitled)"}</p>
               <p className="line-clamp-2 text-xs text-ink/70">{it.caption ?? ""}</p>
@@ -296,7 +360,13 @@ function AdminGallery() {
                 <button
                   type="button"
                   onClick={async () => {
-                    if (!(await confirm({ title: "Delete this photo?", description: "This removes the photo from the gallery for everyone." }))) return;
+                    if (
+                      !(await confirm({
+                        title: "Delete this photo?",
+                        description: "This removes the photo from the gallery for everyone.",
+                      }))
+                    )
+                      return;
                     await del({ data: { id: it.id } });
                     await refresh();
                   }}

@@ -206,6 +206,11 @@ export const dictionaries = {
     "pwa.installTitle": "Install Just Wheels",
     "pwa.installBody": "Add the club to your home screen. Your member card works offline.",
     "pwa.installIos": "Tap the Share button below, then choose \u201cAdd to Home Screen\u201d.",
+    "pwa.installIosOther":
+      "Open the browser menu (\u22ee or Share), then choose \u201cAdd to Home Screen\u201d. Safari works best.",
+    "pwa.installHowto":
+      "Android: open the browser menu and tap \u201cInstall app\u201d. Desktop Chrome/Edge: click the install icon in the address bar. Private/incognito windows cannot install apps.",
+
     "pwa.install": "Install",
     "pwa.installApp": "Install app",
     "pwa.gotIt": "Got it",
@@ -465,6 +470,11 @@ export const dictionaries = {
     "pwa.installTitle": "Installeer Just Wheels",
     "pwa.installBody": "Voeg die klub by jou tuisskerm. Jou lidkaart werk aflyn.",
     "pwa.installIos": "Tik die Deel-knoppie hieronder en kies \u201cAdd to Home Screen\u201d.",
+    "pwa.installIosOther":
+      "Maak die blaaier se kieslys oop (\u22ee of Deel) en kies \u201cAdd to Home Screen\u201d. Safari werk die beste.",
+    "pwa.installHowto":
+      "Android: maak die blaaier se kieslys oop en tik \u201cInstall app\u201d. Rekenaar (Chrome/Edge): klik die installeer-ikoon in die adresbalk. Privaat/incognito-vensters kan nie apps installeer nie.",
+
     "pwa.install": "Installeer",
     "pwa.installApp": "Installeer app",
     "pwa.gotIt": "Reg so",

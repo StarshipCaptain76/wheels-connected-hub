@@ -7,28 +7,22 @@ import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown, Download } f
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { NotificationBell } from "@/components/NotificationBell";
-import {
-  INSTALL_PROMPT_OPEN_EVENT,
-  isStandalone,
-  isIosSafari,
-} from "@/components/InstallPrompt";
+import { INSTALL_PROMPT_OPEN_EVENT, isStandalone } from "@/components/InstallPrompt";
+
 
 function InstallAppMenuItem({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || isStandalone()) return;
-    const check = () => {
-      const w = window as unknown as { __jwInstallEvent?: unknown };
-      setShow(Boolean(w.__jwInstallEvent) || isIosSafari());
-    };
-    check();
-    window.addEventListener("jw:installavailable", check);
-    return () => window.removeEventListener("jw:installavailable", check);
+    if (typeof window === "undefined") return;
+    // Always offer a path to install unless the app is already installed —
+    // the banner may be snoozed, and iOS never fires an install event.
+    setShow(!isStandalone());
   }, []);
 
   if (!show) return null;
+
 
   return (
     <button

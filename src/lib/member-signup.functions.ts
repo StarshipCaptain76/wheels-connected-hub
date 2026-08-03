@@ -18,8 +18,24 @@ export const notifyAdminNewMember = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => schema.parse(input))
   .handler(async ({ data }) => {
     const name = (data.displayName ?? "").trim() || data.email.split("@")[0];
-    const html = buildNewMemberAdminEmail({ name, email: data.email });
 
+    // In-app notification first: an email failure must never cancel it.
+    try {
+      const { fanOut } = await import("./notify.server");
+      const res = await fanOut({
+        type: "admin_new_member",
+        title_en: "New member awaiting approval",
+        title_af: "Nuwe lid wag vir goedkeuring",
+        body_en: name + " (" + data.email + ")",
+        body_af: name + " (" + data.email + ")",
+        link: "/admin/members",
+      });
+      console.log("[members] in-app notification", res);
+    } catch (e) {
+      console.error("[members] in-app notification failed", e);
+    }
+
+    const html = buildNewMemberAdminEmail({ name, email: data.email });
     try {
       await sendEmail({
         to: [ADMIN_EMAIL],
@@ -33,19 +49,6 @@ export const notifyAdminNewMember = createServerFn({ method: "POST" })
       return { ok: false as const };
     }
 
-    try {
-      const { fanOut } = await import("./notify.server");
-      await fanOut({
-        type: "admin_new_member",
-        title_en: "New member awaiting approval",
-        title_af: "Nuwe lid wag vir goedkeuring",
-        body_en: name + " (" + data.email + ")",
-        body_af: name + " (" + data.email + ")",
-        link: "/admin/members",
-      });
-    } catch (e) {
-      console.error("[members] in-app notification failed", e);
-    }
-
     return { ok: true as const };
   });
+

@@ -24,13 +24,18 @@ export function isStandalone(): boolean {
   );
 }
 
-export function isIosSafari(): boolean {
+/** True for any browser on iOS/iPadOS — none of them fire beforeinstallprompt. */
+export function isIos(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  const iOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  const webkit = /WebKit/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-  return iOS && webkit;
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
 }
+
+/** Safari specifically (other iOS browsers put "Add to Home Screen" elsewhere). */
+export function isIosSafari(): boolean {
+  return isIos() && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(navigator.userAgent);
+}
+
 
 function snoozed(): boolean {
   try {
@@ -43,11 +48,13 @@ function snoozed(): boolean {
   }
 }
 
+type Mode = "prompt" | "ios-safari" | "ios-other" | "howto";
+
 export function InstallPrompt() {
   const { t } = useI18n();
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [ios, setIos] = useState(false);
+  const [mode, setMode] = useState<Mode>("howto");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -60,13 +67,13 @@ export function InstallPrompt() {
       const captured = w.__jwInstallEvent ?? null;
       if (captured) {
         setEvt(captured);
-        setIos(false);
-      } else if (isIosSafari()) {
-        setIos(true);
-      } else if (!force) {
-        return;
+        setMode("prompt");
+      } else if (isIos()) {
+        setMode(isIosSafari() ? "ios-safari" : "ios-other");
+      } else if (force) {
+        // No install event in this browser (or not eligible yet) — explain how.
+        setMode("howto");
       } else {
-        // No install path available in this browser.
         return;
       }
       if (force || !snoozed()) setVisible(true);
@@ -90,7 +97,18 @@ export function InstallPrompt() {
     };
   }, []);
 
-  if (!visible || (!evt && !ios)) return null;
+  if (!visible) return null;
+
+  
+  const body =
+    mode === "prompt"
+      ? t("pwa.installBody")
+      : mode === "ios-safari"
+        ? t("pwa.installIos")
+        : mode === "ios-other"
+          ? t("pwa.installIosOther")
+          : t("pwa.installHowto");
+
 
   const dismiss = () => {
     try {
@@ -114,15 +132,13 @@ export function InstallPrompt() {
     <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg sm:inset-x-auto sm:right-4">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/15 p-2 text-primary">
-          {ios ? <Share className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+          {mode === "prompt" ? <Download className="h-5 w-5" /> : <Share className="h-5 w-5" />}
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">{t("pwa.installTitle")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {ios ? t("pwa.installIos") : t("pwa.installBody")}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{body}</p>
           <div className="mt-3 flex gap-2">
-            {!ios && (
+            {mode === "prompt" && (
               <button
                 onClick={install}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:bg-primary/90"
@@ -134,10 +150,11 @@ export function InstallPrompt() {
               onClick={dismiss}
               className="rounded-md border border-input px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
             >
-              {ios ? t("pwa.gotIt") : t("pwa.later")}
+              {mode === "prompt" ? t("pwa.later") : t("pwa.gotIt")}
             </button>
           </div>
         </div>
+
         <button
           onClick={dismiss}
           aria-label="Dismiss"

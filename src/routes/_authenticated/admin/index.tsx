@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { listAllMembers } from "@/lib/admin-members.functions";
 import { listPendingListings } from "@/lib/listings.functions";
 import { listAllEvents } from "@/lib/events.functions";
 import { listAllGalleryItems } from "@/lib/gallery.functions";
 import { listSubscribers } from "@/lib/newsletter.functions";
 import { listAllSponsors } from "@/lib/sponsors.functions";
+import { sendTestNotification } from "@/lib/notify-test.functions";
 import {
   Tag,
   Calendar,
@@ -15,7 +18,9 @@ import {
   Mail,
   Handshake,
   ArrowRight,
+  Bell,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
@@ -167,6 +172,43 @@ function AdminOverview() {
           );
         })}
       </div>
+
+      <TestNotificationButton />
     </div>
   );
 }
+
+function TestNotificationButton() {
+  const send = useServerFn(sendTestNotification);
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <div className="mt-8 rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_var(--color-ink)]">
+      <p className="font-display text-sm tracking-wide text-ink">Notification check</p>
+      <p className="mt-1 text-xs text-ink/60">
+        Sends a test notification to your own bell so you can confirm delivery works.
+      </p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const res = await send();
+            if (res.ok) toast.success(res.message);
+            else toast.error(res.message);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Failed");
+          } finally {
+            setBusy(false);
+          }
+        }}
+        className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm font-bold uppercase tracking-wide text-ink hover:bg-ink/5 disabled:opacity-50"
+      >
+        <Bell className="h-4 w-4" />
+        {busy ? "Sending…" : "Send me a test notification"}
+      </button>
+    </div>
+  );
+}
+

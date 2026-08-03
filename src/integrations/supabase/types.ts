@@ -977,6 +977,7 @@ export type Database = {
           sizes: string[]
           sort: number
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           available_from?: string | null
@@ -992,6 +993,7 @@ export type Database = {
           sizes?: string[]
           sort?: number
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           available_from?: string | null
@@ -1007,6 +1009,7 @@ export type Database = {
           sizes?: string[]
           sort?: number
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: []
       }

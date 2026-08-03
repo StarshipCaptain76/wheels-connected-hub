@@ -7,11 +7,8 @@ import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown, Download } f
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { NotificationBell } from "@/components/NotificationBell";
-import {
-  INSTALL_PROMPT_OPEN_EVENT,
-  isStandalone,
-  isIosSafari,
-} from "@/components/InstallPrompt";
+import { INSTALL_PROMPT_OPEN_EVENT, isStandalone } from "@/components/InstallPrompt";
+
 
 function InstallAppMenuItem({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useI18n();

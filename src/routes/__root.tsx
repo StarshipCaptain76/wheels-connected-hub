@@ -16,7 +16,7 @@ import { I18nProvider } from "../i18n/I18nProvider";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "../lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { registerPwa } from "../lib/pwa-register";
-import { InstallPrompt } from "../components/InstallPrompt";
+import { InstallPrompt, INSTALL_CAPTURE_SCRIPT } from "../components/InstallPrompt";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Toaster } from "../components/ui/sonner";
 import { ConfirmProvider } from "../components/ConfirmDialog";
@@ -154,6 +154,7 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
         <HeadContent />
       </head>
       <body>

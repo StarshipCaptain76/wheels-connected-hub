@@ -1,36 +1,28 @@
 ## Goal
-Rework the exhibition display board PDF (`src/lib/display-board.ts`) to a 600 × 400 mm landscape sheet on a clean white background, no dark banners.
+Make the "Install Just Wheels" prompt reappear for visitors who haven't installed the app.
 
-## Format change
-- Page: `format: [600, 400]`, `orientation: "landscape"` (mm).
-- Background: pure white. Remove the black header band and black footer band entirely.
-- Palette: ink `#140e0c` for text, club red `#cc2222` for accents/rules, light grey hairlines for table separators.
+## What I found (verified)
+`InstallPrompt` is still rendered in the root layout and its texts exist in both languages, so nothing was deleted. Three real reasons it can stay hidden:
 
-## New landscape layout
-```text
-┌───────────────────────────────────────────────────────────┐
-│ [logo]  JUST WHEELS HESSEQUA            member #0042  ┃   │  header row (text only, red rule under)
-├───────────────────────────┬───────────────────────────────┤
-│                           │  1968 FORD MUSTANG            │
-│      HERO PHOTO           │  "Nickname" · Owner · Town    │
-│      (left ~55%)          │  ───────── red rule ───────── │
-│                           │  SPEC TABLE (2 columns)       │
-│                           │  ENGINE      302 V8           │
-│                           │  POWER       224 kW           │
-├───────────────────────────┴───────────────────────────────┤
-│ [owner portrait]  justwheels.co.za            [club logo] │  footer row, white, thin top rule
-└───────────────────────────────────────────────────────────┘
-```
+1. **The browser event is missed.** The component only listens for `beforeinstallprompt` from inside a `useEffect`. Chrome fires that event very early — often before React hydrates — so the prompt is simply never captured and the banner never renders.
+2. **iOS/Safari never fires that event at all**, so iPhone/iPad users can never see it.
+3. **A one-time dismissal is permanent.** Tapping "Later" or the X writes a flag that hides the banner forever, with no way back.
 
-## Details
-- Header: club wordmark left in ink, "HESSEQUA" in red, member number right; thin red rule beneath instead of a filled band.
-- Hero photo: left panel, cover-cropped to the panel ratio, thin ink border. If no photo, a light grey placeholder rectangle (no black fill).
-- Title block: make/model auto-shrinks to fit the right column; year in red beside/under it.
-- Spec table: fills the right column, single or two sub-columns depending on row count, auto-sized row height so it never overflows the footer. Same bilingual EN/AF labels as today.
-- No-specs fallback: vehicle story auto-scaled into the right column, same as current behaviour.
-- Footer: white with a thin rule, owner circular portrait (moved from header), `justwheels.co.za`, and the circular club logo right.
-- Everything else (`boardHasSpecs`, download filename, low-res warning return value, callers in the profile/member card) stays unchanged, so no call-site edits are needed.
+## Fix
+
+**1. Capture the event before React loads**
+Add a tiny inline script in the document head that listens for `beforeinstallprompt`, prevents the default mini-infobar and stashes the event on `window`. The component then reads the stashed event on mount as well as listening for later ones. This is the main fix.
+
+**2. iOS fallback**
+When there's no install event, the browser is Safari on iOS, and the app isn't already running standalone, show the same banner with short "Tap Share, then Add to Home Screen" wording (EN + AF strings added to the dictionary).
+
+**3. Snooze instead of permanent dismiss**
+Change "Later"/X to store a timestamp and re-show after ~14 days. Add a small one-time migration so existing users who already dismissed get the banner again.
+
+**4. Also keep it reachable**
+Add an "Install app" item in the menu (hidden when already installed) so it can be triggered on demand rather than only appearing on its own.
 
 ## Technical notes
-- All work is confined to `src/lib/display-board.ts`; constants `W`/`H` become 600/400 and every y-coordinate is recomputed for the shorter page.
-- Image crop helpers (`coverJpeg`, `circlePng`) are reused; the black canvas fill in `coverJpeg` becomes white.
+- Files: `src/components/InstallPrompt.tsx`, `src/routes/__root.tsx` (head script + mount), `src/i18n/dictionaries.ts`, `src/components/SiteLayout.tsx` (menu entry).
+- No changes to the service worker, manifest, or `vite.config.ts`.
+- Chrome only fires the event on a secure origin with a valid manifest and SW; the Lovable preview iframe suppresses it, so verification is on the published site (or the iOS path in preview).

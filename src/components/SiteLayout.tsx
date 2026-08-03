@@ -3,10 +3,47 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/i18n/I18nProvider";
 import { useTheme } from "@/lib/theme";
 import { LOGO_URL } from "@/lib/brand";
-import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown } from "lucide-react";
+import { MessageCircle, UserRound, Menu, X, Sun, Moon, ChevronDown, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { NotificationBell } from "@/components/NotificationBell";
+import {
+  INSTALL_PROMPT_OPEN_EVENT,
+  isStandalone,
+  isIosSafari,
+} from "@/components/InstallPrompt";
+
+function InstallAppMenuItem({ onNavigate }: { onNavigate?: () => void }) {
+  const { t } = useI18n();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isStandalone()) return;
+    const check = () => {
+      const w = window as unknown as { __jwInstallEvent?: unknown };
+      setShow(Boolean(w.__jwInstallEvent) || isIosSafari());
+    };
+    check();
+    window.addEventListener("jw:installavailable", check);
+    return () => window.removeEventListener("jw:installavailable", check);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        window.dispatchEvent(new Event(INSTALL_PROMPT_OPEN_EVENT));
+        onNavigate?.();
+      }}
+      className="inline-flex min-h-10 items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm font-bold uppercase tracking-wide text-ink hover:bg-ink/5"
+    >
+      <Download className="h-4 w-4" />
+      {t("pwa.installApp")}
+    </button>
+  );
+}
 
 function LangToggle({ compact = false }: { compact?: boolean }) {
   const { lang, setLang } = useI18n();
@@ -281,6 +318,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
               </ul>
               <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3">
                 <AuthAffordance onNavigate={closeMenu} />
+                <InstallAppMenuItem onNavigate={closeMenu} />
               </div>
             </nav>
           </div>

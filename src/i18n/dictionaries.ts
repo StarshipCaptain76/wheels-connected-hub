@@ -30,8 +30,7 @@ export const dictionaries = {
     "notif.type.admin_listing_review": "Admin: listings to approve",
     "notif.adminSection": "Admin notifications",
     "notif.deviceTitle": "Notifications on this device",
-    "notif.deviceBody":
-      "Allow pop-up alerts on this device so you don't miss approvals, events and messages.",
+    "notif.deviceBody": "Allow pop-up alerts on this device so you don't miss approvals, events and messages.",
     "notif.deviceAllow": "Allow notifications",
     "notif.deviceOn": "Notifications are already allowed on this device.",
     "notif.deviceBlocked":
@@ -206,7 +205,8 @@ export const dictionaries = {
     "directory.emptyHint": "Try a different search or clear the filters.",
     "directory.noVehicle": "No vehicle listed yet",
     "directory.privacyLabel": "Show me in the club directory",
-    "directory.privacyHint": "Other signed-in members can find you by name or car. Turn this off anytime — you stay hidden from the directory.",
+    "directory.privacyHint":
+      "Other signed-in members can find you by name or car. Turn this off anytime — you stay hidden from the directory.",
 
     "card.number": "Member no.",
     "card.member": "Member",
@@ -232,7 +232,8 @@ export const dictionaries = {
 
     "nav.shop": "Shop",
     "shop.title": "Club Merch",
-    "shop.subtitle": "Rep the tribe. Enquire below and we'll email you back with payment & pickup.",
+    "shop.subtitle":
+      "Rep the tribe. Enquire below and we'll email you back with payment & pickup. Or Visit the supplier directly",
     "shop.enquire": "Enquire",
     "shop.enquireFor": "Enquire about",
     "shop.close": "Close",
@@ -254,7 +255,8 @@ export const dictionaries = {
     "sponsors.title": "Our sponsors",
     "sponsors.becomeCta": "Become a sponsor",
     "sponsors.pageTitle": "Club sponsors",
-    "sponsors.pageIntro": "The businesses that keep the wheels turning. Support the ones that support us — and get in touch if you'd like to join them.",
+    "sponsors.pageIntro":
+      "The businesses that keep the wheels turning. Support the ones that support us — and get in touch if you'd like to join them.",
     "sponsors.visit": "Visit site",
     "sponsors.applyTitle": "Become a sponsor",
     "sponsors.applyIntro": "Send us your details — we'll reply from admin with sponsorship tiers and next steps.",
@@ -307,8 +309,7 @@ export const dictionaries = {
     "notif.type.admin_listing_review": "Admin: advertensies vir goedkeuring",
     "notif.adminSection": "Admin-kennisgewings",
     "notif.deviceTitle": "Kennisgewings op hierdie toestel",
-    "notif.deviceBody":
-      "Laat opspring-kennisgewings op hierdie toestel toe sodat jy niks misloop nie.",
+    "notif.deviceBody": "Laat opspring-kennisgewings op hierdie toestel toe sodat jy niks misloop nie.",
     "notif.deviceAllow": "Laat kennisgewings toe",
     "notif.deviceOn": "Kennisgewings is reeds toegelaat op hierdie toestel.",
     "notif.deviceBlocked":
@@ -483,7 +484,8 @@ export const dictionaries = {
     "directory.emptyHint": "Probeer 'n ander soektog of maak die filters skoon.",
     "directory.noVehicle": "Nog geen voertuig gelys nie",
     "directory.privacyLabel": "Wys my in die klubgids",
-    "directory.privacyHint": "Ander aangemelde lede kan jou volgens naam of kar vind. Skakel dit enige tyd af — jy bly dan versteek uit die gids.",
+    "directory.privacyHint":
+      "Ander aangemelde lede kan jou volgens naam of kar vind. Skakel dit enige tyd af — jy bly dan versteek uit die gids.",
 
     "card.number": "Lidnr.",
     "card.member": "Lid",
@@ -509,7 +511,8 @@ export const dictionaries = {
 
     "nav.shop": "Winkel",
     "shop.title": "Klub Handelsware",
-    "shop.subtitle": "Wys jou kleure. Stuur 'n navraag en ons e-pos jou terug met betaling & afhaal.",
+    "shop.subtitle":
+      "Wys jou kleure. Stuur 'n navraag en ons e-pos jou terug met betaling & afhaal, Of bestel direk by verskaffers.",
     "shop.enquire": "Navraag",
     "shop.enquireFor": "Navraag oor",
     "shop.close": "Maak toe",
@@ -531,7 +534,8 @@ export const dictionaries = {
     "sponsors.title": "Ons borge",
     "sponsors.becomeCta": "Word 'n borg",
     "sponsors.pageTitle": "Klub borge",
-    "sponsors.pageIntro": "Die besighede wat die wiele laat draai. Ondersteun dié wat ons ondersteun — en kontak ons as jy wil aansluit.",
+    "sponsors.pageIntro":
+      "Die besighede wat die wiele laat draai. Ondersteun dié wat ons ondersteun — en kontak ons as jy wil aansluit.",
     "sponsors.visit": "Besoek webwerf",
     "sponsors.applyTitle": "Word 'n borg",
     "sponsors.applyIntro": "Stuur jou besonderhede — ons antwoord vanaf admin met borgvlakke en volgende stappe.",

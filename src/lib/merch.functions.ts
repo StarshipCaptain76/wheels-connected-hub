@@ -135,9 +135,14 @@ const enquirySchema = z.object({
 });
 
 function esc(v: string) {
-  return v.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" })[c]!,
-  );
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return v.replace(/[&<>"']/g, (c) => map[c] ?? c);
 }
 
 export const sendMerchEnquiry = createServerFn({ method: "POST" })

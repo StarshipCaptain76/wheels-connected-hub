@@ -7,6 +7,8 @@ export type GalleryItem = {
   title: string | null;
   caption: string | null;
   image_url: string;
+  /** Smaller version for the grid. Falls back to image_url when missing. */
+  thumb_url: string | null;
   event_id: string | null;
   taken_at: string | null;
   category: string | null;
@@ -21,14 +23,19 @@ export const listGalleryItems = createServerFn({ method: "GET" }).handler(
     const supabase = createPublicSupabase();
     const { data, error } = await supabase
       .from("gallery_items")
-      .select("id, title, caption, image_url, event_id, taken_at, category, created_at")
+      .select("id, title, caption, image_url, thumb_url, event_id, taken_at, category, created_at")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);
     const rows = (data ?? []) as GalleryItem[];
-    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
-    return rows.map((r) => ({ ...r, image_url: signed.get(r.image_url) ?? r.image_url }));
+    const toSign = rows.flatMap((r) => [r.image_url, r.thumb_url].filter(Boolean) as string[]);
+    const signed = await signStoredUrls(supabase, toSign);
+    return rows.map((r) => ({
+      ...r,
+      image_url: signed.get(r.image_url) ?? r.image_url,
+      thumb_url: r.thumb_url ? (signed.get(r.thumb_url) ?? r.thumb_url) : null,
+    }));
   },
 );
 
@@ -41,19 +48,26 @@ export const listAllGalleryItems = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("gallery_items")
-      .select("id, title, caption, image_url, event_id, taken_at, category, created_at, is_published")
+      .select(
+        "id, title, caption, image_url, thumb_url, event_id, taken_at, category, created_at, is_published",
+      )
       .order("created_at", { ascending: false });
     if (error) throw error;
     const rows = (data ?? []) as GalleryItem[];
-    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
-    return rows.map((r) => ({ ...r, image_url: signed.get(r.image_url) ?? r.image_url }));
+    const toSign = rows.flatMap((r) => [r.image_url, r.thumb_url].filter(Boolean) as string[]);
+    const signed = await signStoredUrls(supabase, toSign);
+    return rows.map((r) => ({
+      ...r,
+      image_url: signed.get(r.image_url) ?? r.image_url,
+      thumb_url: r.thumb_url ? (signed.get(r.thumb_url) ?? r.thumb_url) : null,
+    }));
   });
-
 
 const createSchema = z.object({
   title: z.string().trim().max(120).nullable().optional(),
   caption: z.string().trim().max(500).nullable().optional(),
   image_url: z.string().trim().min(1).max(1000),
+  thumb_url: z.string().trim().max(1000).nullable().optional(),
   category: z.string().trim().max(120).nullable().optional(),
   is_published: z.boolean().default(true),
 });
@@ -67,7 +81,14 @@ export const createGalleryItem = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data: row, error } = await supabase
       .from("gallery_items")
-      .insert(data)
+      .insert({
+        title: data.title ?? null,
+        caption: data.caption ?? null,
+        image_url: data.image_url,
+        thumb_url: data.thumb_url ?? null,
+        category: data.category ?? null,
+        is_published: data.is_published ?? true,
+      })
       .select("id")
       .single();
     if (error) throw error;

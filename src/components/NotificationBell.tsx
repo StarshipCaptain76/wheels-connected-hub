@@ -12,6 +12,7 @@ import {
   notifTitle,
   type AppNotification,
 } from "@/lib/notifications";
+import { showDeviceNotification } from "@/lib/device-notifications";
 
 function timeAgo(iso: string, lang: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -61,8 +62,16 @@ export function NotificationBell() {
     channel.on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-      () => {
+      (payload) => {
         void qc.invalidateQueries({ queryKey: ["notifications", userId] });
+        const row = payload.new as Partial<AppNotification> | undefined;
+        if (row) {
+          showDeviceNotification(
+            notifTitle(row as AppNotification, lang),
+            notifBody(row as AppNotification, lang) ?? undefined,
+            row.link ?? undefined,
+          );
+        }
       },
     );
     try {

@@ -14,9 +14,14 @@ export type MerchItem = {
   price_zar: number | null;
   sizes: string[];
   image_url: string | null;
+  /** Place/channel where the item is available to buy or collect. */
+  available_from: string | null;
   is_active: boolean;
   sort: number;
 };
+
+const MERCH_SELECT =
+  "id, name, name_af, description, description_af, price_zar, sizes, image_url, available_from, is_active, sort";
 
 export const listMerchItems = createServerFn({ method: "GET" }).handler(
   async (): Promise<MerchItem[]> => {
@@ -25,7 +30,7 @@ export const listMerchItems = createServerFn({ method: "GET" }).handler(
     const sb = createPublicSupabase();
     const { data, error } = await sb
       .from("merch_items")
-      .select("id, name, name_af, description, description_af, price_zar, sizes, image_url, is_active, sort")
+      .select(MERCH_SELECT)
       .eq("is_active", true)
       .order("sort", { ascending: true })
       .order("name", { ascending: true });
@@ -34,7 +39,10 @@ export const listMerchItems = createServerFn({ method: "GET" }).handler(
       return [];
     }
     const rows = (data ?? []) as MerchItem[];
-    const signed = await signStoredUrls(sb, rows.map((r) => r.image_url));
+    const signed = await signStoredUrls(
+      sb,
+      rows.map((r) => r.image_url),
+    );
     return rows.map((r) => ({
       ...r,
       image_url: r.image_url ? (signed.get(r.image_url) ?? r.image_url) : null,
@@ -51,18 +59,22 @@ export const listAllMerchItems = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("merch_items")
-      .select("id, name, name_af, description, description_af, price_zar, sizes, image_url, is_active, sort")
+      .select(MERCH_SELECT)
       .order("sort", { ascending: true });
     if (error) throw error;
     const rows = (data ?? []) as MerchItem[];
-    const signed = await signStoredUrls(supabase, rows.map((r) => r.image_url));
+    const signed = await signStoredUrls(
+      supabase,
+      rows.map((r) => r.image_url),
+    );
     return rows.map((r) => ({
       ...r,
       image_url: r.image_url ? (signed.get(r.image_url) ?? r.image_url) : null,
     }));
   });
 
-
+// Per-size label max raised from 10 → 40 so values like "One Size" / "XXL" work.
+// Overall sizes list still capped at 20 entries.
 const upsertSchema = z.object({
   id: z.string().uuid().optional().nullable(),
   name: z.string().trim().min(1).max(120),
@@ -70,8 +82,9 @@ const upsertSchema = z.object({
   description: z.string().trim().max(1000).nullable().optional(),
   description_af: z.string().trim().max(1000).nullable().optional(),
   price_zar: z.number().nonnegative().max(999999).nullable().optional(),
-  sizes: z.array(z.string().trim().min(1).max(10)).max(20).default([]),
+  sizes: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
   image_url: z.string().trim().max(500).nullable().optional(),
+  available_from: z.string().trim().max(120).nullable().optional(),
   is_active: z.boolean().default(true),
   sort: z.number().int().min(0).max(9999).default(0),
 });
@@ -116,14 +129,14 @@ const enquirySchema = z.object({
   name: z.string().trim().min(1).max(100),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().max(40).optional().default(""),
-  size: z.string().trim().max(20).optional().default(""),
+  size: z.string().trim().max(40).optional().default(""),
   quantity: z.coerce.number().int().min(1).max(50),
   notes: z.string().trim().max(1000).optional().default(""),
 });
 
 function esc(v: string) {
   return v.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!),
+    ({ "&": "&", "<": "<", ">": ">", '"': """, "'": "&#39;" })[c]!,
   );
 }
 

@@ -64,7 +64,7 @@ function Shop() {
             </h1>
             <p className="mt-2 max-w-2xl text-lg text-ink/70">{t("shop.subtitle")}</p>
             <p className="mt-2 flex items-center gap-2 text-sm text-ink/60">
-              <Mail className="h-4 w-4" /> {t("shop.howto")}
+              <Mail className="h-4 w-4" /> {t("shop.masked")}
             </p>
           </div>
         </div>

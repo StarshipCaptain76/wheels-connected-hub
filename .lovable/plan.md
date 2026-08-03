@@ -1,28 +1,45 @@
 ## Goal
-Make the "Install Just Wheels" prompt reappear for visitors who haven't installed the app.
+Get the "Install app" prompt appearing on iPhone/Chrome, and get in-app notifications actually reaching admins.
 
-## What I found (verified)
-`InstallPrompt` is still rendered in the root layout and its texts exist in both languages, so nothing was deleted. Three real reasons it can stay hidden:
+---
 
-1. **The browser event is missed.** The component only listens for `beforeinstallprompt` from inside a `useEffect`. Chrome fires that event very early — often before React hydrates — so the prompt is simply never captured and the banner never renders.
-2. **iOS/Safari never fires that event at all**, so iPhone/iPad users can never see it.
-3. **A one-time dismissal is permanent.** Tapping "Later" or the X writes a flag that hides the banner forever, with no way back.
+## Part 1 — Notifications (verified findings)
 
-## Fix
+What I checked in the database:
+- Your account is an active member and **is** an admin, and there are 5 admins.
+- The notifications table has only **6 rows, all "photo tag"** ones from 2 Aug. No approval/listing/event/sponsor notification has **ever** been created.
+- A new member profile was created **today at 08:16**, which should have produced an "awaiting approval" notification for all 5 admins. It produced none.
+- Nobody has any saved notification settings rows, so defaults (all on) apply — settings are not the cause.
 
-**1. Capture the event before React loads**
-Add a tiny inline script in the document head that listens for `beforeinstallprompt`, prevents the default mini-infobar and stashes the event on `window`. The component then reads the stashed event on mount as well as listening for later ones. This is the main fix.
+Two concrete causes:
 
-**2. iOS fallback**
-When there's no install event, the browser is Safari on iOS, and the app isn't already running standalone, show the same banner with short "Tap Share, then Add to Home Screen" wording (EN + AF strings added to the dictionary).
+1. **Sign-up notification is skipped whenever the admin email fails.** In the sign-up handler the e-mail is sent first; if Resend errors, the function returns immediately and never reaches the in-app notification step.
+2. **The fan-out helper swallows every error silently.** It writes notifications with the privileged backend key — the same key that has gone missing before on this project — and on any failure it just logs and returns "0 sent", so nothing surfaces anywhere.
 
-**3. Snooze instead of permanent dismiss**
-Change "Later"/X to store a timestamp and re-show after ~14 days. Add a small one-time migration so existing users who already dismissed get the banner again.
+### Fix
+- Reorder sign-up: always create the in-app notification for admins, then attempt the e-mail; neither step can cancel the other.
+- Keep fan-out non-blocking but make it honest: return the reason it sent nothing, and log recipient counts so failures are diagnosable instead of invisible.
+- Confirm the backend service key is bound, then run a live end-to-end test (trigger a real fan-out and re-query the table) before calling it fixed.
+- Add a small admin-only "Send me a test notification" action on the admin dashboard so this can be re-checked at any time without waiting for a real sign-up.
 
-**4. Also keep it reachable**
-Add an "Install app" item in the menu (hidden when already installed) so it can be triggered on demand rather than only appearing on its own.
+---
+
+## Part 2 — Install prompt
+
+Why it isn't showing:
+
+- **Chrome incognito on PC:** Chrome deliberately disables app installation in incognito, so the install event never fires there. Not a bug — it must be tested in a normal window on the published site.
+- **iPhone:** iOS never fires an install event at all; we rely on a Safari-only fallback banner. It is skipped for Chrome/Edge/Firefox on iOS, is hidden for 14 days once dismissed, and does not appear inside the Lovable preview frame.
+
+### Fix
+- Detect **any** iOS browser, not just Safari, and show matching wording (Safari: Share → Add to Home Screen; Chrome on iOS: Share → Add to Home Screen from its own menu).
+- Show the "Install app" entry in the menu whenever the app isn't already installed, so it is always reachable even after the banner was snoozed.
+- Add a short "How to install" panel (iPhone + Android + desktop steps, bilingual) opened from that menu entry, so there is always a working path.
+- Leave the snooze behaviour for the automatic banner as-is.
+
+---
 
 ## Technical notes
-- Files: `src/components/InstallPrompt.tsx`, `src/routes/__root.tsx` (head script + mount), `src/i18n/dictionaries.ts`, `src/components/SiteLayout.tsx` (menu entry).
-- No changes to the service worker, manifest, or `vite.config.ts`.
-- Chrome only fires the event on a secure origin with a valid manifest and SW; the Lovable preview iframe suppresses it, so verification is on the published site (or the iOS path in preview).
+- Files: `src/lib/member-signup.functions.ts`, `src/lib/notify.server.ts`, `src/components/InstallPrompt.tsx`, `src/components/SiteLayout.tsx`, `src/i18n/dictionaries.ts`, plus a small test action in `src/routes/_authenticated/admin/index.tsx`.
+- No schema changes, no changes to the service worker, manifest or `vite.config.ts`.
+- Verification: query the notifications table after a live trigger; install prompt verified on the published URL (preview iframes suppress it).

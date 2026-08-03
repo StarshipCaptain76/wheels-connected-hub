@@ -128,7 +128,7 @@ export function InstallPrompt() {
   };
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg sm:inset-x-auto sm:right-4">
+    <div className="pointer-events-auto w-full rounded-xl border border-border bg-card p-4 shadow-lg">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/15 p-2 text-primary">
           {mode === "prompt" ? <Download className="h-5 w-5" /> : <Share className="h-5 w-5" />}

@@ -79,10 +79,6 @@ export function InstallPrompt() {
 
     // Give the browser a moment to fire beforeinstallprompt before falling back.
     const initial = window.setTimeout(() => show(false), 3000);
-
-
-    show(false);
-
     const onAvailable = () => show(false);
     const onManual = () => show(true);
     const onInstalled = () => setVisible(false);
@@ -92,6 +88,7 @@ export function InstallPrompt() {
     window.addEventListener(INSTALL_PROMPT_OPEN_EVENT, onManual);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
+      window.clearTimeout(initial);
       window.removeEventListener("jw:installavailable", onAvailable);
       window.removeEventListener("beforeinstallprompt", onAvailable);
       window.removeEventListener(INSTALL_PROMPT_OPEN_EVENT, onManual);

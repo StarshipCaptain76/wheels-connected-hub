@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const SIZES_TEXT_MAX = 200;
 const AVAILABLE_FROM_MAX = 120;
+const WA_MAX = 30;
 
 function formatPrice(n: number) {
   return `R${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -69,6 +70,7 @@ function AdminShop() {
         sizes,
         image_url: form.image_url ?? null,
         available_from: form.available_from?.trim() || null,
+        whatsapp_number: form.whatsapp_number?.trim() || null,
         is_active: form.is_active ?? true,
         sort: form.sort ?? 0,
       },
@@ -104,6 +106,7 @@ function AdminShop() {
                 sort: (items.at(-1)?.sort ?? 0) + 10,
                 sizesText: "",
                 available_from: "",
+                whatsapp_number: "",
               })
             }
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
@@ -137,6 +140,7 @@ function AdminShop() {
                         ? "Versteek"
                         : "Hidden"}{" "}
                     · {lang === "af" ? "volgorde" : "sort"} {item.sort}
+                    {item.whatsapp_number ? " · WhatsApp" : ""}
                   </div>
                   <p className="font-display text-lg text-ink">{name}</p>
                   {desc ? <p className="text-sm text-ink/70">{desc}</p> : null}
@@ -152,6 +156,9 @@ function AdminShop() {
                     <p className="mt-0.5 text-xs text-ink/55">
                       {lang === "af" ? "Beskikbaar by" : "Available from"}: {item.available_from}
                     </p>
+                  ) : null}
+                  {item.whatsapp_number ? (
+                    <p className="mt-0.5 text-xs text-[#128C7E]">WA: {item.whatsapp_number}</p>
                   ) : null}
                 </div>
 
@@ -382,6 +389,22 @@ function EditModal({
           <CharCounter value={form.available_from} max={AVAILABLE_FROM_MAX} />
           <p className="mt-0.5 text-[11px] text-ink/50">
             Where members can buy or collect this item (shown on the public shop).
+          </p>
+        </Row>
+
+        <Row label="WhatsApp number (for Enquire)">
+          <input
+            value={form.whatsapp_number ?? ""}
+            maxLength={WA_MAX}
+            onChange={(e) => set("whatsapp_number", e.target.value)}
+            placeholder="e.g. 0821234567 or +27821234567"
+            inputMode="tel"
+            className={input}
+          />
+          <CharCounter value={form.whatsapp_number} max={WA_MAX} />
+          <p className="mt-0.5 text-[11px] text-ink/50">
+            If set, the public Enquire button becomes a green WhatsApp link. Leave blank to keep the
+            email enquiry form.
           </p>
         </Row>
 

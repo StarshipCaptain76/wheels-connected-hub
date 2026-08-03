@@ -44,6 +44,12 @@ export const Route = createFileRoute("/events/$id")({
   head: ({ loaderData, params }) => {
     const ev = loaderData as EventDetail | null | undefined;
     const title = ev ? `${ev.title} | Just Wheels Hessequa` : "Event | Just Wheels Hessequa";
+    // Social/Schema crawlers need absolute URLs — our proxy path is relative.
+    const shareImage = ev?.cover_url
+      ? ev.cover_url.startsWith("http")
+        ? ev.cover_url
+        : `${SITE_ORIGIN}${ev.cover_url}`
+      : null;
     return {
       meta: [
         { title },
@@ -52,10 +58,10 @@ export const Route = createFileRoute("/events/$id")({
         { property: "og:description", content: ev?.description ?? "" },
         { property: "og:type", content: "article" },
         { property: "og:url", content: `${SITE_ORIGIN}/events/${params.id}` },
-        ...(ev?.cover_url
+        ...(shareImage
           ? [
-              { property: "og:image", content: ev.cover_url },
-              { name: "twitter:image", content: ev.cover_url },
+              { property: "og:image", content: shareImage },
+              { name: "twitter:image", content: shareImage },
             ]
           : []),
         { name: "twitter:card", content: "summary_large_image" },
@@ -73,7 +79,7 @@ export const Route = createFileRoute("/events/$id")({
                   startDate: ev.starts_at,
                   description: ev.description ?? undefined,
                   url: `${SITE_ORIGIN}/events/${params.id}`,
-                  image: ev.cover_url ?? undefined,
+                  image: shareImage ?? undefined,
                   eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
                   location: ev.location
                     ? { "@type": "Place", name: ev.location, address: ev.location }

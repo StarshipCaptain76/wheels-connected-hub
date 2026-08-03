@@ -92,7 +92,7 @@ export function DeviceNotifyPrompt() {
   const canAsk = perm === "default" && !needsInstall;
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg sm:inset-x-auto sm:right-4">
+    <div className="pointer-events-auto w-full rounded-xl border border-border bg-card p-4 shadow-lg">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/15 p-2 text-primary">
           <Bell className="h-5 w-5" />

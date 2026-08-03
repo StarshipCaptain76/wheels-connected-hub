@@ -206,6 +206,11 @@ export const dictionaries = {
     "pwa.installTitle": "Install Just Wheels",
     "pwa.installBody": "Add the club to your home screen. Your member card works offline.",
     "pwa.installIos": "Tap the Share button below, then choose \u201cAdd to Home Screen\u201d.",
+    "pwa.installIosOther":
+      "Open the browser menu (\u22ee or Share), then choose \u201cAdd to Home Screen\u201d. Safari works best.",
+    "pwa.installHowto":
+      "Android: open the browser menu and tap \u201cInstall app\u201d. Desktop Chrome/Edge: click the install icon in the address bar. Private/incognito windows cannot install apps.",
+
     "pwa.install": "Install",
     "pwa.installApp": "Install app",
     "pwa.gotIt": "Got it",

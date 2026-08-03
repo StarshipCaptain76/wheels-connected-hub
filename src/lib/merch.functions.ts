@@ -17,12 +17,14 @@ export type MerchItem = {
   image_url: string | null;
   /** Place/channel where the item is available to buy or collect. */
   available_from: string | null;
+  /** WhatsApp number for enquiries. When set, public Enquire opens WA. */
+  whatsapp_number: string | null;
   is_active: boolean;
   sort: number;
 };
 
 const MERCH_SELECT =
-  "id, name, name_af, description, description_af, price_zar, sizes, image_url, available_from, is_active, sort";
+  "id, name, name_af, description, description_af, price_zar, sizes, image_url, available_from, whatsapp_number, is_active, sort";
 
 export const listMerchItems = createServerFn({ method: "GET" }).handler(
   async (): Promise<MerchItem[]> => {
@@ -86,6 +88,7 @@ const upsertSchema = z.object({
   sizes: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
   image_url: z.string().trim().max(500).nullable().optional(),
   available_from: z.string().trim().max(120).nullable().optional(),
+  whatsapp_number: z.string().trim().max(30).nullable().optional(),
   is_active: z.boolean().default(true),
   sort: z.number().int().min(0).max(9999).default(0),
 });
@@ -135,7 +138,6 @@ const enquirySchema = z.object({
   notes: z.string().trim().max(1000).optional().default(""),
 });
 
-
 export const sendMerchEnquiry = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => enquirySchema.parse(input))
   .handler(async ({ data }) => {
@@ -181,3 +183,20 @@ export const sendMerchEnquiry = createServerFn({ method: "POST" })
 
     return { ok: true as const };
   });
+
+/** Build a wa.me link from a stored number + optional prefilled message. */
+export function merchWhatsAppHref(
+  raw: string | null | undefined,
+  message?: string,
+): string | null {
+  if (!raw?.trim()) return null;
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  // SA local 0xx… → 27xx…
+  if (digits.startsWith("0") && digits.length >= 9) {
+    digits = "27" + digits.slice(1);
+  }
+  const base = `https://wa.me/${digits}`;
+  if (!message?.trim()) return base;
+  return `${base}?text=${encodeURIComponent(message.trim())}`;
+}

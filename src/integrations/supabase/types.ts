@@ -591,6 +591,7 @@ export type Database = {
           image_url: string
           is_published: boolean
           taken_at: string | null
+          thumb_url: string | null
           title: string | null
         }
         Insert: {
@@ -602,6 +603,7 @@ export type Database = {
           image_url: string
           is_published?: boolean
           taken_at?: string | null
+          thumb_url?: string | null
           title?: string | null
         }
         Update: {
@@ -613,6 +615,7 @@ export type Database = {
           image_url?: string
           is_published?: boolean
           taken_at?: string | null
+          thumb_url?: string | null
           title?: string | null
         }
         Relationships: [
@@ -961,6 +964,7 @@ export type Database = {
       }
       merch_items: {
         Row: {
+          available_from: string | null
           created_at: string
           description: string | null
           description_af: string | null
@@ -975,6 +979,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          available_from?: string | null
           created_at?: string
           description?: string | null
           description_af?: string | null
@@ -989,6 +994,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          available_from?: string | null
           created_at?: string
           description?: string | null
           description_af?: string | null

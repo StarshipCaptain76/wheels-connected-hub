@@ -11,6 +11,12 @@ import {
   type NotificationPrefs,
   type NotificationType,
 } from "@/lib/notifications";
+import {
+  iosNeedsInstall,
+  notificationPermission,
+  requestNotificationPermission,
+  showDeviceNotification,
+} from "@/lib/device-notifications";
 
 function Toggle({
   checked,
@@ -45,10 +51,29 @@ export function NotificationSettings({ isAdmin }: { isAdmin?: boolean }) {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["notification-prefs"], queryFn: fetchPrefs });
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported">("unsupported");
+  const [needsInstall, setNeedsInstall] = useState(false);
+
+  useEffect(() => {
+    setPerm(notificationPermission());
+    setNeedsInstall(iosNeedsInstall());
+  }, []);
+
+  const deviceBody =
+    perm === "unsupported"
+      ? t("notif.deviceUnsupported")
+      : needsInstall
+        ? t("notif.deviceIos")
+        : perm === "granted"
+          ? t("notif.deviceOn")
+          : perm === "denied"
+            ? t("notif.deviceBlocked")
+            : t("notif.deviceBody");
 
   useEffect(() => {
     if (data) setPrefs(data);
   }, [data]);
+
 
   async function update(type: NotificationType, value: boolean) {
     const next = { ...prefs, [type]: value };
@@ -67,6 +92,28 @@ export function NotificationSettings({ isAdmin }: { isAdmin?: boolean }) {
     <div className="rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_var(--color-ink)]">
       <p className="font-display text-sm tracking-wide text-ink">{t("notif.settings")}</p>
       <p className="mt-1 text-xs text-ink/60">{t("notif.settingsHint")}</p>
+
+      <div className="mt-3 rounded-lg border-2 border-ink/20 bg-ink/5 p-3">
+        <p className="text-sm font-bold text-ink">{t("notif.deviceTitle")}</p>
+        <p className="mt-1 text-xs text-ink/70">{deviceBody}</p>
+        {perm === "default" && !needsInstall && (
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await requestNotificationPermission();
+              setPerm(res);
+              if (res === "granted") {
+                showDeviceNotification(t("notif.deviceTestTitle"), t("notif.deviceTestBody"));
+              }
+            }}
+            className="mt-2 rounded-md border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-paper"
+          >
+            {t("notif.deviceAllow")}
+          </button>
+        )}
+      </div>
+
+
       <div className="mt-3 divide-y divide-ink/10">
         {MEMBER_TYPES.map((type) => (
           <Toggle

@@ -29,6 +29,19 @@ export const dictionaries = {
     "notif.type.admin_new_member": "Admin: new members to approve",
     "notif.type.admin_listing_review": "Admin: listings to approve",
     "notif.adminSection": "Admin notifications",
+    "notif.deviceTitle": "Notifications on this device",
+    "notif.deviceBody":
+      "Allow pop-up alerts on this device so you don't miss approvals, events and messages.",
+    "notif.deviceAllow": "Allow notifications",
+    "notif.deviceOn": "Notifications are already allowed on this device.",
+    "notif.deviceBlocked":
+      "Notifications are blocked for this site. Turn them on in your browser's site settings (padlock icon → Notifications).",
+    "notif.deviceIos":
+      "On iPhone/iPad, first add the app to your home screen (Share → Add to Home Screen), then open it from the icon and allow notifications.",
+    "notif.deviceUnsupported": "This browser doesn't support device notifications.",
+    "notif.deviceTestTitle": "Notifications are on",
+    "notif.deviceTestBody": "You'll get alerts from Just Wheels on this device.",
+    "notif.deviceMenu": "Notifications on this device",
     "classifieds.postCta": "Post a listing",
     "classifieds.myListings": "My listings",
     "classifieds.call": "Call",
@@ -293,6 +306,19 @@ export const dictionaries = {
     "notif.type.admin_new_member": "Admin: nuwe lede vir goedkeuring",
     "notif.type.admin_listing_review": "Admin: advertensies vir goedkeuring",
     "notif.adminSection": "Admin-kennisgewings",
+    "notif.deviceTitle": "Kennisgewings op hierdie toestel",
+    "notif.deviceBody":
+      "Laat opspring-kennisgewings op hierdie toestel toe sodat jy niks misloop nie.",
+    "notif.deviceAllow": "Laat kennisgewings toe",
+    "notif.deviceOn": "Kennisgewings is reeds toegelaat op hierdie toestel.",
+    "notif.deviceBlocked":
+      "Kennisgewings is geblokkeer vir hierdie webwerf. Skakel dit aan in jou blaaier se werfinstellings (slotjie-ikoon → Notifications).",
+    "notif.deviceIos":
+      "Op iPhone/iPad: voeg eers die app by jou tuisskerm (Deel → Add to Home Screen), maak dit dan oop vanaf die ikoon en laat kennisgewings toe.",
+    "notif.deviceUnsupported": "Hierdie blaaier ondersteun nie toestel-kennisgewings nie.",
+    "notif.deviceTestTitle": "Kennisgewings is aan",
+    "notif.deviceTestBody": "Jy sal kennisgewings van Just Wheels op hierdie toestel kry.",
+    "notif.deviceMenu": "Kennisgewings op hierdie toestel",
     "classifieds.postCta": "Plaas advertensie",
     "classifieds.myListings": "My advertensies",
     "classifieds.call": "Bel",

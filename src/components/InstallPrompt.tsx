@@ -70,17 +70,15 @@ export function InstallPrompt() {
         setMode("prompt");
       } else if (isIos()) {
         setMode(isIosSafari() ? "ios-safari" : "ios-other");
-      } else if (force) {
-        // No install event in this browser (or not eligible yet) — explain how.
-        setMode("howto");
       } else {
-        return;
+        // Any other device/browser: no install event available (yet) — explain how.
+        setMode("howto");
       }
       if (force || !snoozed()) setVisible(true);
     };
 
-    show(false);
-
+    // Give the browser a moment to fire beforeinstallprompt before falling back.
+    const initial = window.setTimeout(() => show(false), 3000);
     const onAvailable = () => show(false);
     const onManual = () => show(true);
     const onInstalled = () => setVisible(false);
@@ -90,6 +88,7 @@ export function InstallPrompt() {
     window.addEventListener(INSTALL_PROMPT_OPEN_EVENT, onManual);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
+      window.clearTimeout(initial);
       window.removeEventListener("jw:installavailable", onAvailable);
       window.removeEventListener("beforeinstallprompt", onAvailable);
       window.removeEventListener(INSTALL_PROMPT_OPEN_EVENT, onManual);

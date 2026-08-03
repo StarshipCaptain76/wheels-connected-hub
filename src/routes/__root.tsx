@@ -17,6 +17,7 @@ import { ThemeProvider, THEME_INIT_SCRIPT } from "../lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { registerPwa } from "../lib/pwa-register";
 import { InstallPrompt, INSTALL_CAPTURE_SCRIPT } from "../components/InstallPrompt";
+import { DeviceNotifyPrompt } from "../components/DeviceNotifyPrompt";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Toaster } from "../components/ui/sonner";
 import { ConfirmProvider } from "../components/ConfirmDialog";
@@ -187,6 +188,8 @@ function RootComponent() {
         <OfflineBanner />
         <Outlet />
         <InstallPrompt />
+        <DeviceNotifyPrompt />
+
       </ConfirmProvider>
       <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>

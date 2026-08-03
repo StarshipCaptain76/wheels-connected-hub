@@ -79,7 +79,7 @@ export const Route = createFileRoute("/events/$id")({
                   startDate: ev.starts_at,
                   description: ev.description ?? undefined,
                   url: `${SITE_ORIGIN}/events/${params.id}`,
-                  image: ev.cover_url ?? undefined,
+                  image: shareImage ?? undefined,
                   eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
                   location: ev.location
                     ? { "@type": "Place", name: ev.location, address: ev.location }

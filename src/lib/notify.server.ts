@@ -50,12 +50,12 @@ async function recipientsFor(type: NotificationType): Promise<string[]> {
 }
 
 /** Insert one notification row per eligible recipient who has the type switched on. */
-export async function fanOut(payload: NotifyPayload): Promise<{ sent: number }> {
+export async function fanOut(payload: NotifyPayload): Promise<{ sent: number; reason?: string }> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     let ids = await recipientsFor(payload.type);
     if (payload.excludeUserId) ids = ids.filter((id) => id !== payload.excludeUserId);
-    if (ids.length === 0) return { sent: 0 };
+    if (ids.length === 0) return { sent: 0, reason: "no recipients for " + payload.type };
 
     // Respect opt-outs. Missing pref row = all types on (defaults).
     const { data: prefs } = await supabaseAdmin
@@ -68,7 +68,7 @@ export async function fanOut(payload: NotifyPayload): Promise<{ sent: number }> 
         .map((p) => (p as { user_id: string }).user_id),
     );
     const targets = ids.filter((id) => !off.has(id));
-    if (targets.length === 0) return { sent: 0 };
+    if (targets.length === 0) return { sent: 0, reason: "all recipients opted out" };
 
     const rows = targets.map((user_id) => ({
       user_id,
@@ -83,9 +83,11 @@ export async function fanOut(payload: NotifyPayload): Promise<{ sent: number }> 
 
     const { error } = await supabaseAdmin.from("notifications").insert(rows);
     if (error) throw error;
+    console.log("[notify] sent", payload.type, "to", rows.length, "recipient(s)");
     return { sent: rows.length };
   } catch (e) {
-    console.error("[notify] fan-out failed", e);
-    return { sent: 0 };
+    console.error("[notify] fan-out failed", payload.type, e);
+    return { sent: 0, reason: e instanceof Error ? e.message : String(e) };
   }
 }
+

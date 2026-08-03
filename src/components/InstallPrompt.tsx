@@ -48,11 +48,13 @@ function snoozed(): boolean {
   }
 }
 
+type Mode = "prompt" | "ios-safari" | "ios-other" | "howto";
+
 export function InstallPrompt() {
   const { t } = useI18n();
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
-  const [ios, setIos] = useState(false);
+  const [mode, setMode] = useState<Mode>("howto");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,13 +67,13 @@ export function InstallPrompt() {
       const captured = w.__jwInstallEvent ?? null;
       if (captured) {
         setEvt(captured);
-        setIos(false);
-      } else if (isIosSafari()) {
-        setIos(true);
-      } else if (!force) {
-        return;
+        setMode("prompt");
+      } else if (isIos()) {
+        setMode(isIosSafari() ? "ios-safari" : "ios-other");
+      } else if (force) {
+        // No install event in this browser (or not eligible yet) — explain how.
+        setMode("howto");
       } else {
-        // No install path available in this browser.
         return;
       }
       if (force || !snoozed()) setVisible(true);
@@ -95,7 +97,18 @@ export function InstallPrompt() {
     };
   }, []);
 
-  if (!visible || (!evt && !ios)) return null;
+  if (!visible) return null;
+
+  const ios = mode === "ios-safari" || mode === "ios-other";
+  const body =
+    mode === "prompt"
+      ? t("pwa.installBody")
+      : mode === "ios-safari"
+        ? t("pwa.installIos")
+        : mode === "ios-other"
+          ? t("pwa.installIosOther")
+          : t("pwa.installHowto");
+
 
   const dismiss = () => {
     try {

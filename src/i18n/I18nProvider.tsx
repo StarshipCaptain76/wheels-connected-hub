@@ -12,25 +12,25 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 export const LANG_STORAGE_KEY = "jw-lang";
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
-    if (typeof window === "undefined") return "en";
-    try {
-      const stored = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
-      if (stored === "en" || stored === "af") return stored;
-    } catch {
-      /* noop */
-    }
-    return "en";
-  });
+  // Always start with "en" so SSR and client hydration match.
+  // Load preferred language from localStorage after mount (same pattern as ThemeProvider).
+  const [lang, setLangState] = useState<Lang>("en");
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
-      if (stored === "en" || stored === "af") setLangState(stored);
+      if (stored === "en" || stored === "af") {
+        setLangState(stored);
+      }
     } catch {
       /* noop */
     }
   }, []);
+
+  // Keep <html lang> in sync for accessibility and SEO
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const setLang = (l: Lang) => {
     setLangState(l);

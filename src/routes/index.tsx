@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL, LOGO_URL_HERO } from "@/lib/brand";
@@ -8,6 +9,7 @@ import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
+import { supabase } from "@/integrations/supabase/client";
 
 const nextEventQuery = queryOptions({
   queryKey: ["events", "next"],
@@ -87,6 +89,21 @@ function Index() {
   const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
   const { data: featured } = useQuery(featuredQuery);
 
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setSignedIn(Boolean(data.session));
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(Boolean(session));
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
   const nextTitle = nextEvent
     ? lang === "af" && nextEvent.title_af
       ? nextEvent.title_af
@@ -133,12 +150,15 @@ function Index() {
             </h1>
             <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/join"
-                className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
-              >
-                {t("cta.becomeMember")}
-              </Link>
+              {/* Hide "Become a Member" when the user is already signed in */}
+              {signedIn !== true && (
+                <Link
+                  to="/join"
+                  className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                >
+                  {t("cta.becomeMember")}
+                </Link>
+              )}
               <Link
                 to="/events"
                 className="inline-flex items-center rounded-md border-2 border-ink/40 px-6 py-3 font-bold uppercase tracking-wider text-ink/80 hover:border-ink hover:text-ink"
@@ -237,7 +257,6 @@ function Index() {
                         ? "Geen biografie nog — lede kan hul eie bio by hul profiel byvoeg."
                         : "No bio yet — members can add their own bio on their profile."}
                     </p>
-
                   )}
                 </div>
 

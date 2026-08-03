@@ -14,10 +14,7 @@ import { Download, WifiOff, FileDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
   head: () => ({
-    meta: [
-      { title: "Member card — Just Wheels Hessequa" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Member card — Just Wheels Hessequa" }, { name: "robots", content: "noindex" }],
   }),
   component: MemberCardPage,
 });
@@ -103,9 +100,10 @@ function MemberCardPage() {
   }
 
   const vehicles = garageQuery.data ?? [];
-  const boardVehicle = vehicles.find((v) => v.is_primary && v.photos.some((p) => p.url))
-    ?? vehicles.find((v) => v.photos.some((p) => p.url))
-    ?? null;
+  const boardVehicle =
+    vehicles.find((v) => v.is_primary && v.photos.some((p) => p.url)) ??
+    vehicles.find((v) => v.photos.some((p) => p.url)) ??
+    null;
 
   async function downloadBoard() {
     if (!profile || !boardVehicle || boardBusy) return;
@@ -141,10 +139,7 @@ function MemberCardPage() {
     <SiteLayout>
       <section className="mx-auto max-w-3xl px-4 py-10">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <Link
-            to="/members"
-            className="text-xs font-bold uppercase tracking-widest text-ink/60 hover:text-ink"
-          >
+          <Link to="/members" className="text-xs font-bold uppercase tracking-widest text-ink/60 hover:text-ink">
             ← {t("members.back")}
           </Link>
           <div className="flex flex-wrap items-center gap-2">
@@ -183,18 +178,14 @@ function MemberCardPage() {
                     ? "Bou…"
                     : "Building…"
                   : lang === "af"
-                    ? "Vertoonbord PDF (600×900mm)"
-                    : "Display board PDF (600×900mm)"}
+                    ? "Vertoonbord PDF (400×600mm)"
+                    : "Display board PDF (400×600mm)"}
               </button>
             )}
           </div>
         </div>
 
-        {boardMsg && (
-          <p className="mb-4 rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">
-            {boardMsg}
-          </p>
-        )}
+        {boardMsg && <p className="mb-4 rounded border-2 border-ink bg-ink/5 px-3 py-2 text-sm text-ink">{boardMsg}</p>}
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"
@@ -206,12 +197,7 @@ function MemberCardPage() {
           <p className="text-ink/60">{t("card.needSync")}</p>
         ) : (
           <div className="mx-auto w-full max-w-2xl">
-            <MemberCard
-              ref={cardRef}
-              profile={profile}
-              carPhoto={carPhoto}
-              facePhoto={facePhoto}
-            />
+            <MemberCard ref={cardRef} profile={profile} carPhoto={carPhoto} facePhoto={facePhoto} />
             {!carPhoto && (
               <p className="mt-3 text-center text-xs text-ink/50">
                 {lang === "af"
@@ -410,13 +396,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function drawCircleImage(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement,
-  cx: number,
-  cy: number,
-  r: number,
-) {
+function drawCircleImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, cx: number, cy: number, r: number) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -429,14 +409,7 @@ function drawCircleImage(
   ctx.restore();
 }
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);

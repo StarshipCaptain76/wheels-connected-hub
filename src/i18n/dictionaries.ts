@@ -205,7 +205,10 @@ export const dictionaries = {
 
     "pwa.installTitle": "Install Just Wheels",
     "pwa.installBody": "Add the club to your home screen. Your member card works offline.",
+    "pwa.installIos": "Tap the Share button below, then choose \u201cAdd to Home Screen\u201d.",
     "pwa.install": "Install",
+    "pwa.installApp": "Install app",
+    "pwa.gotIt": "Got it",
     "pwa.later": "Later",
     "pwa.offline": "You're offline — showing cached content",
 

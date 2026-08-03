@@ -67,6 +67,28 @@ export function NotificationSettings({ isAdmin }: { isAdmin?: boolean }) {
     <div className="rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_var(--color-ink)]">
       <p className="font-display text-sm tracking-wide text-ink">{t("notif.settings")}</p>
       <p className="mt-1 text-xs text-ink/60">{t("notif.settingsHint")}</p>
+
+      <div className="mt-3 rounded-lg border-2 border-ink/20 bg-ink/5 p-3">
+        <p className="text-sm font-bold text-ink">{t("notif.deviceTitle")}</p>
+        <p className="mt-1 text-xs text-ink/70">{deviceBody}</p>
+        {perm === "default" && !needsInstall && (
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await requestNotificationPermission();
+              setPerm(res);
+              if (res === "granted") {
+                showDeviceNotification(t("notif.deviceTestTitle"), t("notif.deviceTestBody"));
+              }
+            }}
+            className="mt-2 rounded-md border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-paper"
+          >
+            {t("notif.deviceAllow")}
+          </button>
+        )}
+      </div>
+
+
       <div className="mt-3 divide-y divide-ink/10">
         {MEMBER_TYPES.map((type) => (
           <Toggle

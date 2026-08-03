@@ -82,7 +82,7 @@ export function NotificationBell() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [userId, qc]);
+  }, [userId, qc, lang]);
 
 
   useEffect(() => {

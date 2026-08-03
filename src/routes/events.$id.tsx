@@ -58,10 +58,10 @@ export const Route = createFileRoute("/events/$id")({
         { property: "og:description", content: ev?.description ?? "" },
         { property: "og:type", content: "article" },
         { property: "og:url", content: `${SITE_ORIGIN}/events/${params.id}` },
-        ...(ev?.cover_url
+        ...(shareImage
           ? [
-              { property: "og:image", content: ev.cover_url },
-              { name: "twitter:image", content: ev.cover_url },
+              { property: "og:image", content: shareImage },
+              { name: "twitter:image", content: shareImage },
             ]
           : []),
         { name: "twitter:card", content: "summary_large_image" },

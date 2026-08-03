@@ -132,15 +132,13 @@ export function InstallPrompt() {
     <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-xl border border-border bg-card p-4 shadow-lg sm:inset-x-auto sm:right-4">
       <div className="flex items-start gap-3">
         <div className="rounded-lg bg-primary/15 p-2 text-primary">
-          {ios ? <Share className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+          {mode === "prompt" ? <Download className="h-5 w-5" /> : <Share className="h-5 w-5" />}
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-foreground">{t("pwa.installTitle")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {ios ? t("pwa.installIos") : t("pwa.installBody")}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{body}</p>
           <div className="mt-3 flex gap-2">
-            {!ios && (
+            {mode === "prompt" && (
               <button
                 onClick={install}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary-foreground hover:bg-primary/90"
@@ -152,10 +150,11 @@ export function InstallPrompt() {
               onClick={dismiss}
               className="rounded-md border border-input px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
             >
-              {ios ? t("pwa.gotIt") : t("pwa.later")}
+              {mode === "prompt" ? t("pwa.later") : t("pwa.gotIt")}
             </button>
           </div>
         </div>
+
         <button
           onClick={dismiss}
           aria-label="Dismiss"

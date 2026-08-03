@@ -99,7 +99,7 @@ export function InstallPrompt() {
 
   if (!visible) return null;
 
-  const ios = mode === "ios-safari" || mode === "ios-other";
+  
   const body =
     mode === "prompt"
       ? t("pwa.installBody")

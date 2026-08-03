@@ -134,16 +134,6 @@ const enquirySchema = z.object({
   notes: z.string().trim().max(1000).optional().default(""),
 });
 
-function esc(v: string) {
-  const map: Record<string, string> = {
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  };
-  return v.replace(/[&<>"']/g, (c) => map[c] ?? c);
-}
 
 export const sendMerchEnquiry = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => enquirySchema.parse(input))

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { esc } from "./merch-esc.server";
 
 const ADMIN_EMAIL = "admin@justwheels.co.za";
 const FROM = "Just Wheels Shop <shop@notify.justwheels.co.za>";

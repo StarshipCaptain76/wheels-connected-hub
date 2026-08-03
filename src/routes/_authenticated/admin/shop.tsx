@@ -16,6 +16,12 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { CharCounter } from "@/components/CharCounter";
 import { supabase } from "@/integrations/supabase/client";
 
+const SIZES_TEXT_MAX = 200;
+const AVAILABLE_FROM_MAX = 120;
+
+function formatPrice(n: number) {
+  return `R${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 const merchAdminQuery = queryOptions({
   queryKey: ["merch", "admin"],
@@ -50,7 +56,8 @@ function AdminShop() {
     const sizes = (form.sizesText ?? "")
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((s) => s.slice(0, 40));
     await upsert({
       data: {
         id: form.id ?? null,
@@ -61,6 +68,7 @@ function AdminShop() {
         price_zar: form.price_zar ?? null,
         sizes,
         image_url: form.image_url ?? null,
+        available_from: form.available_from?.trim() || null,
         is_active: form.is_active ?? true,
         sort: form.sort ?? 0,
       },
@@ -70,7 +78,13 @@ function AdminShop() {
   }
 
   async function remove(id: string) {
-    if (!(await confirm({ title: "Delete this item?", description: "It will be removed from the shop." }))) return;
+    if (
+      !(await confirm({
+        title: "Delete this item?",
+        description: "It will be removed from the shop.",
+      }))
+    )
+      return;
     await del({ data: { id } });
     await qc.invalidateQueries({ queryKey: ["merch"] });
   }
@@ -85,7 +99,12 @@ function AdminShop() {
           <button
             type="button"
             onClick={() =>
-              setEditing({ is_active: true, sort: (items.at(-1)?.sort ?? 0) + 10, sizesText: "" })
+              setEditing({
+                is_active: true,
+                sort: (items.at(-1)?.sort ?? 0) + 10,
+                sizesText: "",
+                available_from: "",
+              })
             }
             className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper"
           >
@@ -96,57 +115,63 @@ function AdminShop() {
         <ul className="mt-6 space-y-3">
           {items.map((item) => {
             const name = lang === "af" && item.name_af ? item.name_af : item.name;
-            const desc = lang === "af" && item.description_af ? item.description_af : item.description;
+            const desc =
+              lang === "af" && item.description_af ? item.description_af : item.description;
             return (
-            <li
-              key={item.id}
-              className="flex gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
-            >
-              <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20">
-                {item.image_url ? (
-                  <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                ) : null}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary">
-                  {item.is_active
-                    ? lang === "af"
-                      ? "Aktief"
-                      : "Active"
-                    : lang === "af"
-                      ? "Versteek"
-                      : "Hidden"}{" "}
-                  · {lang === "af" ? "volgorde" : "sort"} {item.sort}
+              <li
+                key={item.id}
+                className="flex gap-4 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
+              >
+                <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                  ) : null}
                 </div>
-                <p className="font-display text-lg text-ink">{name}</p>
-                {desc ? <p className="text-sm text-ink/70">{desc}</p> : null}
-                <p className="text-sm text-ink/70">
-                  {item.price_zar != null
-                    ? `R${item.price_zar}`
-                    : lang === "af"
-                      ? "Prys op aanvraag"
-                      : "Price on request"}
-                  {item.sizes.length > 0 ? ` · ${item.sizes.join(", ")}` : ""}
-                </p>
-              </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-primary">
+                    {item.is_active
+                      ? lang === "af"
+                        ? "Aktief"
+                        : "Active"
+                      : lang === "af"
+                        ? "Versteek"
+                        : "Hidden"}{" "}
+                    · {lang === "af" ? "volgorde" : "sort"} {item.sort}
+                  </div>
+                  <p className="font-display text-lg text-ink">{name}</p>
+                  {desc ? <p className="text-sm text-ink/70">{desc}</p> : null}
+                  <p className="text-sm text-ink/70">
+                    {item.price_zar != null
+                      ? formatPrice(item.price_zar)
+                      : lang === "af"
+                        ? "Prys op aanvraag"
+                        : "Price on request"}
+                    {item.sizes.length > 0 ? ` · ${item.sizes.join(", ")}` : ""}
+                  </p>
+                  {item.available_from ? (
+                    <p className="mt-0.5 text-xs text-ink/55">
+                      {lang === "af" ? "Beskikbaar by" : "Available from"}: {item.available_from}
+                    </p>
+                  ) : null}
+                </div>
 
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditing({ ...item, sizesText: item.sizes.join(", ") })}
-                  className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
-                >
-                  {lang === "af" ? "Wysig" : "Edit"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(item.id)}
-                  className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ ...item, sizesText: item.sizes.join(", ") })}
+                    className="rounded border-2 border-ink bg-paper px-3 py-1 text-xs font-bold uppercase"
+                  >
+                    {lang === "af" ? "Wysig" : "Edit"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(item.id)}
+                    className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </li>
             );
           })}
         </ul>
@@ -170,7 +195,8 @@ function EditModal({
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [upErr, setUpErr] = useState<string | null>(null);
-  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   /** Upload an item photo to the public gallery bucket under merch/. */
   async function uploadPhoto(file: File | null) {
@@ -203,7 +229,6 @@ function EditModal({
     }
   }
 
-
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -215,11 +240,14 @@ function EditModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4"
+      onClick={onClose}
+    >
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg space-y-3 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]"
+        className="max-h-[90vh] w-full max-w-lg space-y-3 overflow-y-auto rounded-2xl border-2 border-ink bg-paper p-6 shadow-[6px_6px_0_0_hsl(var(--ink))]"
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-2xl text-ink">{form.id ? "Edit item" : "New item"}</h2>
@@ -230,37 +258,80 @@ function EditModal({
         <Row label="Name (EN)">
           <div className="flex items-start gap-2">
             <div className="flex-1">
-              <input required maxLength={120} value={form.name ?? ""} onChange={(e) => set("name", e.target.value)} className={input} />
+              <input
+                required
+                maxLength={120}
+                value={form.name ?? ""}
+                onChange={(e) => set("name", e.target.value)}
+                className={input}
+              />
               <CharCounter value={form.name} max={120} />
             </div>
-            <TranslateButton source={form.name_af ?? ""} from="af" to="en" onResult={(t) => set("name", t)} />
+            <TranslateButton
+              source={form.name_af ?? ""}
+              from="af"
+              to="en"
+              onResult={(t) => set("name", t)}
+            />
           </div>
         </Row>
         <Row label="Name (AF)">
           <div className="flex items-start gap-2">
             <div className="flex-1">
-              <input maxLength={120} value={form.name_af ?? ""} onChange={(e) => set("name_af", e.target.value)} className={input} />
+              <input
+                maxLength={120}
+                value={form.name_af ?? ""}
+                onChange={(e) => set("name_af", e.target.value)}
+                className={input}
+              />
               <CharCounter value={form.name_af} max={120} />
             </div>
-            <TranslateButton source={form.name ?? ""} from="en" to="af" onResult={(t) => set("name_af", t)} />
+            <TranslateButton
+              source={form.name ?? ""}
+              from="en"
+              to="af"
+              onResult={(t) => set("name_af", t)}
+            />
           </div>
         </Row>
         <Row label="Description (EN)">
           <div className="flex items-start gap-2">
             <div className="flex-1">
-              <textarea rows={2} maxLength={1000} value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} className={input} />
+              <textarea
+                rows={2}
+                maxLength={1000}
+                value={form.description ?? ""}
+                onChange={(e) => set("description", e.target.value)}
+                className={input}
+              />
               <CharCounter value={form.description} max={1000} />
             </div>
-            <TranslateButton source={form.description_af ?? ""} from="af" to="en" onResult={(t) => set("description", t)} />
+            <TranslateButton
+              source={form.description_af ?? ""}
+              from="af"
+              to="en"
+              onResult={(t) => set("description", t)}
+            />
           </div>
         </Row>
         <Row label="Description (AF)">
           <div className="flex items-start gap-2">
             <div className="flex-1">
-              <textarea rows={2} maxLength={1000} value={form.description_af ?? ""} onChange={(e) => set("description_af", e.target.value)} className={input} />
+              <textarea
+                rows={2}
+                maxLength={1000}
+                value={form.description_af ?? ""}
+                onChange={(e) => set("description_af", e.target.value)}
+                className={input}
+              />
               <CharCounter value={form.description_af} max={1000} />
             </div>
-            <TranslateButton source={form.description ?? ""} from="en" to="af" onResult={(t) => set("description_af", t)} />
+            <TranslateButton
+              source={form.description ?? ""}
+              from="en"
+              to="af"
+              onResult={(t) => set("description_af", t)}
+            />
           </div>
         </Row>
 
@@ -270,7 +341,9 @@ function EditModal({
               type="number"
               step="0.01"
               value={form.price_zar ?? ""}
-              onChange={(e) => set("price_zar", e.target.value === "" ? null : Number(e.target.value))}
+              onChange={(e) =>
+                set("price_zar", e.target.value === "" ? null : Number(e.target.value))
+              }
               className={input}
             />
           </Row>
@@ -283,14 +356,35 @@ function EditModal({
             />
           </Row>
         </div>
+
         <Row label="Sizes (comma separated)">
           <input
             value={form.sizesText ?? ""}
+            maxLength={SIZES_TEXT_MAX}
             onChange={(e) => setForm((f) => ({ ...f, sizesText: e.target.value }))}
-            placeholder="S, M, L, XL"
+            placeholder="S, M, L, XL, One Size"
             className={input}
           />
+          <CharCounter value={form.sizesText} max={SIZES_TEXT_MAX} />
+          <p className="mt-0.5 text-[11px] text-ink/50">
+            Each size up to 40 characters. Max 20 sizes.
+          </p>
         </Row>
+
+        <Row label="Available from">
+          <input
+            value={form.available_from ?? ""}
+            maxLength={AVAILABLE_FROM_MAX}
+            onChange={(e) => set("available_from", e.target.value)}
+            placeholder="e.g. Club meetings · Riversdale"
+            className={input}
+          />
+          <CharCounter value={form.available_from} max={AVAILABLE_FROM_MAX} />
+          <p className="mt-0.5 text-[11px] text-ink/50">
+            Where members can buy or collect this item (shown on the public shop).
+          </p>
+        </Row>
+
         <Row label="Item photo">
           <div className="mt-1 flex items-center gap-3">
             <div className="h-20 w-20 flex-none overflow-hidden rounded border-2 border-ink bg-steel/20">

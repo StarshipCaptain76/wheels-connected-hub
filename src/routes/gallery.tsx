@@ -93,11 +93,11 @@ function GalleryPage() {
   ).sort();
   const visible = activeCat ? items.filter((it) => it.category === activeCat) : items;
 
-  // Lightbox always uses the full-size image
+  // Lightbox uses full-size image; caption only (never the auto-filled file name)
   const lightboxSource = visible.filter((it) => it.image_url);
   const lightboxItems = lightboxSource.map((it) => ({
     url: it.image_url,
-    caption: it.title || it.caption || null,
+    caption: it.caption || null,
   }));
   const activeItem = lightboxIndex != null ? lightboxSource[lightboxIndex] : null;
 
@@ -171,6 +171,8 @@ function GalleryPage() {
             {visible.map((it) => {
               // Prefer the small thumb; fall back to full image for older uploads
               const gridSrc = it.thumb_url?.trim() || it.image_url;
+              // Public grid: never show auto-filled file-name titles — caption only
+              const showCaption = Boolean(it.caption?.trim());
               return (
                 <li key={it.id} className="mb-3 break-inside-avoid sm:mb-4">
                   <button
@@ -180,20 +182,15 @@ function GalleryPage() {
                   >
                     <img
                       src={gridSrc}
-                      alt={it.title ?? it.caption ?? "Just Wheels Hessequa"}
+                      alt={it.caption?.trim() || "Just Wheels Hessequa"}
                       loading="lazy"
                       decoding="async"
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
                       className="w-full bg-ink/5 object-cover transition-transform group-hover:scale-[1.02]"
                     />
-                    {(it.title || it.caption) && (
+                    {showCaption && (
                       <div className="border-t border-ink/10 px-2 py-1.5">
-                        {it.title && (
-                          <p className="truncate text-xs font-bold text-ink">{it.title}</p>
-                        )}
-                        {it.caption && (
-                          <p className="line-clamp-2 text-[11px] text-ink/60">{it.caption}</p>
-                        )}
+                        <p className="line-clamp-2 text-[11px] text-ink/60">{it.caption}</p>
                       </div>
                     )}
                   </button>

@@ -253,6 +253,16 @@ function ListingDetail() {
           </div>
         </div>
       </div>
+
+      {lightbox != null && (
+        <ImageLightbox
+          items={display.photos.map((p) => ({ url: p.url, caption: title }))}
+          index={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndex={setLightbox}
+        />
+      )}
     </SiteLayout>
+
   );
 }

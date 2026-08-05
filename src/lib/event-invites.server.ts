@@ -80,7 +80,7 @@ export async function runEventInvites(
     .from("event_invites")
     .select("user_id, token")
     .eq("event_id", eventId);
-  const tokenByUser = new Map((existing ?? []).map((r) => [r.user_id as string, r.token as string]));
+  const tokenByUser = new Map((existing ?? []).map((r: { user_id: string; token: string }) => [r.user_id, r.token]));
 
   const targets = onlyNew ? recipients.filter((r) => !tokenByUser.has(r.userId)) : recipients;
   const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];

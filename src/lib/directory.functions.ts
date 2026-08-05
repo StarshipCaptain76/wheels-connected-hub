@@ -57,26 +57,22 @@ function vehicleLabel(v: {
 }
 
 /** Only the club's shared admin mailbox stays out of the directory; real admins appear. */
-const HIDDEN_DIRECTORY_EMAILS = ["admin@justwheels.co.za"];
-
 async function loadAdminUserIds(): Promise<Set<string>> {
   const ids = new Set<string>();
   try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-    if (error) {
-      console.error("[directory] hidden account lookup failed", error);
-      return ids;
-    }
-    for (const u of data?.users ?? []) {
-      const email = (u.email ?? "").toLowerCase();
-      if (HIDDEN_DIRECTORY_EMAILS.includes(email)) ids.add(u.id);
+    const { elevated } = await import("./elevated.server");
+    const sb = await elevated();
+    const { data, error } = await sb.rpc("hidden_directory_ids");
+    if (error) throw error;
+    for (const row of (data ?? []) as unknown[]) {
+      if (typeof row === "string") ids.add(row);
+      else if (row && typeof row === "object" && "hidden_directory_ids" in row)
+        ids.add(String((row as Record<string, unknown>)["hidden_directory_ids"]));
     }
   } catch (e) {
     console.error("[directory] hidden account lookup skipped", e);
   }
   return ids;
-
 }
 
 async function resolveGarageUrls(

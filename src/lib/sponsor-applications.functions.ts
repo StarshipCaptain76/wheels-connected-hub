@@ -109,9 +109,12 @@ export const approveSponsorApplication = createServerFn({ method: "POST" })
     const { escapeHtml, emailShell, sendEmail, SITE_ORIGIN } = await import("./email.server");
     const recipients = new Set<string>([String(app.email)]);
     try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: owner } = await supabaseAdmin.auth.admin.getUserById(data.owner_user_id);
-      if (owner?.user?.email) recipients.add(owner.user.email);
+      const { data: owner } = await context.supabase
+        .from("member_emails")
+        .select("email")
+        .eq("user_id", data.owner_user_id)
+        .maybeSingle();
+      if (owner?.email) recipients.add(owner.email as string);
     } catch (e) {
       console.error("[sponsors] could not resolve owner email", e);
     }

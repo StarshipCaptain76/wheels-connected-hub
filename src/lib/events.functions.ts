@@ -173,7 +173,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
         );
       }
       if (values.is_published && prev && prev.is_published === false) {
-        await notifyNewEvent(id, values.title, values.title_af ?? null);
+        await notifyNewEvent(id, values.title, values.title_af ?? null, supabase);
       }
       return { id };
     }
@@ -184,7 +184,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
     if (values.is_published) {
-      await notifyNewEvent(row.id as string, values.title, values.title_af ?? null);
+      await notifyNewEvent(row.id as string, values.title, values.title_af ?? null, supabase);
     }
     return { id: row.id };
   });

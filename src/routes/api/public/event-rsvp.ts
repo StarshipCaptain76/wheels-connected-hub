@@ -36,35 +36,18 @@ async function handle(request: Request) {
     return page("Invalid link", "This RSVP link is not valid. Open the event on the website to reply.");
   }
 
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: invite } = await supabaseAdmin
-    .from("event_invites")
-    .select("id, event_id, user_id")
-    .eq("token", token)
-    .maybeSingle();
+  const { elevated } = await import("@/lib/elevated.server");
+  const sb = await elevated();
+  const { data: eventId, error } = await sb.rpc("rsvp_via_invite", { _token: token, _response: r });
 
-  if (!invite) {
+  if (error) {
+    console.error("[event-rsvp] rsvp failed", error);
+    return page("Something went wrong", "We couldn't save your answer. Please try the event page.");
+  }
+  if (!eventId) {
     return page("Link not found", "We couldn't find that invite. It may have been removed.");
   }
-
-  const { error } = await supabaseAdmin.from("event_rsvps").upsert(
-    {
-      event_id: invite.event_id,
-      user_id: invite.user_id,
-      status: r,
-      party_size: 1,
-    },
-    { onConflict: "event_id,user_id" },
-  );
-  if (error) {
-    console.error("[event-rsvp] upsert failed", error);
-    return page("Something went wrong", "We couldn't save your answer. Please try the event page.", invite.event_id);
-  }
-
-  await supabaseAdmin
-    .from("event_invites")
-    .update({ response: r, responded_at: new Date().toISOString() })
-    .eq("id", invite.id);
+  const invite = { event_id: eventId as string };
 
   return page(
     LABEL[r],

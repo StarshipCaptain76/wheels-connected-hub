@@ -1,5 +1,6 @@
 /** Server-only: notify members that a new event was published. Never throws. */
-export async function notifyNewEvent(id: string, title: string, titleAf: string | null) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function notifyNewEvent(id: string, title: string, titleAf: string | null, client?: any) {
   try {
     const { fanOut } = await import("./notify.server");
     await fanOut({
@@ -10,7 +11,7 @@ export async function notifyNewEvent(id: string, title: string, titleAf: string 
       body_af: titleAf ?? title,
       link: `/events/${id}`,
       related_id: id,
-    });
+    }, client);
   } catch (e) {
     console.error("[events] notification failed", e);
   }

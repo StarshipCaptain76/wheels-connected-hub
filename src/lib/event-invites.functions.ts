@@ -19,14 +19,17 @@ export const getEventInviteStatus = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { collectRecipients } = await import("./event-invites.server");
-    const recipients = await collectRecipients();
+    const recipients = await collectRecipients(supabase);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { elevated } = await import("./elevated.server");
+    const supabaseAdmin = await elevated(supabase);
     const { data: invites } = await supabaseAdmin
       .from("event_invites")
       .select("user_id")
       .eq("event_id", data.eventId);
-    const invitedIds = new Set((invites ?? []).map((r) => r.user_id));
+    const invitedIds = new Set(
+      ((invites ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
+    );
 
     const { data: ev } = await supabaseAdmin
       .from("events")
@@ -54,5 +57,5 @@ export const sendEventInvites = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { runEventInvites } = await import("./event-invites.server");
-    return runEventInvites(data.eventId, data.onlyNew);
+    return runEventInvites(data.eventId, data.onlyNew, supabase);
   });

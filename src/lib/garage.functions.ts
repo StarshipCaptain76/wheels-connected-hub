@@ -165,7 +165,9 @@ export const listFeaturedGarage = createServerFn({ method: "GET" }).handler(
     };
     vehicles: GarageVehicle[];
   } | null> => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { elevated, hasServiceRole } = await import("./elevated.server");
+    if (!hasServiceRole()) return null; // photos live in a private bucket
+    const supabaseAdmin = await elevated();
     const { data: featuredId } = await supabaseAdmin.rpc("daily_featured_id");
     if (!featuredId) return null;
     const { data: p } = await supabaseAdmin

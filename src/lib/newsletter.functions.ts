@@ -42,34 +42,18 @@ const subscribeSchema = z.object({
 export const subscribeNewsletter = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => subscribeSchema.parse(input))
   .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existing } = await supabaseAdmin
-      .from("newsletter_subscribers")
-      .select("id, unsubscribe_token, unsubscribed_at")
-      .eq("email", data.email)
-      .maybeSingle();
-
-    let token: string;
-    if (existing) {
-      token = existing.unsubscribe_token;
-      if (existing.unsubscribed_at) {
-        await supabaseAdmin
-          .from("newsletter_subscribers")
-          .update({ unsubscribed_at: null, lang: data.lang })
-          .eq("id", existing.id);
-      }
-    } else {
-      const { data: row, error } = await supabaseAdmin
-        .from("newsletter_subscribers")
-        .insert({ email: data.email, lang: data.lang, source: data.source })
-        .select("unsubscribe_token")
-        .single();
-      if (error) {
-        console.error("subscribe insert failed", error);
-        throw new Error("Could not subscribe. Try again.");
-      }
-      token = row.unsubscribe_token;
+    const { elevated } = await import("./elevated.server");
+    const sb = await elevated();
+    const { data: rpcToken, error: subErr } = await sb.rpc("newsletter_subscribe", {
+      _email: data.email,
+      _lang: data.lang,
+      _source: data.source,
+    });
+    if (subErr || !rpcToken) {
+      console.error("subscribe failed", subErr);
+      throw new Error("Could not subscribe. Try again.");
     }
+    const token = rpcToken as string;
 
     const unsubUrl = `${SITE_URL}/api/public/newsletter/unsubscribe?token=${token}`;
     const isAf = data.lang === "af";
@@ -227,7 +211,7 @@ export const sendNewsletter = createServerFn({ method: "POST" })
           body_en: data.subjectEn,
           body_af: data.subjectAf || data.subjectEn,
           link: "/",
-        });
+        }, supabase);
       } catch (e) {
         console.error("[newsletter] notification failed", e);
       }

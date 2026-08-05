@@ -26,13 +26,10 @@ export const Route = createFileRoute("/api/public/newsletter/unsubscribe")({
           return page("Invalid link", "This unsubscribe link is not valid.");
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data, error } = await supabaseAdmin
-          .from("newsletter_subscribers")
-          .update({ unsubscribed_at: new Date().toISOString() })
-          .eq("unsubscribe_token", token)
-          .select("email")
-          .maybeSingle();
+        const { elevated } = await import("@/lib/elevated.server");
+        const sb = await elevated();
+        const { data: email, error } = await sb.rpc("newsletter_unsubscribe", { _token: token });
+        const data = email ? { email: email as string } : null;
 
         if (error || !data) {
           return page("Not found", "We couldn't find that subscription. It may have already been removed.");
@@ -44,11 +41,9 @@ export const Route = createFileRoute("/api/public/newsletter/unsubscribe")({
         const url = new URL(request.url);
         const token = url.searchParams.get("token");
         if (!token) return new Response("Missing token", { status: 400 });
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await supabaseAdmin
-          .from("newsletter_subscribers")
-          .update({ unsubscribed_at: new Date().toISOString() })
-          .eq("unsubscribe_token", token);
+        const { elevated } = await import("@/lib/elevated.server");
+        const sb = await elevated();
+        await sb.rpc("newsletter_unsubscribe", { _token: token });
         return new Response("OK");
       },
     },

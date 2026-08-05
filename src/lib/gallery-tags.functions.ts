@@ -135,7 +135,7 @@ export const addPhotoTag = createServerFn({ method: "POST" })
         taggerName: (me?.display_name as string) || "A Just Wheels member",
         link: "/gallery",
         relatedId: data.galleryItemId,
-      });
+      }, supabase);
     }
     return { ok: true };
   });

@@ -264,7 +264,7 @@ export const createListing = createServerFn({ method: "POST" })
         link: "/admin/classifieds",
         related_id: row.id as string,
         excludeUserId: userId,
-      });
+      }, supabase);
     } catch (e) {
       console.error("[listings] admin notification failed", e);
     }
@@ -454,7 +454,7 @@ export const moderateListing = createServerFn({ method: "POST" })
           link: `/classifieds/${data.id}`,
           related_id: data.id,
           excludeUserId: (row?.user_id as string | null) ?? null,
-        });
+        }, supabase);
       } catch (e) {
         console.error("[listings] member notification failed", e);
       }

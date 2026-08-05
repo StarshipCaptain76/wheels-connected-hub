@@ -211,7 +211,7 @@ export const sendNewsletter = createServerFn({ method: "POST" })
           body_en: data.subjectEn,
           body_af: data.subjectAf || data.subjectEn,
           link: "/",
-        });
+        }, supabase);
       } catch (e) {
         console.error("[newsletter] notification failed", e);
       }

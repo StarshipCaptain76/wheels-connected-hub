@@ -27,7 +27,9 @@ export const getEventInviteStatus = createServerFn({ method: "GET" })
       .from("event_invites")
       .select("user_id")
       .eq("event_id", data.eventId);
-    const invitedIds = new Set((invites ?? []).map((r) => r.user_id));
+    const invitedIds = new Set(
+      ((invites ?? []) as Array<{ user_id: string }>).map((r) => r.user_id),
+    );
 
     const { data: ev } = await supabaseAdmin
       .from("events")

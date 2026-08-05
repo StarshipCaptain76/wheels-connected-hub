@@ -3,6 +3,8 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ImageLightbox } from "@/components/ImageLightbox";
+
 import { useI18n } from "@/i18n/I18nProvider";
 import { getPublicListing, getListing } from "@/lib/listings.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +91,9 @@ function ListingDetail() {
   const params = Route.useParams();
   const { data: listing } = useSuspenseQuery(publicListingQuery(params.id));
   const [revealEmail, setRevealEmail] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [session, setSession] = useState<unknown>(null);
+
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setSession(data.session));
@@ -130,13 +134,20 @@ function ListingDetail() {
         <div className="mt-6 grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
             {display.photos.length > 0 ? (
-              display.photos.map((p) => (
-                <img
+              display.photos.map((p, i) => (
+                <button
                   key={p.id}
-                  src={p.url}
-                  alt=""
-                  className="w-full rounded-lg border-2 border-ink object-cover"
-                />
+                  type="button"
+                  onClick={() => setLightbox(i)}
+                  className="block w-full cursor-zoom-in"
+                  aria-label={lang === "af" ? "Vergroot foto" : "Enlarge photo"}
+                >
+                  <img
+                    src={p.url}
+                    alt={title}
+                    className="w-full rounded-lg border-2 border-ink object-cover"
+                  />
+                </button>
               ))
             ) : (
               <div
@@ -149,6 +160,7 @@ function ListingDetail() {
               />
             )}
           </div>
+
 
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -241,6 +253,16 @@ function ListingDetail() {
           </div>
         </div>
       </div>
+
+      {lightbox != null && (
+        <ImageLightbox
+          items={display.photos.map((p) => ({ url: p.url, caption: title }))}
+          index={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndex={setLightbox}
+        />
+      )}
     </SiteLayout>
+
   );
 }

@@ -1404,6 +1404,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      hidden_directory_ids: { Args: never; Returns: string[] }
       is_featured_user: { Args: { _id: string }; Returns: boolean }
       newsletter_subscribe: {
         Args: { _email: string; _lang?: string; _source?: string }

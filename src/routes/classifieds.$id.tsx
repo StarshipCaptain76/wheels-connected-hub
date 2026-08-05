@@ -3,6 +3,8 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { ImageLightbox } from "@/components/ImageLightbox";
+
 import { useI18n } from "@/i18n/I18nProvider";
 import { getPublicListing, getListing } from "@/lib/listings.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,7 +91,9 @@ function ListingDetail() {
   const params = Route.useParams();
   const { data: listing } = useSuspenseQuery(publicListingQuery(params.id));
   const [revealEmail, setRevealEmail] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
   const [session, setSession] = useState<unknown>(null);
+
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => setSession(data.session));

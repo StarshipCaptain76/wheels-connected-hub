@@ -13,15 +13,15 @@ export const sendTestNotification = createServerFn({ method: "POST" })
     if (!isAdmin) return { ok: false, message: "Admins only" };
 
     try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin.from("notifications").insert({
-        user_id: userId,
-        type: "admin_new_member",
-        title_en: "Test notification",
-        title_af: "Toetskennisgewing",
-        body_en: "If you can see this, in-app notifications are working.",
-        body_af: "As jy dit sien, werk kennisgewings in die app.",
-        link: "/admin",
+      const { error } = await supabase.rpc("notify_user", {
+        _user_id: userId,
+        _type: "admin_new_member",
+        _title_en: "Test notification",
+        _title_af: "Toetskennisgewing",
+        _body_en: "If you can see this, in-app notifications are working.",
+        _body_af: "As jy dit sien, werk kennisgewings in die app.",
+        _link: "/admin",
+        _related_id: null,
       });
       if (error) throw error;
       return { ok: true, message: "Test notification sent — check the bell." };

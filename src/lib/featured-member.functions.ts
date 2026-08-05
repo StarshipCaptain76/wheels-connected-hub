@@ -18,27 +18,32 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
     // Featured data is public, but the rotation helper is privileged, so this
     // read runs server-side with an explicit, narrow column projection.
     // NEVER throw — a missing service role key must not take the home page down.
-    if (!process.env['SUPABASE_SERVICE_ROLE_KEY'] || !process.env['SUPABASE_URL']) {
-      console.warn("[featured-member] service role env missing — skipping");
-      return null;
-    }
     try {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { elevated, hasServiceRole } = await import("./elevated.server");
+    const supabaseAdmin = await elevated();
 
-    const { data: featuredId } = await supabaseAdmin.rpc("daily_featured_id");
-    if (!featuredId) return null;
-
-    const { data, error } = await supabaseAdmin
-      .from("profiles")
-      .select(
-        "id, display_name, member_number, town, favourite_ride, featured_bio, featured_photo_url, avatar_url, featured_since",
-      )
-      .eq("id", featuredId as string)
+    // Public-safe card: a SECURITY DEFINER view of today's featured member,
+    // so the home page still works without a service-role key.
+    const { data: card, error: cardErr } = await supabaseAdmin
+      .rpc("featured_member_card")
       .maybeSingle();
-    if (error || !data) return null;
+    if (cardErr || !card) return null;
+    const data = card as {
+      id: string;
+      display_name: string | null;
+      member_number: number | null;
+      town: string | null;
+      favourite_ride: string | null;
+      featured_bio: string | null;
+      featured_photo_url: string | null;
+      avatar_url: string | null;
+      featured_since: string | null;
+    };
+    const canSign = hasServiceRole();
 
     let garage_thumb_url: string | null = null;
     try {
+      if (!canSign) throw new Error("no signing key");
       const { data: vehicles } = await supabaseAdmin
         .from("garage_vehicles")
         .select("id")
@@ -75,8 +80,10 @@ export const getCurrentFeaturedMember = createServerFn({ method: "GET" }).handle
       town: data.town,
       favourite_ride: data.favourite_ride,
       featured_bio: data.featured_bio,
-      featured_photo_url: await signStoredUrl(supabaseAdmin, data.featured_photo_url),
-      avatar_url: await signStoredUrl(supabaseAdmin, data.avatar_url),
+      featured_photo_url: canSign
+        ? await signStoredUrl(supabaseAdmin, data.featured_photo_url)
+        : data.featured_photo_url,
+      avatar_url: canSign ? await signStoredUrl(supabaseAdmin, data.avatar_url) : data.avatar_url,
       featured_since: data.featured_since,
       garage_thumb_url,
     };

@@ -57,8 +57,6 @@ function vehicleLabel(v: {
 }
 
 /** Only the club's shared admin mailbox stays out of the directory; real admins appear. */
-const HIDDEN_DIRECTORY_EMAILS = ["admin@justwheels.co.za"];
-
 async function loadAdminUserIds(): Promise<Set<string>> {
   const ids = new Set<string>();
   try {

@@ -55,5 +55,5 @@ export const sendEventInvites = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { runEventInvites } = await import("./event-invites.server");
-    return runEventInvites(data.eventId, data.onlyNew);
+    return runEventInvites(data.eventId, data.onlyNew, supabase);
   });

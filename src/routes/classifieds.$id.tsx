@@ -130,13 +130,20 @@ function ListingDetail() {
         <div className="mt-6 grid gap-8 md:grid-cols-2">
           <div className="space-y-3">
             {display.photos.length > 0 ? (
-              display.photos.map((p) => (
-                <img
+              display.photos.map((p, i) => (
+                <button
                   key={p.id}
-                  src={p.url}
-                  alt=""
-                  className="w-full rounded-lg border-2 border-ink object-cover"
-                />
+                  type="button"
+                  onClick={() => setLightbox(i)}
+                  className="block w-full cursor-zoom-in"
+                  aria-label={lang === "af" ? "Vergroot foto" : "Enlarge photo"}
+                >
+                  <img
+                    src={p.url}
+                    alt={title}
+                    className="w-full rounded-lg border-2 border-ink object-cover"
+                  />
+                </button>
               ))
             ) : (
               <div
@@ -149,6 +156,7 @@ function ListingDetail() {
               />
             )}
           </div>
+
 
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-primary">

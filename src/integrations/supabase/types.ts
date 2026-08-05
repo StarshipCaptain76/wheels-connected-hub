@@ -962,6 +962,24 @@ export type Database = {
         }
         Relationships: []
       }
+      member_emails: {
+        Row: {
+          email: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       merch_items: {
         Row: {
           available_from: string | null
@@ -1348,6 +1366,33 @@ export type Database = {
     }
     Functions: {
       daily_featured_id: { Args: never; Returns: string }
+      fanout_notification: {
+        Args: {
+          _body_af?: string
+          _body_en?: string
+          _exclude?: string
+          _link?: string
+          _related_id?: string
+          _title_af: string
+          _title_en: string
+          _type: string
+        }
+        Returns: number
+      }
+      featured_member_card: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          display_name: string
+          favourite_ride: string
+          featured_bio: string
+          featured_photo_url: string
+          featured_since: string
+          id: string
+          member_number: number
+          town: string
+        }[]
+      }
       grant_admin_if_allowlisted: {
         Args: { _confirmed_at: string; _email: string; _user_id: string }
         Returns: undefined
@@ -1360,6 +1405,32 @@ export type Database = {
         Returns: boolean
       }
       is_featured_user: { Args: { _id: string }; Returns: boolean }
+      newsletter_subscribe: {
+        Args: { _email: string; _lang?: string; _source?: string }
+        Returns: string
+      }
+      newsletter_unsubscribe: { Args: { _token: string }; Returns: string }
+      notify_user: {
+        Args: {
+          _body_af?: string
+          _body_en?: string
+          _link?: string
+          _related_id?: string
+          _title_af: string
+          _title_en: string
+          _type: string
+          _user_id: string
+        }
+        Returns: number
+      }
+      route_cache_put: {
+        Args: { _key: string; _payload: Json }
+        Returns: undefined
+      }
+      rsvp_via_invite: {
+        Args: { _response: string; _token: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "member"

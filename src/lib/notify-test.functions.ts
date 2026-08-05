@@ -21,7 +21,6 @@ export const sendTestNotification = createServerFn({ method: "POST" })
         _body_en: "If you can see this, in-app notifications are working.",
         _body_af: "As jy dit sien, werk kennisgewings in die app.",
         _link: "/admin",
-        _related_id: null,
       });
       if (error) throw error;
       return { ok: true, message: "Test notification sent — check the bell." };

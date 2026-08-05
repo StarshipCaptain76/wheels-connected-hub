@@ -31,8 +31,15 @@ async function cacheGet(key: string) {
 }
 
 async function cachePut(key: string, payload: unknown) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  await supabaseAdmin.from("route_cache").upsert({ cache_key: key, payload: payload as never });
+  try {
+    const { elevated } = await import("./elevated.server");
+    const sb = await elevated();
+    const { error } = await sb.rpc("route_cache_put", { _key: key, _payload: payload as never });
+    if (error) throw error;
+  } catch (e) {
+    // Cache writes are best-effort; a miss just costs an extra upstream call.
+    console.warn("[maps] route cache write skipped", e);
+  }
 }
 
 // -----------------------------------------------------------------------------

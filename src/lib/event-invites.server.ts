@@ -12,8 +12,10 @@ export type Recipient = {
 };
 
 /** Active members with a usable email address. */
-export async function collectRecipients(): Promise<Recipient[]> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function collectRecipients(client?: any): Promise<Recipient[]> {
+  const { elevated } = await import("./elevated.server");
+  const supabaseAdmin = await elevated(client);
 
   const { data: profiles } = await supabaseAdmin
     .from("profiles")
@@ -22,12 +24,9 @@ export async function collectRecipients(): Promise<Recipient[]> {
   if (!profiles?.length) return [];
 
   const emails = new Map<string, string>();
-  for (let page = 1; page <= 10; page++) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) break;
-    const users = data?.users ?? [];
-    for (const u of users) if (u.email) emails.set(u.id, u.email);
-    if (users.length < 200) break;
+  const { data: mailRows } = await supabaseAdmin.from("member_emails").select("user_id, email");
+  for (const r of (mailRows ?? []) as Array<{ user_id: string; email: string | null }>) {
+    if (r.email) emails.set(r.user_id, r.email);
   }
 
   const out: Recipient[] = [];
@@ -44,8 +43,10 @@ export async function collectRecipients(): Promise<Recipient[]> {
   return out;
 }
 
-async function loadEvent(eventId: string): Promise<InviteEventData> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function loadEvent(eventId: string, client?: any): Promise<InviteEventData> {
+  const { elevated } = await import("./elevated.server");
+  const supabaseAdmin = await elevated(client);
   const { data: ev, error } = await supabaseAdmin
     .from("events")
     .select(
@@ -67,10 +68,13 @@ async function loadEvent(eventId: string): Promise<InviteEventData> {
 export async function runEventInvites(
   eventId: string,
   onlyNew: boolean,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client?: any,
 ): Promise<{ sent: number; skipped: number; failed: number }> {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const ev = await loadEvent(eventId);
-  const recipients = await collectRecipients();
+  const { elevated } = await import("./elevated.server");
+  const supabaseAdmin = await elevated(client);
+  const ev = await loadEvent(eventId, client);
+  const recipients = await collectRecipients(client);
 
   const { data: existing } = await supabaseAdmin
     .from("event_invites")

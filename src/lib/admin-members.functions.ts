@@ -27,9 +27,10 @@ async function assertAdmin(supabase: { rpc: Function }, userId: string) {
   if (!isAdmin) throw new Error("Forbidden");
 }
 
-async function getAdminClient() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getAdminClient(fallback?: any) {
+  const { elevated } = await import("./elevated.server");
+  return await elevated(fallback);
 }
 
 const PROFILE_SELECT =
@@ -44,7 +45,7 @@ export const listAllMembers = createServerFn({ method: "GET" })
     let profiles: Array<Record<string, unknown>> = [];
     let adminRows: Array<{ user_id: string }> = [];
     try {
-      const admin = await getAdminClient();
+      const admin = await getAdminClient(supabase);
       const { data, error } = await admin
         .from("profiles")
         .select(PROFILE_SELECT)
@@ -70,13 +71,14 @@ export const listAllMembers = createServerFn({ method: "GET" })
 
     const emailById = new Map<string, string | null>();
     try {
-      const admin = await getAdminClient();
-      const { data: usersPage, error: usersErr } = await admin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      });
-      if (usersErr) console.error("[admin members] listUsers", usersErr);
-      else for (const u of usersPage?.users ?? []) emailById.set(u.id, u.email ?? null);
+      // Admin-readable mirror of auth emails — works without a service-role key.
+      const { data: rows, error: mailErr } = await supabase
+        .from("member_emails")
+        .select("user_id, email");
+      if (mailErr) throw mailErr;
+      for (const r of (rows ?? []) as Array<{ user_id: string; email: string | null }>) {
+        emailById.set(r.user_id, r.email ?? null);
+      }
     } catch (e) {
       console.error("[admin members] email lookup skipped", e);
     }
@@ -112,7 +114,7 @@ export const updateMemberStatus = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
 
     try {
-      const admin = await getAdminClient();
+      const admin = await getAdminClient(context.supabase);
       const { error } = await admin
         .from("profiles")
         .update({ membership_status: data.status })
@@ -135,7 +137,7 @@ export const approveAllPendingMembers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ approved: number }> => {
     await assertAdmin(context.supabase, context.userId);
-    const client = await getAdminClient().catch(() => context.supabase);
+    const client = await getAdminClient(context.supabase);
     const { data, error } = await client
       .from("profiles")
       .update({ membership_status: "active" })
@@ -158,7 +160,7 @@ export const setAdminRole = createServerFn({ method: "POST" })
       throw new Error("You cannot remove your own admin role.");
     }
 
-    const client = await getAdminClient().catch(() => context.supabase);
+    const client = await getAdminClient(context.supabase);
 
     if (data.isAdmin) {
       const { error } = await client

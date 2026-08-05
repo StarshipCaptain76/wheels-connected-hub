@@ -19,9 +19,10 @@ export const getEventInviteStatus = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { collectRecipients } = await import("./event-invites.server");
-    const recipients = await collectRecipients();
+    const recipients = await collectRecipients(supabase);
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { elevated } = await import("./elevated.server");
+    const supabaseAdmin = await elevated(supabase);
     const { data: invites } = await supabaseAdmin
       .from("event_invites")
       .select("user_id")

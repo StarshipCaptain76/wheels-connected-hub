@@ -12,6 +12,99 @@ import {
 } from "@/lib/admin-members.functions";
 import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
+const inputCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink";
+
+function EditMemberRow({ member, onDone }: { member: AdminMember; onDone: () => void }) {
+  const qc = useQueryClient();
+  const save = useServerFn(adminUpdateMemberProfile);
+  const [form, setForm] = useState({
+    display_name: member.display_name ?? "",
+    phone: member.phone ?? "",
+    town: member.town ?? "",
+    favourite_ride: member.favourite_ride ?? "",
+    featured_bio: member.featured_bio ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit() {
+    setSaving(true);
+    setErr(null);
+    try {
+      await save({ data: { userId: member.user_id, ...form } });
+      await qc.invalidateQueries({ queryKey: ["admin", "members"] });
+      await qc.invalidateQueries({ queryKey: ["featured-member"] });
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <tr className="border-t border-ink/10 bg-ink/5">
+      <td colSpan={6} className="px-3 py-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <input
+            className={inputCls}
+            maxLength={80}
+            value={form.display_name}
+            onChange={(e) => setForm({ ...form, display_name: e.target.value })}
+            placeholder="Display name"
+          />
+          <input
+            className={inputCls}
+            maxLength={30}
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            placeholder="Phone"
+          />
+          <input
+            className={inputCls}
+            maxLength={80}
+            value={form.town}
+            onChange={(e) => setForm({ ...form, town: e.target.value })}
+            placeholder="Town"
+          />
+          <input
+            className={inputCls}
+            maxLength={120}
+            value={form.favourite_ride}
+            onChange={(e) => setForm({ ...form, favourite_ride: e.target.value })}
+            placeholder="Favourite ride"
+          />
+        </div>
+        <textarea
+          className={`${inputCls} mt-2`}
+          rows={3}
+          maxLength={1200}
+          value={form.featured_bio}
+          onChange={(e) => setForm({ ...form, featured_bio: e.target.value })}
+          placeholder="Bio (used when featured)"
+        />
+        {err && <p className="mt-2 text-xs text-primary">{err}</p>}
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={submit}
+            className="rounded border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={onDone}
+            className="rounded border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink"
+          >
+            Cancel
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function SectionRow({ label }: { label: string }) {
   return (

@@ -107,6 +107,12 @@ function EditListing({
   const [uploading, setUploading] = useState(false);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [added, setAdded] = useState<{ path: string; url: string }[]>([]);
+  const [ownerId, setOwnerId] = useState<string>(listing.user_id);
+  const membersQ = useQuery<AdminMember[]>({
+    queryKey: ["admin", "members", "all"],
+    queryFn: () => listAllMembers(),
+  });
+  const members = membersQ.data ?? [];
 
   const keptPhotos = listing.photos.filter((p) => !removedIds.includes(p.id));
 
@@ -162,6 +168,7 @@ function EditListing({
           location: form.location.trim() || null,
           add_photo_paths: added.map((a) => a.path),
           remove_photo_ids: removedIds,
+          user_id: ownerId !== listing.user_id ? ownerId : null,
         },
       });
       await qc.invalidateQueries({ queryKey: ["listings"] });
@@ -250,6 +257,31 @@ function EditListing({
           onChange={(e) => setForm({ ...form, location: e.target.value })}
           placeholder={lang === "af" ? "Plek" : "Location"}
         />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/60">
+          {lang === "af" ? "Toegewys aan lid" : "Assigned to member"}
+        </label>
+        <select
+          className={field}
+          value={ownerId}
+          onChange={(e) => setOwnerId(e.target.value)}
+        >
+          {members.length === 0 ? <option value={ownerId}>…</option> : null}
+          {members.map((m) => (
+            <option key={m.user_id} value={m.user_id}>
+              #{m.member_number} — {m.display_name ?? m.email ?? m.user_id}
+            </option>
+          ))}
+        </select>
+        {ownerId !== listing.user_id ? (
+          <p className="mt-1 text-[11px] text-ink/60">
+            {lang === "af"
+              ? "Kontakbesonderhede word na die nuwe lid s'n verander."
+              : "Contact details will be updated to the new member's."}
+          </p>
+        ) : null}
       </div>
 
       <div>

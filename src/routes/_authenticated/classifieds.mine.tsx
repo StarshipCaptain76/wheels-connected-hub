@@ -349,10 +349,14 @@ function MyListingsPage() {
                 key={l.id}
                 listing={l}
                 busy={busyId === l.id}
+                editing={editId === l.id}
+                onEdit={() => setEditId(editId === l.id ? null : l.id)}
+                onCloseEdit={() => setEditId(null)}
                 onDelist={() => run(l.id, "sold")}
                 onDelete={() => run(l.id, "delete")}
                 lang={lang}
               />
+
             ))}
           </ul>
         )}

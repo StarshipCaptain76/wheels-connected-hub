@@ -190,17 +190,36 @@ function AdminConcoursQuestions() {
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
               Category (EN)
-              <input
-                list="concours-categories"
-                value={draft.category ?? ""}
-                onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+              <select
+                value={
+                  draft.category && categories.includes(draft.category) ? draft.category : "__new"
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "__new") {
+                    setDraft({ ...draft, category: "", category_af: "" });
+                  } else {
+                    setDraft({ ...draft, category: v, category_af: catAfMap[v] ?? draft.category_af ?? "" });
+                  }
+                }}
                 className={inp}
-              />
-              <datalist id="concours-categories">
+              >
+                {categories.length === 0 && <option value="__new">No categories yet</option>}
                 {categories.map((c) => (
-                  <option key={c} value={c} />
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
                 ))}
-              </datalist>
+                <option value="__new">+ New category…</option>
+              </select>
+              {!(draft.category && categories.includes(draft.category)) && (
+                <input
+                  value={draft.category ?? ""}
+                  onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                  placeholder="New category name"
+                  className={inp}
+                />
+              )}
             </label>
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
               Category (AF)
@@ -210,6 +229,7 @@ function AdminConcoursQuestions() {
                 className={inp}
               />
             </label>
+
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
               Question (EN)
               <textarea

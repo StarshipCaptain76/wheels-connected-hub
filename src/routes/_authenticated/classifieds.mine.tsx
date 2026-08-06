@@ -60,8 +60,8 @@ function EditMyListing({
 
   const keptPhotos = listing.photos.filter((p) => !removedIds.includes(p.id));
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleFiles(files: File[]) {
+    if (files.length === 0) return;
     setUploading(true);
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -69,7 +69,7 @@ function EditMyListing({
       if (!uid) throw new Error("Not signed in");
       const room = 6 - (keptPhotos.length + added.length);
       const next: { path: string; url: string }[] = [];
-      for (const file of Array.from(files).slice(0, Math.max(0, room))) {
+      for (const file of files.slice(0, Math.max(0, room))) {
         if (!file.type.startsWith("image/")) continue;
         if (file.size > 5 * 1024 * 1024) {
           toast.error(lang === "af" ? "Maks 5MB per foto" : "Max 5MB per photo");
@@ -289,7 +289,7 @@ function EditMyListing({
                 className="hidden"
                 disabled={uploading}
                 onChange={(e) => {
-                  void handleFiles(e.target.files);
+                  void handleFiles(Array.from(e.target.files ?? []));
                   e.target.value = "";
                 }}
               />

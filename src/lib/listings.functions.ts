@@ -469,6 +469,8 @@ const adminEditSchema = z.object({
   add_photo_paths: z.array(z.string().min(1).max(300)).max(6).default([]),
   /** Existing listing_photos ids to remove. */
   remove_photo_ids: z.array(z.string().uuid()).max(12).default([]),
+  /** Optional: re-assign the listing to another member. */
+  user_id: z.string().uuid().nullable().optional(),
 });
 
 export const adminUpdateListing = createServerFn({ method: "POST" })
@@ -483,7 +485,7 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { id, add_photo_paths, remove_photo_ids, ...values } = data;
+    const { id, add_photo_paths, remove_photo_ids, user_id, ...values } = data;
     const { elevated } = await import("./elevated.server");
     const client = (await elevated(supabase)) as typeof supabase;
     const { error } = await client
@@ -494,9 +496,40 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
         description_af: values.description_af ?? null,
         price_zar: values.price_zar ?? null,
         location: values.location ?? null,
+        ...(user_id ? { user_id } : {}),
       })
       .eq("id", id);
     if (error) throw new Error(`Could not save listing: ${error.message}`);
+
+    // Re-assignment: refresh the public contact block to the new owner's details.
+    if (user_id) {
+      const { data: prof } = await client
+        .from("profiles")
+        .select("display_name, phone, town")
+        .eq("id", user_id)
+        .maybeSingle();
+      const { data: em } = await client
+        .from("member_emails")
+        .select("email")
+        .eq("user_id", user_id)
+        .maybeSingle();
+      const patch: {
+        contact_name?: string;
+        contact_phone?: string | null;
+        contact_email?: string;
+      } = {};
+      if (prof?.display_name) patch.contact_name = prof.display_name;
+      patch.contact_phone = prof?.phone ?? null;
+      if (em?.email) patch.contact_email = em.email;
+      if (Object.keys(patch).length > 0) {
+        const { error: cErr } = await client
+          .from("listing_contacts")
+          .update(patch)
+          .eq("listing_id", id);
+        if (cErr) throw new Error(`Could not update contact details: ${cErr.message}`);
+      }
+    }
+
 
     if (remove_photo_ids.length > 0) {
       const { data: gone, error: delErr } = await client

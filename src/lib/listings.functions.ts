@@ -495,3 +495,85 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
     if (error) throw new Error(`Could not save listing: ${error.message}`);
     return { ok: true };
   });
+
+// ── Owner edit (re-enters moderation) ────────────────────────────────
+
+const ownerEditSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(3).max(120),
+  title_af: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().min(10).max(4000),
+  description_af: z.string().trim().max(4000).nullable().optional(),
+  price_zar: z.number().nonnegative().max(99999999).nullable().optional(),
+  category: z.enum(["parts", "cars", "memorabilia", "other"]),
+  condition: z.enum(["new", "used", "project"]),
+  location: z.string().trim().max(120).nullable().optional(),
+  contact_name: z.string().trim().min(1).max(120),
+  contact_phone: z.string().trim().max(40).nullable().optional(),
+  contact_email: z.string().trim().email().max(200),
+});
+
+/** Owner edits their own listing — sends it back to pending for admin re-approval */
+export const updateMyListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => ownerEditSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { id, contact_name, contact_phone, contact_email, ...values } = data;
+
+    const { data: row, error: findErr } = await supabase
+      .from("listings")
+      .select("id, user_id, status")
+      .eq("id", id)
+      .maybeSingle();
+    if (findErr) throw new Error(findErr.message);
+    if (!row) throw new Error("Listing not found");
+    if (row.user_id !== userId) throw new Error("You can only edit your own listings");
+
+    const { data: updated, error } = await supabase
+      .from("listings")
+      .update({
+        ...values,
+        title_af: values.title_af ?? null,
+        description_af: values.description_af ?? null,
+        price_zar: values.price_zar ?? null,
+        location: values.location ?? null,
+        status: "pending" as const,
+      })
+      .eq("id", id)
+      .select("id, title, title_af")
+      .maybeSingle();
+    if (error) throw new Error(`Could not save listing: ${error.message}`);
+    if (!updated) throw new Error("Edit blocked by security policy — check listings_owner_update RLS.");
+
+    const { error: cErr } = await supabase
+      .from("listing_contacts")
+      .update({
+        contact_name,
+        contact_phone: contact_phone ?? null,
+        contact_email,
+      })
+      .eq("listing_id", id);
+    if (cErr) throw new Error(cErr.message);
+
+    try {
+      const { fanOut } = await import("./notify.server");
+      await fanOut(
+        {
+          type: "admin_listing_review",
+          title_en: "Edited listing awaiting approval",
+          title_af: "Gewysigde advertensie wag vir goedkeuring",
+          body_en: updated.title,
+          body_af: updated.title_af ?? updated.title,
+          link: "/admin/classifieds",
+          related_id: id,
+          excludeUserId: userId,
+        },
+        supabase,
+      );
+    } catch (e) {
+      console.error("[listings] admin re-review notification failed", e);
+    }
+
+    return { ok: true };
+  });

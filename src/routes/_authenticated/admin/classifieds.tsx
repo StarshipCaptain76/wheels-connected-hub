@@ -387,6 +387,41 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
     status: "approved" as "approved" | "pending",
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [photos, setPhotos] = useState<{ path: string; url: string }[]>([]);
+
+  async function handleNewFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const uid = session.session?.user.id;
+      if (!uid) throw new Error("Not signed in");
+      const next: { path: string; url: string }[] = [];
+      for (const file of Array.from(files).slice(0, Math.max(0, 6 - photos.length))) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(lang === "af" ? "Maks 5MB per foto" : "Max 5MB per photo");
+          continue;
+        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("listings")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("listings")
+          .createSignedUrl(path, 60 * 60 * 12);
+        next.push({ path, url: signed?.signedUrl ?? "" });
+      }
+      setPhotos((p) => [...p, ...next]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function pickMember(id: string) {
     const m = members.find((x) => x.user_id === id);
@@ -423,6 +458,7 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
           contact_phone: form.contact_phone.trim() || null,
           contact_email: form.contact_email.trim(),
           status: form.status,
+          photo_paths: photos.map((p) => p.path),
         },
       });
       await qc.invalidateQueries({ queryKey: ["listings"] });
@@ -551,10 +587,50 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
           {lang === "af" ? "Hou hangend vir hersiening" : "Hold as pending"}
         </option>
       </select>
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-ink/70">
+          {lang === "af" ? "Fotos" : "Photos"} ({photos.length}/6)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {photos.map((p) => (
+            <div
+              key={p.path}
+              className="relative h-20 w-20 overflow-hidden rounded border-2 border-ink"
+            >
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Verwyder foto" : "Remove photo"}
+                onClick={() => setPhotos((a) => a.filter((x) => x.path !== p.path))}
+                className="absolute right-0 top-0 rounded-bl bg-ink p-0.5 text-paper"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {photos.length < 6 ? (
+            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/50 text-[10px] font-bold uppercase text-ink/60 hover:border-ink hover:text-ink">
+              <Upload className="h-4 w-4" />
+              {uploading ? "…" : lang === "af" ? "Laai op" : "Upload"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  void handleNewFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          ) : null}
+        </div>
+      </div>
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || uploading}
           className="rounded border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
         >
           {saving ? (lang === "af" ? "Stoor…" : "Saving…") : lang === "af" ? "Skep" : "Create"}

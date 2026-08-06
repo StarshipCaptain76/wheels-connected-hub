@@ -586,6 +586,10 @@ const ownerEditSchema = z.object({
   contact_name: z.string().trim().min(1).max(120),
   contact_phone: z.string().trim().max(40).nullable().optional(),
   contact_email: z.string().trim().email().max(200),
+  /** Newly uploaded storage paths to append to the listing gallery. */
+  add_photo_paths: z.array(z.string().min(1).max(300)).max(6).default([]),
+  /** Existing listing_photos ids to remove. */
+  remove_photo_ids: z.array(z.string().uuid()).max(12).default([]),
 });
 
 /** Owner edits their own listing — sends it back to pending for admin re-approval */
@@ -594,7 +598,8 @@ export const updateMyListing = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ownerEditSchema.parse(input))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    const { id, contact_name, contact_phone, contact_email, ...values } = data;
+    const { id, contact_name, contact_phone, contact_email, add_photo_paths, remove_photo_ids, ...values } =
+      data;
 
     const { data: row, error: findErr } = await supabase
       .from("listings")
@@ -631,6 +636,43 @@ export const updateMyListing = createServerFn({ method: "POST" })
       })
       .eq("listing_id", id);
     if (cErr) throw new Error(cErr.message);
+
+    if (remove_photo_ids.length > 0) {
+      const { data: gone, error: delErr } = await supabase
+        .from("listing_photos")
+        .delete()
+        .eq("listing_id", id)
+        .in("id", remove_photo_ids)
+        .select("image_url");
+      if (delErr) throw new Error(`Could not remove photos: ${delErr.message}`);
+      const paths = (gone ?? []).map((p) => p.image_url as string).filter(Boolean);
+      if (paths.length > 0) {
+        try {
+          await supabase.storage.from("listings").remove(paths);
+        } catch {
+          /* best effort — the row is already gone */
+        }
+      }
+    }
+
+    if (add_photo_paths.length > 0) {
+      const { data: existing } = await supabase
+        .from("listing_photos")
+        .select("sort")
+        .eq("listing_id", id)
+        .order("sort", { ascending: false })
+        .limit(1);
+      const start = ((existing?.[0]?.sort as number | undefined) ?? -1) + 1;
+      const { error: insErr } = await supabase.from("listing_photos").insert(
+        add_photo_paths.map((p, i) => ({
+          listing_id: id,
+          image_url: p,
+          sort: start + i,
+        })),
+      );
+      if (insErr) throw new Error(`Could not add photos: ${insErr.message}`);
+    }
+
 
     try {
       const { fanOut } = await import("./notify.server");
@@ -670,6 +712,8 @@ const adminCreateSchema = z.object({
   contact_phone: z.string().trim().max(40).nullable().optional(),
   contact_email: z.string().trim().email().max(200),
   status: z.enum(["approved", "pending"]).default("approved"),
+  /** Uploaded storage paths for the listing gallery. */
+  photo_paths: z.array(z.string().min(1).max(300)).max(6).default([]),
 });
 
 /** Admin creates a listing and assigns it to a member (that member becomes the owner). */
@@ -688,7 +732,8 @@ export const adminCreateListing = createServerFn({ method: "POST" })
     const { elevated } = await import("./elevated.server");
     const client = (await elevated(supabase)) as typeof supabase;
 
-    const { owner_user_id, contact_name, contact_phone, contact_email, status, ...listing } = data;
+    const { owner_user_id, contact_name, contact_phone, contact_email, status, photo_paths, ...listing } =
+      data;
 
     const { data: row, error } = await client
       .from("listings")
@@ -712,6 +757,13 @@ export const adminCreateListing = createServerFn({ method: "POST" })
       contact_email,
     });
     if (cErr) throw new Error(`Could not save contact details: ${cErr.message}`);
+
+    if (photo_paths.length > 0) {
+      const { error: pErr } = await client.from("listing_photos").insert(
+        photo_paths.map((path, i) => ({ listing_id: row.id, image_url: path, sort: i })),
+      );
+      if (pErr) throw new Error(`Could not save photos: ${pErr.message}`);
+    }
 
     if (status === "approved") {
       try {

@@ -41,7 +41,7 @@ const SCORING = [
   { value: "count", label: "Count (number)" },
 ] as const;
 
-type Draft = Partial<ConcoursQuestion> & { scoring_type?: string };
+type Draft = Omit<Partial<ConcoursQuestion>, "scoring_type"> & { scoring_type?: string };
 
 function AdminConcoursQuestions() {
   const qc = useQueryClient();

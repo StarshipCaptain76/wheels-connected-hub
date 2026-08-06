@@ -177,3 +177,30 @@ export const setAdminRole = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+/** Admin: edit another member's profile details. */
+export const adminUpdateMemberProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        display_name: z.string().trim().max(80).nullable().optional(),
+        phone: z.string().trim().max(30).nullable().optional(),
+        town: z.string().trim().max(80).nullable().optional(),
+        favourite_ride: z.string().trim().max(120).nullable().optional(),
+        featured_bio: z.string().trim().max(1200).nullable().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { userId, ...fields } = data;
+    const values = Object.fromEntries(
+      Object.entries(fields).map(([k, v]) => [k, v === undefined || v === "" ? null : v]),
+    );
+    const client = await getAdminClient(context.supabase);
+    const { error } = await client.from("profiles").update(values).eq("id", userId);
+    if (error) throw new Error(`Could not save profile: ${error.message}`);
+    return { ok: true };
+  });

@@ -251,6 +251,67 @@ function EditListing({
           placeholder={lang === "af" ? "Plek" : "Location"}
         />
       </div>
+
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-ink/60">
+          {lang === "af" ? "Fotos" : "Photos"} ({keptPhotos.length + added.length}/6)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {keptPhotos.map((p) => (
+            <div key={p.id} className="relative h-20 w-20 overflow-hidden rounded border-2 border-ink">
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setRemovedIds((r) => [...r, p.id])}
+                className="absolute right-0 top-0 bg-primary p-0.5 text-white"
+                aria-label={lang === "af" ? "Verwyder foto" : "Remove photo"}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {added.map((p) => (
+            <div
+              key={p.path}
+              className="relative h-20 w-20 overflow-hidden rounded border-2 border-dashed border-ink"
+            >
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setAdded((a) => a.filter((x) => x.path !== p.path))}
+                className="absolute right-0 top-0 bg-primary p-0.5 text-white"
+                aria-label={lang === "af" ? "Verwyder foto" : "Remove photo"}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {keptPhotos.length + added.length < 6 ? (
+            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/50 text-[10px] font-bold uppercase text-ink/60">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  void handleFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  {lang === "af" ? "Laai op" : "Upload"}
+                </>
+              )}
+            </label>
+          ) : null}
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <button
           type="submit"

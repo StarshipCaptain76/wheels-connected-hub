@@ -13,8 +13,19 @@ import {
   type MyListing,
   type ListingStatus,
 } from "@/lib/listings.functions";
-import { Plus, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft, Pencil } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  EyeOff,
+  CheckCircle2,
+  Loader2,
+  ArrowLeft,
+  Pencil,
+  Upload,
+  X,
+} from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const fieldCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1.5 text-sm text-ink";
 

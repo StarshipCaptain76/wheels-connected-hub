@@ -1,5 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useSuspenseQuery,
+  useQueryClient,
+  useQuery,
+} from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,9 +13,11 @@ import {
   listPendingListings,
   moderateListing,
   adminUpdateListing,
+  adminCreateListing,
   type MyListing,
 } from "@/lib/listings.functions";
-import { Check, X, Loader2, Pencil } from "lucide-react";
+import { listAllMembers, type AdminMember } from "@/lib/admin-members.functions";
+import { Check, X, Loader2, Pencil, Plus } from "lucide-react";
 
 const queueQuery = queryOptions({
   queryKey: ["listings", "moderation"],

@@ -210,7 +210,8 @@ function AdminMembersPage() {
   function renderRow(m: AdminMember) {
     const busy = busyId === m.user_id;
     return (
-      <tr key={m.user_id} className="border-t border-ink/10 bg-paper align-top">
+      <Fragment key={m.user_id}>
+      <tr className="border-t border-ink/10 bg-paper align-top">
         <td className="px-3 py-2 font-mono text-ink/70">
           {String(m.member_number).padStart(4, "0")}
         </td>
@@ -258,9 +259,24 @@ function AdminMembersPage() {
             <Shield className="h-3 w-3" /> {m.is_admin ? "Admin" : "Grant"}
           </button>
         </td>
+        <td className="px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setEditId(editId === m.user_id ? null : m.user_id)}
+            title="Edit profile"
+            className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
+          >
+            <Pencil className="h-3 w-3" /> Edit
+          </button>
+        </td>
       </tr>
+      {editId === m.user_id && (
+        <EditMemberRow member={m} onDone={() => setEditId(null)} />
+      )}
+      </Fragment>
     );
   }
+
 
 
 

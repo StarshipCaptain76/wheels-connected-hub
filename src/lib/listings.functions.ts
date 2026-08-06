@@ -513,10 +513,14 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
         .select("email")
         .eq("user_id", user_id)
         .maybeSingle();
-      const patch: Record<string, string | null> = {};
-      if (prof?.display_name) patch['contact_name'] = prof.display_name;
-      if (prof?.phone !== undefined) patch['contact_phone'] = prof?.phone ?? null;
-      if (em?.email) patch['contact_email'] = em.email;
+      const patch: {
+        contact_name?: string;
+        contact_phone?: string | null;
+        contact_email?: string;
+      } = {};
+      if (prof?.display_name) patch.contact_name = prof.display_name;
+      patch.contact_phone = prof?.phone ?? null;
+      if (em?.email) patch.contact_email = em.email;
       if (Object.keys(patch).length > 0) {
         const { error: cErr } = await client
           .from("listing_contacts")

@@ -325,6 +325,7 @@ function AdminMembersPage() {
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Contact</th>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Status</th>
               <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Admin</th>
+              <th className="px-3 py-2 text-left text-xs font-bold uppercase tracking-wider">Edit</th>
             </tr>
           </thead>
           <tbody>

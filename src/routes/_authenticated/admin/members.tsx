@@ -16,7 +16,7 @@ import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil } from "l
 function SectionRow({ label }: { label: string }) {
   return (
     <tr className="border-t-2 border-ink bg-ink/5">
-      <td colSpan={5} className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink">
+      <td colSpan={6} className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink">
         {label}
       </td>
     </tr>
@@ -230,7 +230,7 @@ function AdminMembersPage() {
 
             {groups.admins.length > 0 && (
               <tr className="border-t-2 border-ink bg-ink/5">
-                <td colSpan={5} className="px-3 py-2">
+                <td colSpan={6} className="px-3 py-2">
                   <button
                     type="button"
                     onClick={() => setAdminsOpen((v) => !v)}
@@ -250,7 +250,7 @@ function AdminMembersPage() {
 
             {totalShown === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-8 text-center text-ink/50">
+                <td colSpan={6} className="px-3 py-8 text-center text-ink/50">
                   No members match.
                 </td>
               </tr>

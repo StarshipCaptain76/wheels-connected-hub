@@ -220,6 +220,213 @@ function EditListing({
   );
 }
 
+function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const create = useServerFn(adminCreateListing);
+  const { data: members = [] } = useQuery({
+    queryKey: ["admin", "members"],
+    queryFn: () => listAllMembers(),
+  });
+  const [form, setForm] = useState({
+    owner_user_id: "",
+    title: "",
+    title_af: "",
+    description: "",
+    description_af: "",
+    price_zar: "",
+    category: "cars" as MyListing["category"],
+    condition: "used" as MyListing["condition"],
+    location: "",
+    contact_name: "",
+    contact_phone: "",
+    contact_email: "",
+    status: "approved" as "approved" | "pending",
+  });
+  const [saving, setSaving] = useState(false);
+
+  function pickMember(id: string) {
+    const m = members.find((x) => x.user_id === id);
+    setForm((f) => ({
+      ...f,
+      owner_user_id: id,
+      contact_name: m?.display_name ?? f.contact_name,
+      contact_email: m?.email ?? f.contact_email,
+      contact_phone: m?.phone ?? f.contact_phone,
+      location: f.location || (m?.town ?? ""),
+    }));
+  }
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.owner_user_id) {
+      toast.error(lang === "af" ? "Kies 'n lid" : "Choose a member");
+      return;
+    }
+    setSaving(true);
+    try {
+      await create({
+        data: {
+          owner_user_id: form.owner_user_id,
+          title: form.title.trim(),
+          title_af: form.title_af.trim() || null,
+          description: form.description.trim(),
+          description_af: form.description_af.trim() || null,
+          price_zar: form.price_zar.trim() === "" ? null : Number(form.price_zar),
+          category: form.category,
+          condition: form.condition,
+          location: form.location.trim() || null,
+          contact_name: form.contact_name.trim(),
+          contact_phone: form.contact_phone.trim() || null,
+          contact_email: form.contact_email.trim(),
+          status: form.status,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(lang === "af" ? "Advertensie geskep" : "Listing created");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-4 space-y-2 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
+    >
+      <p className="font-display text-lg text-ink">
+        {lang === "af" ? "Nuwe advertensie vir 'n lid" : "New listing for a member"}
+      </p>
+      <select className={field} value={form.owner_user_id} onChange={(e) => pickMember(e.target.value)}>
+        <option value="">
+          {lang === "af" ? "Kies lid (eienaar)…" : "Choose member (owner)…"}
+        </option>
+        {members.map((m) => (
+          <option key={m.user_id} value={m.user_id}>
+            #{m.member_number} · {m.display_name ?? m.email ?? m.user_id}
+          </option>
+        ))}
+      </select>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className={field}
+          value={form.title}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder={lang === "af" ? "Titel" : "Title"}
+        />
+        <input
+          className={field}
+          value={form.title_af}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title_af: e.target.value })}
+          placeholder={lang === "af" ? "Titel (Afr)" : "Title (Afrikaans)"}
+        />
+      </div>
+      <textarea
+        className={field}
+        rows={3}
+        maxLength={4000}
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing" : "Description"}
+      />
+      <div className="grid gap-2 sm:grid-cols-4">
+        <input
+          className={field}
+          type="number"
+          min={0}
+          value={form.price_zar}
+          onChange={(e) => setForm({ ...form, price_zar: e.target.value })}
+          placeholder={lang === "af" ? "Prys (R)" : "Price (R)"}
+        />
+        <select
+          className={field}
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value as MyListing["category"] })}
+        >
+          {Object.keys(CATEGORY_LABELS).map((c) => (
+            <option key={c} value={c}>
+              {lang === "af" ? CATEGORY_LABELS[c]!.af : CATEGORY_LABELS[c]!.en}
+            </option>
+          ))}
+        </select>
+        <select
+          className={field}
+          value={form.condition}
+          onChange={(e) =>
+            setForm({ ...form, condition: e.target.value as MyListing["condition"] })
+          }
+        >
+          <option value="new">new</option>
+          <option value="used">used</option>
+          <option value="project">project</option>
+        </select>
+        <input
+          className={field}
+          maxLength={120}
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          placeholder={lang === "af" ? "Plek" : "Location"}
+        />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <input
+          className={field}
+          value={form.contact_name}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+          placeholder={lang === "af" ? "Kontaknaam" : "Contact name"}
+        />
+        <input
+          className={field}
+          value={form.contact_email}
+          maxLength={200}
+          onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+          placeholder={lang === "af" ? "Kontak e-pos" : "Contact email"}
+        />
+        <input
+          className={field}
+          value={form.contact_phone}
+          maxLength={40}
+          onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
+          placeholder={lang === "af" ? "Kontak foon" : "Contact phone"}
+        />
+      </div>
+      <select
+        className={field}
+        value={form.status}
+        onChange={(e) => setForm({ ...form, status: e.target.value as "approved" | "pending" })}
+      >
+        <option value="approved">
+          {lang === "af" ? "Publiseer dadelik (goedgekeur)" : "Publish now (approved)"}
+        </option>
+        <option value="pending">
+          {lang === "af" ? "Hou hangend vir hersiening" : "Hold as pending"}
+        </option>
+      </select>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        >
+          {saving ? (lang === "af" ? "Stoor…" : "Saving…") : lang === "af" ? "Skep" : "Create"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink"
+        >
+          {lang === "af" ? "Kanselleer" : "Cancel"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function AdminClassifieds() {
   const { lang } = useI18n();
   const { data: rows } = useSuspenseQuery(queueQuery);

@@ -230,7 +230,7 @@ function EditListing({
 function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => void }) {
   const qc = useQueryClient();
   const create = useServerFn(adminCreateListing);
-  const { data: members = [] } = useQuery({
+  const { data: members = [] } = useQuery<AdminMember[]>({
     queryKey: ["admin", "members"],
     queryFn: () => listAllMembers(),
   });

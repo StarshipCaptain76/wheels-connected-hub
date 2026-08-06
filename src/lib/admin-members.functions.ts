@@ -63,7 +63,10 @@ export const listAllMembers = createServerFn({ method: "GET" })
         .order("member_number", { ascending: true });
       if (error) throw new Error(`Could not load members: ${error.message}`);
       profiles = (data ?? []) as Array<Record<string, unknown>>;
-      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
       adminRows = (roles ?? []) as Array<{ user_id: string }>;
     }
 
@@ -146,8 +149,6 @@ export const approveAllPendingMembers = createServerFn({ method: "POST" })
     if (error) throw new Error(`Could not approve pending members: ${error.message}`);
     return { approved: (data ?? []).length };
   });
-
-
 
 export const setAdminRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

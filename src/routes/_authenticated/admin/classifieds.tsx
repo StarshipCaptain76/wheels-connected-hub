@@ -17,7 +17,6 @@ const queueQuery = queryOptions({
   queryFn: () => listPendingListings(),
 });
 
-
 export const Route = createFileRoute("/_authenticated/admin/classifieds")({
   head: () => ({ meta: [{ title: "Moderation — Just Wheels" }] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(queueQuery),
@@ -36,13 +35,7 @@ const CATEGORY_LABELS: Record<string, { en: string; af: string }> = {
   other: { en: "Other", af: "Ander" },
 };
 
-function StatusBadge({
-  status,
-  lang,
-}: {
-  status: string;
-  lang: string;
-}) {
+function StatusBadge({ status, lang }: { status: string; lang: string }) {
   const labels: Record<string, { en: string; af: string; className: string }> = {
     pending: {
       en: "Pending",
@@ -79,8 +72,7 @@ function StatusBadge({
   );
 }
 
-const field =
-  "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-sm text-ink";
+const field = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-sm text-ink";
 
 function EditListing({
   listing,
@@ -133,7 +125,10 @@ function EditListing({
   }
 
   return (
-    <form onSubmit={submit} className="mt-3 space-y-2 rounded border-2 border-dashed border-ink/40 p-3">
+    <form
+      onSubmit={submit}
+      className="mt-3 space-y-2 rounded border-2 border-dashed border-ink/40 p-3"
+    >
       <div className="grid gap-2 sm:grid-cols-2">
         <input
           className={field}
@@ -189,7 +184,9 @@ function EditListing({
         <select
           className={field}
           value={form.condition}
-          onChange={(e) => setForm({ ...form, condition: e.target.value as MyListing["condition"] })}
+          onChange={(e) =>
+            setForm({ ...form, condition: e.target.value as MyListing["condition"] })
+          }
         >
           <option value="new">new</option>
           <option value="used">used</option>
@@ -223,7 +220,6 @@ function EditListing({
   );
 }
 
-
 function AdminClassifieds() {
   const { lang } = useI18n();
   const { data: rows } = useSuspenseQuery(queueQuery);
@@ -231,7 +227,6 @@ function AdminClassifieds() {
   const moderateFn = useServerFn(moderateListing);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-
 
   async function decide(id: string, status: "approved" | "rejected") {
     setBusyId(id);
@@ -249,9 +244,7 @@ function AdminClassifieds() {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(
-        lang === "af" ? `Kon nie bywerk nie: ${msg}` : `Could not update: ${msg}`,
-      );
+      toast.error(lang === "af" ? `Kon nie bywerk nie: ${msg}` : `Could not update: ${msg}`);
     } finally {
       setBusyId(null);
     }
@@ -315,80 +308,87 @@ function AdminClassifieds() {
                 }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                {l.photos[0] ? (
-                  <img
-                    src={l.photos[0].url}
-                    alt=""
-                    className="h-32 w-full rounded border-2 border-ink object-cover sm:h-24 sm:w-24 sm:flex-none"
-                  />
-                ) : (
-                  <div className="h-24 w-full rounded border-2 border-ink bg-ink/10 sm:w-24 sm:flex-none" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={l.status} lang={lang} />
-                    <span className="text-xs uppercase tracking-wider text-ink/50">
-                      {lang === "af"
-                        ? (CATEGORY_LABELS[l.category]?.af ?? l.category)
-                        : (CATEGORY_LABELS[l.category]?.en ?? l.category)}
-                    </span>
+                  {l.photos[0] ? (
+                    <img
+                      src={l.photos[0].url}
+                      alt=""
+                      className="h-32 w-full rounded border-2 border-ink object-cover sm:h-24 sm:w-24 sm:flex-none"
+                    />
+                  ) : (
+                    <div className="h-24 w-full rounded border-2 border-ink bg-ink/10 sm:w-24 sm:flex-none" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={l.status} lang={lang} />
+                      <span className="text-xs uppercase tracking-wider text-ink/50">
+                        {lang === "af"
+                          ? (CATEGORY_LABELS[l.category]?.af ?? l.category)
+                          : (CATEGORY_LABELS[l.category]?.en ?? l.category)}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
+                    <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>
+                    <p className="mt-1 text-xs text-ink/60">
+                      {l.contact?.contact_name} · {l.contact?.contact_email}
+                    </p>
                   </div>
-                  <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
-                  <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>
-                  <p className="mt-1 text-xs text-ink/60">
-                    {l.contact?.contact_name} · {l.contact?.contact_email}
-                  </p>
-                </div>
-                <div className="flex flex-row gap-2 sm:flex-col">
-                  <button
-                    type="button"
-                    disabled={isBusy || isApproved}
-                    onClick={() => decide(l.id, "approved")}
-                    title={
-                      isApproved
-                        ? lang === "af"
-                          ? "Reeds goedgekeur"
-                          : "Already approved"
-                        : lang === "af"
-                          ? "Keur goed"
-                          : "Approve"
-                    }
-                    className="rounded border-2 border-emerald-600 bg-emerald-600 p-2 text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isBusy || isRejected}
-                    onClick={() => decide(l.id, "rejected")}
-                    title={
-                      isRejected
-                        ? lang === "af"
-                          ? "Reeds afgekeur"
-                          : "Already rejected"
-                        : lang === "af"
-                          ? "Keur af"
-                          : "Reject"
-                    }
-                    className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditId(editId === l.id ? null : l.id)}
-                    title={lang === "af" ? "Wysig" : "Edit"}
-                    className="rounded border-2 border-ink bg-paper p-2 text-ink hover:opacity-90"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                </div>
+                  <div className="flex flex-row gap-2 sm:flex-col">
+                    <button
+                      type="button"
+                      disabled={isBusy || isApproved}
+                      onClick={() => decide(l.id, "approved")}
+                      title={
+                        isApproved
+                          ? lang === "af"
+                            ? "Reeds goedgekeur"
+                            : "Already approved"
+                          : lang === "af"
+                            ? "Keur goed"
+                            : "Approve"
+                      }
+                      className="rounded border-2 border-emerald-600 bg-emerald-600 p-2 text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBusy || isRejected}
+                      onClick={() => decide(l.id, "rejected")}
+                      title={
+                        isRejected
+                          ? lang === "af"
+                            ? "Reeds afgekeur"
+                            : "Already rejected"
+                          : lang === "af"
+                            ? "Keur af"
+                            : "Reject"
+                      }
+                      className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditId(editId === l.id ? null : l.id)}
+                      title={lang === "af" ? "Wysig" : "Edit"}
+                      className="rounded border-2 border-ink bg-paper p-2 text-ink hover:opacity-90"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 {editId === l.id && (
                   <EditListing listing={l} lang={lang} onClose={() => setEditId(null)} />
                 )}
               </li>
-
             );
           })}
         </ul>

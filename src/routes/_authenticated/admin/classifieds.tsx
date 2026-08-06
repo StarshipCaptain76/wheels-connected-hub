@@ -4,13 +4,19 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/I18nProvider";
-import { listPendingListings, moderateListing } from "@/lib/listings.functions";
-import { Check, X, Loader2 } from "lucide-react";
+import {
+  listPendingListings,
+  moderateListing,
+  adminUpdateListing,
+  type MyListing,
+} from "@/lib/listings.functions";
+import { Check, X, Loader2, Pencil } from "lucide-react";
 
 const queueQuery = queryOptions({
   queryKey: ["listings", "moderation"],
   queryFn: () => listPendingListings(),
 });
+
 
 export const Route = createFileRoute("/_authenticated/admin/classifieds")({
   head: () => ({ meta: [{ title: "Moderation — Just Wheels" }] }),

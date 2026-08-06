@@ -359,30 +359,17 @@ export const listPendingListings = createServerFn({ method: "GET" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    let rows: unknown[] | null = null;
-    let client: typeof supabase = supabase;
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      client = supabaseAdmin as typeof supabase;
-      const res = await supabaseAdmin
-        .from("listings")
-        .select(LISTING_WITH_CONTACT_SELECT)
-        .in("status", ["pending", "approved", "rejected"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (res.error) throw res.error;
-      rows = res.data;
-    } catch (e) {
-      console.error("[admin listings] service role list failed, falling back", e);
-      const res = await supabase
-        .from("listings")
-        .select(LISTING_WITH_CONTACT_SELECT)
-        .in("status", ["pending", "approved", "rejected"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (res.error) throw res.error;
-      rows = res.data;
-    }
+    const { elevated } = await import("./elevated.server");
+    const client = (await elevated(supabase)) as typeof supabase;
+    const res = await client
+      .from("listings")
+      .select(LISTING_WITH_CONTACT_SELECT)
+      .in("status", ["pending", "approved", "rejected"])
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (res.error) throw new Error(`Could not load listings: ${res.error.message}`);
+    const rows: unknown[] | null = res.data;
+
 
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
 
@@ -421,21 +408,16 @@ export const moderateListing = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin
-        .from("listings")
-        .update({ status: data.status })
-        .eq("id", data.id);
-      if (error) throw error;
-    } catch (e) {
-      const { error } = await supabase
+    {
+      const { elevated } = await import("./elevated.server");
+      const client = (await elevated(supabase)) as typeof supabase;
+      const { error } = await client
         .from("listings")
         .update({ status: data.status })
         .eq("id", data.id);
       if (error) throw new Error(`Could not update listing: ${error.message}`);
-      if (e instanceof Error) console.error("[admin listings] service role moderate failed", e);
     }
+
 
     if (data.status === "approved") {
       try {

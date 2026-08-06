@@ -444,3 +444,45 @@ export const moderateListing = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+
+/** Admin: edit any listing's content (title, description, price, category, etc.). */
+const adminEditSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(3).max(120),
+  title_af: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().min(10).max(4000),
+  description_af: z.string().trim().max(4000).nullable().optional(),
+  price_zar: z.number().nonnegative().max(99999999).nullable().optional(),
+  category: z.enum(["parts", "cars", "memorabilia", "other"]),
+  condition: z.enum(["new", "used", "project"]),
+  location: z.string().trim().max(120).nullable().optional(),
+});
+
+export const adminUpdateListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => adminEditSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { id, ...values } = data;
+    const { elevated } = await import("./elevated.server");
+    const client = (await elevated(supabase)) as typeof supabase;
+    const { error } = await client
+      .from("listings")
+      .update({
+        ...values,
+        title_af: values.title_af ?? null,
+        description_af: values.description_af ?? null,
+        price_zar: values.price_zar ?? null,
+        location: values.location ?? null,
+      })
+      .eq("id", id);
+    if (error) throw new Error(`Could not save listing: ${error.message}`);
+    return { ok: true };
+  });

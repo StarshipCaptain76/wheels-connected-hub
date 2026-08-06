@@ -107,7 +107,7 @@ function EditListing({
   const [uploading, setUploading] = useState(false);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [added, setAdded] = useState<{ path: string; url: string }[]>([]);
-  const [ownerId, setOwnerId] = useState<string>(listing.user_id);
+  const [ownerId, setOwnerId] = useState<string>(listing.user_id ?? "");
   const membersQ = useQuery<AdminMember[]>({
     queryKey: ["admin", "members", "all"],
     queryFn: () => listAllMembers(),

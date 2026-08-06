@@ -43,8 +43,8 @@ function NewListingPage() {
   const [description, setDescription] = useState("");
   const [descriptionAf, setDescriptionAf] = useState("");
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleFiles(files: File[]) {
+    if (files.length === 0) return;
     setUploading(true);
     setError(null);
     try {
@@ -52,7 +52,7 @@ function NewListingPage() {
       const userId = session.session?.user.id;
       if (!userId) throw new Error("Not signed in");
       const uploaded: Photo[] = [];
-      for (const file of Array.from(files).slice(0, 6 - photos.length)) {
+      for (const file of files.slice(0, 6 - photos.length)) {
         if (!file.type.startsWith("image/")) continue;
         if (file.size > 5 * 1024 * 1024) {
           setError(lang === "af" ? "Maks 5MB per foto" : "Max 5MB per photo");
@@ -252,7 +252,7 @@ function NewListingPage() {
                     accept="image/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => handleFiles(e.target.files)}
+                    onChange={(e) => handleFiles(Array.from(e.target.files ?? []))}
                     disabled={uploading}
                   />
                 </label>

@@ -441,6 +441,7 @@ function AdminClassifieds() {
   const moderateFn = useServerFn(moderateListing);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   async function decide(id: string, status: "approved" | "rejected") {
     setBusyId(id);

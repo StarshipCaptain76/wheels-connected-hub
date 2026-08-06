@@ -368,12 +368,18 @@ function MyListingsPage() {
 function MineRow({
   listing,
   busy,
+  editing,
+  onEdit,
+  onCloseEdit,
   onDelist,
   onDelete,
   lang,
 }: {
   listing: MyListing;
   busy: boolean;
+  editing: boolean;
+  onEdit: () => void;
+  onCloseEdit: () => void;
   onDelist: () => void;
   onDelete: () => void;
   lang: "en" | "af";
@@ -383,73 +389,92 @@ function MineRow({
   const isGone = listing.status === "sold" || listing.status === "rejected";
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:items-center">
-      {listing.photos[0] ? (
-        <img
-          src={listing.photos[0].url}
-          alt=""
-          className="h-20 w-full rounded border-2 border-ink object-cover sm:h-16 sm:w-16"
-        />
-      ) : (
-        <div className="h-16 w-full rounded border-2 border-ink bg-ink/10 sm:w-16" />
-      )}
-
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusColor(listing.status)}`}
-          >
-            {statusLabel(listing.status, lang)}
-          </span>
-          <span className="text-xs uppercase tracking-wider text-ink/50">{listing.category}</span>
-        </div>
-        <p className="mt-1 truncate font-display text-lg text-ink">{listing.title}</p>
-        {listing.price_zar != null && (
-          <p className="text-sm text-ink/70">R {listing.price_zar.toLocaleString("en-ZA")}</p>
+    <li className="rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        {listing.photos[0] ? (
+          <img
+            src={listing.photos[0].url}
+            alt=""
+            className="h-20 w-full rounded border-2 border-ink object-cover sm:h-16 sm:w-16"
+          />
+        ) : (
+          <div className="h-16 w-full rounded border-2 border-ink bg-ink/10 sm:w-16" />
         )}
-      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {(isLive || isPending) && (
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusColor(listing.status)}`}
+            >
+              {statusLabel(listing.status, lang)}
+            </span>
+            <span className="text-xs uppercase tracking-wider text-ink/50">{listing.category}</span>
+          </div>
+          <p className="mt-1 truncate font-display text-lg text-ink">{listing.title}</p>
+          {listing.price_zar != null && (
+            <p className="text-sm text-ink/70">R {listing.price_zar.toLocaleString("en-ZA")}</p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            title={lang === "af" ? "Wysig advertensie" : "Edit listing"}
+            className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-white"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            {lang === "af" ? "Wysig" : "Edit"}
+          </button>
+
+          {(isLive || isPending) && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={onDelist}
+              title={
+                lang === "af"
+                  ? "Verwyder van markplek (merk as verkoop / versteek)"
+                  : "Remove from marketplace (mark sold / hide)"
+              }
+              className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-white disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : isLive ? (
+                <EyeOff className="h-3.5 w-3.5" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              )}
+              {lang === "af" ? "Verwyder" : "Delist"}
+            </button>
+          )}
+
+          {isGone && (
+            <span className="text-xs text-ink/50">
+              {lang === "af" ? "Nie meer openbaar nie" : "Not public"}
+            </span>
+          )}
+
           <button
             type="button"
             disabled={busy}
-            onClick={onDelist}
-            title={
-              lang === "af"
-                ? "Verwyder van markplek (merk as verkoop / versteek)"
-                : "Remove from marketplace (mark sold / hide)"
-            }
-            className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink hover:text-white disabled:opacity-50"
+            onClick={onDelete}
+            title={lang === "af" ? "Skrap permanent" : "Delete permanently"}
+            className="inline-flex items-center gap-1.5 rounded-md border-2 border-primary bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary hover:text-white disabled:opacity-50"
           >
             {busy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : isLive ? (
-              <EyeOff className="h-3.5 w-3.5" />
             ) : (
-              <CheckCircle2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3.5 w-3.5" />
             )}
-            {lang === "af" ? "Verwyder" : "Delist"}
+            {lang === "af" ? "Skrap" : "Delete"}
           </button>
-        )}
-
-        {isGone && (
-          <span className="text-xs text-ink/50">
-            {lang === "af" ? "Nie meer openbaar nie" : "Not public"}
-          </span>
-        )}
-
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onDelete}
-          title={lang === "af" ? "Skrap permanent" : "Delete permanently"}
-          className="inline-flex items-center gap-1.5 rounded-md border-2 border-primary bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-primary hover:bg-primary hover:text-white disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-          {lang === "af" ? "Skrap" : "Delete"}
-        </button>
+        </div>
       </div>
+
+      {editing && <EditMyListing listing={listing} lang={lang} onClose={onCloseEdit} />}
     </li>
   );
 }
+

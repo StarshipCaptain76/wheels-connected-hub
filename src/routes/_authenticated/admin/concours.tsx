@@ -9,6 +9,7 @@ import {
   upsertConcoursQuestion,
   type ConcoursQuestion,
 } from "@/lib/concours.functions";
+import { TranslateButton } from "@/components/TranslateButton";
 import { Plus, Pencil, Trophy, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/concours")({

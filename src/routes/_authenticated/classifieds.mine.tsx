@@ -9,11 +9,214 @@ import {
   listMyListings,
   deleteListing,
   markSold,
+  updateMyListing,
   type MyListing,
   type ListingStatus,
 } from "@/lib/listings.functions";
-import { Plus, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  EyeOff,
+  CheckCircle2,
+  Loader2,
+  ArrowLeft,
+  Pencil,
+} from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+
+const fieldCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1.5 text-sm text-ink";
+
+function EditMyListing({
+  listing,
+  lang,
+  onClose,
+}: {
+  listing: MyListing;
+  lang: "en" | "af";
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const save = useServerFn(updateMyListing);
+  const [form, setForm] = useState({
+    title: listing.title,
+    title_af: listing.title_af ?? "",
+    description: listing.description,
+    description_af: listing.description_af ?? "",
+    price_zar: listing.price_zar == null ? "" : String(listing.price_zar),
+    category: listing.category,
+    condition: listing.condition,
+    location: listing.location ?? "",
+    contact_name: listing.contact?.contact_name ?? "",
+    contact_phone: listing.contact?.contact_phone ?? "",
+    contact_email: listing.contact?.contact_email ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await save({
+        data: {
+          id: listing.id,
+          title: form.title.trim(),
+          title_af: form.title_af.trim() || null,
+          description: form.description.trim(),
+          description_af: form.description_af.trim() || null,
+          price_zar: form.price_zar.trim() === "" ? null : Number(form.price_zar),
+          category: form.category,
+          condition: form.condition,
+          location: form.location.trim() || null,
+          contact_name: form.contact_name.trim(),
+          contact_phone: form.contact_phone.trim() || null,
+          contact_email: form.contact_email.trim(),
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(
+        lang === "af"
+          ? "Gestoor — wag weer op goedkeuring"
+          : "Saved — sent back for admin approval",
+      );
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-3 space-y-2 rounded-lg border-2 border-dashed border-ink/40 p-3"
+    >
+      <p className="text-xs text-ink/60">
+        {lang === "af"
+          ? "Wysigings word weer deur 'n admin goedgekeur voor dit publiek wys."
+          : "Edits go back to an admin for re-approval before showing publicly."}
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className={fieldCls}
+          required
+          maxLength={120}
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder={lang === "af" ? "Titel (EN)" : "Title (EN)"}
+        />
+        <input
+          className={fieldCls}
+          maxLength={120}
+          value={form.title_af}
+          onChange={(e) => setForm({ ...form, title_af: e.target.value })}
+          placeholder="Titel (AF)"
+        />
+      </div>
+      <textarea
+        className={fieldCls}
+        required
+        rows={3}
+        maxLength={4000}
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing (EN)" : "Description (EN)"}
+      />
+      <textarea
+        className={fieldCls}
+        rows={3}
+        maxLength={4000}
+        value={form.description_af}
+        onChange={(e) => setForm({ ...form, description_af: e.target.value })}
+        placeholder="Beskrywing (AF)"
+      />
+      <div className="grid gap-2 sm:grid-cols-4">
+        <input
+          className={fieldCls}
+          type="number"
+          min="0"
+          value={form.price_zar}
+          onChange={(e) => setForm({ ...form, price_zar: e.target.value })}
+          placeholder={lang === "af" ? "Prys (R)" : "Price (R)"}
+        />
+        <select
+          className={fieldCls}
+          value={form.category}
+          onChange={(e) =>
+            setForm({ ...form, category: e.target.value as MyListing["category"] })
+          }
+        >
+          <option value="parts">parts</option>
+          <option value="cars">cars</option>
+          <option value="memorabilia">memorabilia</option>
+          <option value="other">other</option>
+        </select>
+        <select
+          className={fieldCls}
+          value={form.condition}
+          onChange={(e) =>
+            setForm({ ...form, condition: e.target.value as MyListing["condition"] })
+          }
+        >
+          <option value="new">new</option>
+          <option value="used">used</option>
+          <option value="project">project</option>
+        </select>
+        <input
+          className={fieldCls}
+          maxLength={120}
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          placeholder={lang === "af" ? "Dorp" : "Location"}
+        />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <input
+          className={fieldCls}
+          required
+          maxLength={120}
+          value={form.contact_name}
+          onChange={(e) => setForm({ ...form, contact_name: e.target.value })}
+          placeholder={lang === "af" ? "Kontaknaam" : "Contact name"}
+        />
+        <input
+          className={fieldCls}
+          maxLength={40}
+          value={form.contact_phone}
+          onChange={(e) => setForm({ ...form, contact_phone: e.target.value })}
+          placeholder={lang === "af" ? "Selfoon" : "Phone"}
+        />
+        <input
+          className={fieldCls}
+          required
+          type="email"
+          maxLength={200}
+          value={form.contact_email}
+          onChange={(e) => setForm({ ...form, contact_email: e.target.value })}
+          placeholder="Email"
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        >
+          {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {lang === "af" ? "Stoor" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink"
+        >
+          {lang === "af" ? "Kanselleer" : "Cancel"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 
 const myListingsQuery = queryOptions({
   queryKey: ["listings", "mine"],

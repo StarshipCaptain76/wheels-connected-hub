@@ -72,6 +72,12 @@ function AdminConcoursQuestions() {
 
   const activeCount = all.filter((q) => q.active !== false).length;
   const categories = Array.from(new Set(all.map((q) => q.category))).sort();
+  const catAfMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const q of all) if (q.category_af && !m[q.category]) m[q.category] = q.category_af;
+    return m;
+  }, [all]);
+
 
   async function save() {
     if (!draft) return;

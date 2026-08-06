@@ -7,9 +7,11 @@ import {
   updateMemberStatus,
   setAdminRole,
   approveAllPendingMembers,
+  adminUpdateMemberProfile,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, CheckCheck, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil } from "lucide-react";
+
 
 function SectionRow({ label }: { label: string }) {
   return (

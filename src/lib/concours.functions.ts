@@ -14,6 +14,7 @@ export type ConcoursQuestion = {
   text_af: string;
   scoring_type: "scale_1_10" | "yes_no" | "yes_no_na" | "count";
   sort_order: number;
+  active?: boolean;
 };
 
 export type EventConcours = {

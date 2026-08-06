@@ -10,6 +10,7 @@ import { listAllGalleryItems } from "@/lib/gallery.functions";
 import { listSubscribers } from "@/lib/newsletter.functions";
 import { listAllSponsors } from "@/lib/sponsors.functions";
 import { sendTestNotification } from "@/lib/notify-test.functions";
+import { listAllConcoursQuestionsAdmin } from "@/lib/concours.functions";
 import {
   Tag,
   Calendar,
@@ -19,6 +20,7 @@ import {
   Handshake,
   ArrowRight,
   Bell,
+  Trophy,
 } from "lucide-react";
 
 
@@ -70,6 +72,12 @@ function AdminOverview() {
   const membersQ = useQuery({ queryKey: ["admin", "members"], queryFn: () => members() });
   const subsQ = useQuery({ queryKey: ["newsletter", "subscribers"], queryFn: () => subs() });
   const sponsorsQ = useQuery({ queryKey: ["sponsors", "admin"], queryFn: () => sponsors() });
+  const questionsFn = useServerFn(listAllConcoursQuestionsAdmin);
+  const questionsQ = useQuery({
+    queryKey: ["concours-questions-admin"],
+    queryFn: () => questionsFn(),
+  });
+  const activeQuestions = (questionsQ.data ?? []).filter((q) => q.active !== false).length;
 
   const now = Date.now();
   const upcoming = (eventsQ.data ?? []).filter((e) => new Date(e.starts_at).getTime() > now).length;
@@ -132,6 +140,12 @@ function AdminOverview() {
           : undefined,
       icon: Handshake,
       highlight: expireThisMonth > 0,
+    },
+    {
+      to: "/admin/concours",
+      label: "Active concours questions",
+      value: questionsQ.isLoading ? "…" : activeQuestions,
+      icon: Trophy,
     },
     {
       to: "/admin/newsletter",

@@ -46,6 +46,7 @@ import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
 import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
+import { Route as AuthenticatedAdminConcoursRouteImport } from './routes/_authenticated/admin/concours'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin/classifieds'
 import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
@@ -246,6 +247,12 @@ const AuthenticatedAdminEventsRoute =
     path: '/events',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminConcoursRoute =
+  AuthenticatedAdminConcoursRouteImport.update({
+    id: '/concours',
+    path: '/concours',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminClassifiedsRoute =
   AuthenticatedAdminClassifiedsRouteImport.update({
     id: '/classifieds',
@@ -280,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/classifieds/': typeof ClassifiedsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/admin/concours': typeof AuthenticatedAdminConcoursRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
@@ -316,6 +324,7 @@ export interface FileRoutesByTo {
   '/classifieds': typeof ClassifiedsIndexRoute
   '/events': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/admin/concours': typeof AuthenticatedAdminConcoursRoute
   '/admin/events': typeof AuthenticatedAdminEventsRoute
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/classifieds/': typeof ClassifiedsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
+  '/_authenticated/admin/concours': typeof AuthenticatedAdminConcoursRoute
   '/_authenticated/admin/events': typeof AuthenticatedAdminEventsRoute
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/members': typeof AuthenticatedAdminMembersRoute
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/classifieds/'
     | '/events/'
     | '/admin/classifieds'
+    | '/admin/concours'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/members'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/classifieds'
     | '/events'
     | '/admin/classifieds'
+    | '/admin/concours'
     | '/admin/events'
     | '/admin/gallery'
     | '/admin/members'
@@ -477,6 +489,7 @@ export interface FileRouteTypes {
     | '/classifieds/'
     | '/events/'
     | '/_authenticated/admin/classifieds'
+    | '/_authenticated/admin/concours'
     | '/_authenticated/admin/events'
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/members'
@@ -778,6 +791,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEventsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/concours': {
+      id: '/_authenticated/admin/concours'
+      path: '/concours'
+      fullPath: '/admin/concours'
+      preLoaderRoute: typeof AuthenticatedAdminConcoursRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/classifieds': {
       id: '/_authenticated/admin/classifieds'
       path: '/classifieds'
@@ -797,6 +817,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminClassifiedsRoute: typeof AuthenticatedAdminClassifiedsRoute
+  AuthenticatedAdminConcoursRoute: typeof AuthenticatedAdminConcoursRoute
   AuthenticatedAdminEventsRoute: typeof AuthenticatedAdminEventsRoute
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminMembersRoute: typeof AuthenticatedAdminMembersRoute
@@ -809,6 +830,7 @@ interface AuthenticatedAdminRouteRouteChildren {
 const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren =
   {
     AuthenticatedAdminClassifiedsRoute: AuthenticatedAdminClassifiedsRoute,
+    AuthenticatedAdminConcoursRoute: AuthenticatedAdminConcoursRoute,
     AuthenticatedAdminEventsRoute: AuthenticatedAdminEventsRoute,
     AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
     AuthenticatedAdminMembersRoute: AuthenticatedAdminMembersRoute,

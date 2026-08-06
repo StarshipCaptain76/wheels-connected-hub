@@ -637,6 +637,43 @@ export const updateMyListing = createServerFn({ method: "POST" })
       .eq("listing_id", id);
     if (cErr) throw new Error(cErr.message);
 
+    if (remove_photo_ids.length > 0) {
+      const { data: gone, error: delErr } = await supabase
+        .from("listing_photos")
+        .delete()
+        .eq("listing_id", id)
+        .in("id", remove_photo_ids)
+        .select("image_url");
+      if (delErr) throw new Error(`Could not remove photos: ${delErr.message}`);
+      const paths = (gone ?? []).map((p) => p.image_url as string).filter(Boolean);
+      if (paths.length > 0) {
+        try {
+          await supabase.storage.from("listings").remove(paths);
+        } catch {
+          /* best effort — the row is already gone */
+        }
+      }
+    }
+
+    if (add_photo_paths.length > 0) {
+      const { data: existing } = await supabase
+        .from("listing_photos")
+        .select("sort")
+        .eq("listing_id", id)
+        .order("sort", { ascending: false })
+        .limit(1);
+      const start = ((existing?.[0]?.sort as number | undefined) ?? -1) + 1;
+      const { error: insErr } = await supabase.from("listing_photos").insert(
+        add_photo_paths.map((p, i) => ({
+          listing_id: id,
+          image_url: p,
+          sort: start + i,
+        })),
+      );
+      if (insErr) throw new Error(`Could not add photos: ${insErr.message}`);
+    }
+
+
     try {
       const { fanOut } = await import("./notify.server");
       await fanOut(

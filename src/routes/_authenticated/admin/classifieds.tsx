@@ -79,6 +79,151 @@ function StatusBadge({
   );
 }
 
+const field =
+  "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-sm text-ink";
+
+function EditListing({
+  listing,
+  lang,
+  onClose,
+}: {
+  listing: MyListing;
+  lang: string;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const save = useServerFn(adminUpdateListing);
+  const [form, setForm] = useState({
+    title: listing.title,
+    title_af: listing.title_af ?? "",
+    description: listing.description,
+    description_af: listing.description_af ?? "",
+    price_zar: listing.price_zar == null ? "" : String(listing.price_zar),
+    category: listing.category,
+    condition: listing.condition,
+    location: listing.location ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await save({
+        data: {
+          id: listing.id,
+          title: form.title.trim(),
+          title_af: form.title_af.trim() || null,
+          description: form.description.trim(),
+          description_af: form.description_af.trim() || null,
+          price_zar: form.price_zar.trim() === "" ? null : Number(form.price_zar),
+          category: form.category,
+          condition: form.condition,
+          location: form.location.trim() || null,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(lang === "af" ? "Advertensie gestoor" : "Listing saved");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-3 space-y-2 rounded border-2 border-dashed border-ink/40 p-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className={field}
+          value={form.title}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder={lang === "af" ? "Titel" : "Title"}
+        />
+        <input
+          className={field}
+          value={form.title_af}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title_af: e.target.value })}
+          placeholder={lang === "af" ? "Titel (Afr)" : "Title (Afrikaans)"}
+        />
+      </div>
+      <textarea
+        className={field}
+        rows={3}
+        maxLength={4000}
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing" : "Description"}
+      />
+      <textarea
+        className={field}
+        rows={3}
+        maxLength={4000}
+        value={form.description_af}
+        onChange={(e) => setForm({ ...form, description_af: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing (Afr)" : "Description (Afrikaans)"}
+      />
+      <div className="grid gap-2 sm:grid-cols-4">
+        <input
+          className={field}
+          type="number"
+          min={0}
+          value={form.price_zar}
+          onChange={(e) => setForm({ ...form, price_zar: e.target.value })}
+          placeholder={lang === "af" ? "Prys (R)" : "Price (R)"}
+        />
+        <select
+          className={field}
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value as MyListing["category"] })}
+        >
+          {Object.keys(CATEGORY_LABELS).map((c) => (
+            <option key={c} value={c}>
+              {lang === "af" ? CATEGORY_LABELS[c]!.af : CATEGORY_LABELS[c]!.en}
+            </option>
+          ))}
+        </select>
+        <select
+          className={field}
+          value={form.condition}
+          onChange={(e) => setForm({ ...form, condition: e.target.value as MyListing["condition"] })}
+        >
+          <option value="new">new</option>
+          <option value="used">used</option>
+          <option value="project">project</option>
+        </select>
+        <input
+          className={field}
+          maxLength={120}
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          placeholder={lang === "af" ? "Plek" : "Location"}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        >
+          {saving ? (lang === "af" ? "Stoor…" : "Saving…") : lang === "af" ? "Stoor" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink"
+        >
+          {lang === "af" ? "Kanselleer" : "Cancel"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+
 function AdminClassifieds() {
   const { lang } = useI18n();
   const { data: rows } = useSuspenseQuery(queueQuery);

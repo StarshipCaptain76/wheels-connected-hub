@@ -598,7 +598,8 @@ export const updateMyListing = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => ownerEditSchema.parse(input))
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
-    const { id, contact_name, contact_phone, contact_email, ...values } = data;
+    const { id, contact_name, contact_phone, contact_email, add_photo_paths, remove_photo_ids, ...values } =
+      data;
 
     const { data: row, error: findErr } = await supabase
       .from("listings")

@@ -496,6 +496,19 @@ function AdminClassifieds() {
         )}
       </p>
 
+      {creating ? (
+        <NewListingForMember lang={lang} onClose={() => setCreating(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="mt-4 inline-flex items-center gap-2 rounded border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_0_var(--color-ink)]"
+        >
+          <Plus className="h-4 w-4" />
+          {lang === "af" ? "Nuwe advertensie vir lid" : "New listing for a member"}
+        </button>
+      )}
+
       {rows.length === 0 ? (
         <div className="mt-10 rounded-2xl border-2 border-dashed border-ink/20 bg-ink/5 px-6 py-16 text-center">
           <p className="font-display text-xl text-ink/50">

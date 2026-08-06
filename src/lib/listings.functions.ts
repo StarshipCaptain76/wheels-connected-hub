@@ -578,3 +578,86 @@ export const updateMyListing = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+// ── Admin: create a listing on behalf of a member ────────────────────
+
+const adminCreateSchema = z.object({
+  owner_user_id: z.string().uuid(),
+  title: z.string().trim().min(3).max(120),
+  title_af: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().min(10).max(4000),
+  description_af: z.string().trim().max(4000).nullable().optional(),
+  price_zar: z.number().nonnegative().max(99999999).nullable().optional(),
+  category: z.enum(["parts", "cars", "memorabilia", "other"]),
+  condition: z.enum(["new", "used", "project"]),
+  location: z.string().trim().max(120).nullable().optional(),
+  contact_name: z.string().trim().min(1).max(120),
+  contact_phone: z.string().trim().max(40).nullable().optional(),
+  contact_email: z.string().trim().email().max(200),
+  status: z.enum(["approved", "pending"]).default("approved"),
+});
+
+/** Admin creates a listing and assigns it to a member (that member becomes the owner). */
+export const adminCreateListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => adminCreateSchema.parse(input))
+  .handler(async ({ context, data }): Promise<{ id: string }> => {
+    const { supabase, userId } = context;
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { elevated } = await import("./elevated.server");
+    const client = (await elevated(supabase)) as typeof supabase;
+
+    const { owner_user_id, contact_name, contact_phone, contact_email, status, ...listing } = data;
+
+    const { data: row, error } = await client
+      .from("listings")
+      .insert({
+        ...listing,
+        title_af: listing.title_af ?? null,
+        description_af: listing.description_af ?? null,
+        price_zar: listing.price_zar ?? null,
+        location: listing.location ?? null,
+        user_id: owner_user_id,
+        status,
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(`Could not create listing: ${error.message}`);
+
+    const { error: cErr } = await client.from("listing_contacts").insert({
+      listing_id: row.id,
+      contact_name,
+      contact_phone: contact_phone ?? null,
+      contact_email,
+    });
+    if (cErr) throw new Error(`Could not save contact details: ${cErr.message}`);
+
+    if (status === "approved") {
+      try {
+        const { fanOut } = await import("./notify.server");
+        await fanOut(
+          {
+            type: "new_listing",
+            title_en: "New listing in the classifieds",
+            title_af: "Nuwe advertensie in die markplek",
+            body_en: listing.title,
+            body_af: listing.title_af ?? listing.title,
+            link: `/classifieds/${row.id}`,
+            related_id: row.id as string,
+            excludeUserId: null,
+          },
+          supabase,
+        );
+      } catch (e) {
+        console.error("[listings] member notification failed", e);
+      }
+    }
+
+    return { id: row.id as string };
+  });

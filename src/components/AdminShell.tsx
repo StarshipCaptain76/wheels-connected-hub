@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Shield,
+  Trophy,
 } from "lucide-react";
 
 const NAV: Array<{
@@ -40,6 +41,7 @@ const NAV: Array<{
     items: [
       { to: "/admin/events", label: "Events", labelAf: "Geleenthede", icon: Calendar },
       { to: "/admin/gallery", label: "Gallery", labelAf: "Galery", icon: ImageIcon },
+      { to: "/admin/concours", label: "Concours questions", labelAf: "Concours-vrae", icon: Trophy },
     ],
   },
   {

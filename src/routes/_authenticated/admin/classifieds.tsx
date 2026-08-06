@@ -17,7 +17,8 @@ import {
   type MyListing,
 } from "@/lib/listings.functions";
 import { listAllMembers, type AdminMember } from "@/lib/admin-members.functions";
-import { Check, X, Loader2, Pencil, Plus } from "lucide-react";
+import { Check, X, Loader2, Pencil, Plus, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queueQuery = queryOptions({
   queryKey: ["listings", "moderation"],

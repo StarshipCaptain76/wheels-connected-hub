@@ -17,7 +17,8 @@ import {
   type MyListing,
 } from "@/lib/listings.functions";
 import { listAllMembers, type AdminMember } from "@/lib/admin-members.functions";
-import { Check, X, Loader2, Pencil, Plus } from "lucide-react";
+import { Check, X, Loader2, Pencil, Plus, Upload } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queueQuery = queryOptions({
   queryKey: ["listings", "moderation"],
@@ -103,6 +104,46 @@ function EditListing({
     location: listing.location ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [added, setAdded] = useState<{ path: string; url: string }[]>([]);
+
+  const keptPhotos = listing.photos.filter((p) => !removedIds.includes(p.id));
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const uid = session.session?.user.id;
+      if (!uid) throw new Error("Not signed in");
+      const room = 6 - (keptPhotos.length + added.length);
+      const next: { path: string; url: string }[] = [];
+      for (const file of Array.from(files).slice(0, Math.max(0, room))) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(lang === "af" ? "Maks 5MB per foto" : "Max 5MB per photo");
+          continue;
+        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("listings").upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("listings")
+          .createSignedUrl(path, 60 * 60 * 12);
+        next.push({ path, url: signed?.signedUrl ?? "" });
+      }
+      setAdded((a) => [...a, ...next]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -119,6 +160,8 @@ function EditListing({
           category: form.category,
           condition: form.condition,
           location: form.location.trim() || null,
+          add_photo_paths: added.map((a) => a.path),
+          remove_photo_ids: removedIds,
         },
       });
       await qc.invalidateQueries({ queryKey: ["listings"] });
@@ -130,6 +173,7 @@ function EditListing({
       setSaving(false);
     }
   }
+
 
   return (
     <form
@@ -207,6 +251,67 @@ function EditListing({
           placeholder={lang === "af" ? "Plek" : "Location"}
         />
       </div>
+
+      <div>
+        <p className="mb-1 text-xs font-bold uppercase tracking-wider text-ink/60">
+          {lang === "af" ? "Fotos" : "Photos"} ({keptPhotos.length + added.length}/6)
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {keptPhotos.map((p) => (
+            <div key={p.id} className="relative h-20 w-20 overflow-hidden rounded border-2 border-ink">
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setRemovedIds((r) => [...r, p.id])}
+                className="absolute right-0 top-0 bg-primary p-0.5 text-white"
+                aria-label={lang === "af" ? "Verwyder foto" : "Remove photo"}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {added.map((p) => (
+            <div
+              key={p.path}
+              className="relative h-20 w-20 overflow-hidden rounded border-2 border-dashed border-ink"
+            >
+              <img src={p.url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setAdded((a) => a.filter((x) => x.path !== p.path))}
+                className="absolute right-0 top-0 bg-primary p-0.5 text-white"
+                aria-label={lang === "af" ? "Verwyder foto" : "Remove photo"}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {keptPhotos.length + added.length < 6 ? (
+            <label className="flex h-20 w-20 cursor-pointer flex-col items-center justify-center gap-1 rounded border-2 border-dashed border-ink/50 text-[10px] font-bold uppercase text-ink/60">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading}
+                onChange={(e) => {
+                  void handleFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              {uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  {lang === "af" ? "Laai op" : "Upload"}
+                </>
+              )}
+            </label>
+          ) : null}
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <button
           type="submit"

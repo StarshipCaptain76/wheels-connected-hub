@@ -465,6 +465,10 @@ const adminEditSchema = z.object({
   category: z.enum(["parts", "cars", "memorabilia", "other"]),
   condition: z.enum(["new", "used", "project"]),
   location: z.string().trim().max(120).nullable().optional(),
+  /** Newly uploaded storage paths to append to the listing gallery. */
+  add_photo_paths: z.array(z.string().min(1).max(300)).max(6).default([]),
+  /** Existing listing_photos ids to remove. */
+  remove_photo_ids: z.array(z.string().uuid()).max(12).default([]),
 });
 
 export const adminUpdateListing = createServerFn({ method: "POST" })
@@ -479,7 +483,7 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    const { id, ...values } = data;
+    const { id, add_photo_paths, remove_photo_ids, ...values } = data;
     const { elevated } = await import("./elevated.server");
     const client = (await elevated(supabase)) as typeof supabase;
     const { error } = await client
@@ -493,8 +497,46 @@ export const adminUpdateListing = createServerFn({ method: "POST" })
       })
       .eq("id", id);
     if (error) throw new Error(`Could not save listing: ${error.message}`);
+
+    if (remove_photo_ids.length > 0) {
+      const { data: gone, error: delErr } = await client
+        .from("listing_photos")
+        .delete()
+        .eq("listing_id", id)
+        .in("id", remove_photo_ids)
+        .select("image_url");
+      if (delErr) throw new Error(`Could not remove photos: ${delErr.message}`);
+      const paths = (gone ?? []).map((p) => p.image_url as string).filter(Boolean);
+      if (paths.length > 0) {
+        try {
+          await client.storage.from("listings").remove(paths);
+        } catch {
+          /* best effort — the row is already gone */
+        }
+      }
+    }
+
+    if (add_photo_paths.length > 0) {
+      const { data: existing } = await client
+        .from("listing_photos")
+        .select("sort")
+        .eq("listing_id", id)
+        .order("sort", { ascending: false })
+        .limit(1);
+      const start = ((existing?.[0]?.sort as number | undefined) ?? -1) + 1;
+      const { error: insErr } = await client.from("listing_photos").insert(
+        add_photo_paths.map((p, i) => ({
+          listing_id: id,
+          image_url: p,
+          sort: start + i,
+        })),
+      );
+      if (insErr) throw new Error(`Could not add photos: ${insErr.message}`);
+    }
+
     return { ok: true };
   });
+
 
 // ── Owner edit (re-enters moderation) ────────────────────────────────
 

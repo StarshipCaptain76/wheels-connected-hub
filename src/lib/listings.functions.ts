@@ -586,6 +586,10 @@ const ownerEditSchema = z.object({
   contact_name: z.string().trim().min(1).max(120),
   contact_phone: z.string().trim().max(40).nullable().optional(),
   contact_email: z.string().trim().email().max(200),
+  /** Newly uploaded storage paths to append to the listing gallery. */
+  add_photo_paths: z.array(z.string().min(1).max(300)).max(6).default([]),
+  /** Existing listing_photos ids to remove. */
+  remove_photo_ids: z.array(z.string().uuid()).max(12).default([]),
 });
 
 /** Owner edits their own listing — sends it back to pending for admin re-approval */

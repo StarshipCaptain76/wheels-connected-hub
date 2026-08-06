@@ -4,8 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useI18n } from "@/i18n/I18nProvider";
-import { listPendingListings, moderateListing } from "@/lib/listings.functions";
-import { Check, X, Loader2 } from "lucide-react";
+import {
+  listPendingListings,
+  moderateListing,
+  adminUpdateListing,
+  type MyListing,
+} from "@/lib/listings.functions";
+import { Check, X, Loader2, Pencil } from "lucide-react";
 
 const queueQuery = queryOptions({
   queryKey: ["listings", "moderation"],
@@ -30,13 +35,7 @@ const CATEGORY_LABELS: Record<string, { en: string; af: string }> = {
   other: { en: "Other", af: "Ander" },
 };
 
-function StatusBadge({
-  status,
-  lang,
-}: {
-  status: string;
-  lang: string;
-}) {
+function StatusBadge({ status, lang }: { status: string; lang: string }) {
   const labels: Record<string, { en: string; af: string; className: string }> = {
     pending: {
       en: "Pending",
@@ -73,12 +72,161 @@ function StatusBadge({
   );
 }
 
+const field = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-sm text-ink";
+
+function EditListing({
+  listing,
+  lang,
+  onClose,
+}: {
+  listing: MyListing;
+  lang: string;
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const save = useServerFn(adminUpdateListing);
+  const [form, setForm] = useState({
+    title: listing.title,
+    title_af: listing.title_af ?? "",
+    description: listing.description,
+    description_af: listing.description_af ?? "",
+    price_zar: listing.price_zar == null ? "" : String(listing.price_zar),
+    category: listing.category,
+    condition: listing.condition,
+    location: listing.location ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await save({
+        data: {
+          id: listing.id,
+          title: form.title.trim(),
+          title_af: form.title_af.trim() || null,
+          description: form.description.trim(),
+          description_af: form.description_af.trim() || null,
+          price_zar: form.price_zar.trim() === "" ? null : Number(form.price_zar),
+          category: form.category,
+          condition: form.condition,
+          location: form.location.trim() || null,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["listings"] });
+      toast.success(lang === "af" ? "Advertensie gestoor" : "Listing saved");
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="mt-3 space-y-2 rounded border-2 border-dashed border-ink/40 p-3"
+    >
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input
+          className={field}
+          value={form.title}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          placeholder={lang === "af" ? "Titel" : "Title"}
+        />
+        <input
+          className={field}
+          value={form.title_af}
+          maxLength={120}
+          onChange={(e) => setForm({ ...form, title_af: e.target.value })}
+          placeholder={lang === "af" ? "Titel (Afr)" : "Title (Afrikaans)"}
+        />
+      </div>
+      <textarea
+        className={field}
+        rows={3}
+        maxLength={4000}
+        value={form.description}
+        onChange={(e) => setForm({ ...form, description: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing" : "Description"}
+      />
+      <textarea
+        className={field}
+        rows={3}
+        maxLength={4000}
+        value={form.description_af}
+        onChange={(e) => setForm({ ...form, description_af: e.target.value })}
+        placeholder={lang === "af" ? "Beskrywing (Afr)" : "Description (Afrikaans)"}
+      />
+      <div className="grid gap-2 sm:grid-cols-4">
+        <input
+          className={field}
+          type="number"
+          min={0}
+          value={form.price_zar}
+          onChange={(e) => setForm({ ...form, price_zar: e.target.value })}
+          placeholder={lang === "af" ? "Prys (R)" : "Price (R)"}
+        />
+        <select
+          className={field}
+          value={form.category}
+          onChange={(e) => setForm({ ...form, category: e.target.value as MyListing["category"] })}
+        >
+          {Object.keys(CATEGORY_LABELS).map((c) => (
+            <option key={c} value={c}>
+              {lang === "af" ? CATEGORY_LABELS[c]!.af : CATEGORY_LABELS[c]!.en}
+            </option>
+          ))}
+        </select>
+        <select
+          className={field}
+          value={form.condition}
+          onChange={(e) =>
+            setForm({ ...form, condition: e.target.value as MyListing["condition"] })
+          }
+        >
+          <option value="new">new</option>
+          <option value="used">used</option>
+          <option value="project">project</option>
+        </select>
+        <input
+          className={field}
+          maxLength={120}
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+          placeholder={lang === "af" ? "Plek" : "Location"}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded border-2 border-ink bg-primary px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        >
+          {saving ? (lang === "af" ? "Stoor…" : "Saving…") : lang === "af" ? "Stoor" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded border-2 border-ink bg-paper px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink"
+        >
+          {lang === "af" ? "Kanselleer" : "Cancel"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function AdminClassifieds() {
   const { lang } = useI18n();
   const { data: rows } = useSuspenseQuery(queueQuery);
   const qc = useQueryClient();
   const moderateFn = useServerFn(moderateListing);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
 
   async function decide(id: string, status: "approved" | "rejected") {
     setBusyId(id);
@@ -96,9 +244,7 @@ function AdminClassifieds() {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(
-        lang === "af" ? `Kon nie bywerk nie: ${msg}` : `Could not update: ${msg}`,
-      );
+      toast.error(lang === "af" ? `Kon nie bywerk nie: ${msg}` : `Could not update: ${msg}`);
     } finally {
       setBusyId(null);
     }
@@ -157,70 +303,91 @@ function AdminClassifieds() {
             return (
               <li
                 key={l.id}
-                className={`flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4 ${
+                className={`rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] ${
                   !isPending ? "opacity-80" : ""
                 }`}
               >
-                {l.photos[0] ? (
-                  <img
-                    src={l.photos[0].url}
-                    alt=""
-                    className="h-32 w-full rounded border-2 border-ink object-cover sm:h-24 sm:w-24 sm:flex-none"
-                  />
-                ) : (
-                  <div className="h-24 w-full rounded border-2 border-ink bg-ink/10 sm:w-24 sm:flex-none" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={l.status} lang={lang} />
-                    <span className="text-xs uppercase tracking-wider text-ink/50">
-                      {lang === "af"
-                        ? (CATEGORY_LABELS[l.category]?.af ?? l.category)
-                        : (CATEGORY_LABELS[l.category]?.en ?? l.category)}
-                    </span>
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                  {l.photos[0] ? (
+                    <img
+                      src={l.photos[0].url}
+                      alt=""
+                      className="h-32 w-full rounded border-2 border-ink object-cover sm:h-24 sm:w-24 sm:flex-none"
+                    />
+                  ) : (
+                    <div className="h-24 w-full rounded border-2 border-ink bg-ink/10 sm:w-24 sm:flex-none" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={l.status} lang={lang} />
+                      <span className="text-xs uppercase tracking-wider text-ink/50">
+                        {lang === "af"
+                          ? (CATEGORY_LABELS[l.category]?.af ?? l.category)
+                          : (CATEGORY_LABELS[l.category]?.en ?? l.category)}
+                      </span>
+                    </div>
+                    <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
+                    <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>
+                    <p className="mt-1 text-xs text-ink/60">
+                      {l.contact?.contact_name} · {l.contact?.contact_email}
+                    </p>
                   </div>
-                  <p className="mt-1 font-display text-lg text-ink">{l.title}</p>
-                  <p className="line-clamp-2 text-sm text-ink/70">{l.description}</p>
-                  <p className="mt-1 text-xs text-ink/60">
-                    {l.contact?.contact_name} · {l.contact?.contact_email}
-                  </p>
+                  <div className="flex flex-row gap-2 sm:flex-col">
+                    <button
+                      type="button"
+                      disabled={isBusy || isApproved}
+                      onClick={() => decide(l.id, "approved")}
+                      title={
+                        isApproved
+                          ? lang === "af"
+                            ? "Reeds goedgekeur"
+                            : "Already approved"
+                          : lang === "af"
+                            ? "Keur goed"
+                            : "Approve"
+                      }
+                      className="rounded border-2 border-emerald-600 bg-emerald-600 p-2 text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBusy || isRejected}
+                      onClick={() => decide(l.id, "rejected")}
+                      title={
+                        isRejected
+                          ? lang === "af"
+                            ? "Reeds afgekeur"
+                            : "Already rejected"
+                          : lang === "af"
+                            ? "Keur af"
+                            : "Reject"
+                      }
+                      className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditId(editId === l.id ? null : l.id)}
+                      title={lang === "af" ? "Wysig" : "Edit"}
+                      className="rounded border-2 border-ink bg-paper p-2 text-ink hover:opacity-90"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-row gap-2 sm:flex-col">
-                  <button
-                    type="button"
-                    disabled={isBusy || isApproved}
-                    onClick={() => decide(l.id, "approved")}
-                    title={
-                      isApproved
-                        ? lang === "af"
-                          ? "Reeds goedgekeur"
-                          : "Already approved"
-                        : lang === "af"
-                          ? "Keur goed"
-                          : "Approve"
-                    }
-                    className="rounded border-2 border-emerald-600 bg-emerald-600 p-2 text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isBusy || isRejected}
-                    onClick={() => decide(l.id, "rejected")}
-                    title={
-                      isRejected
-                        ? lang === "af"
-                          ? "Reeds afgekeur"
-                          : "Already rejected"
-                        : lang === "af"
-                          ? "Keur af"
-                          : "Reject"
-                    }
-                    className="rounded border-2 border-primary bg-primary p-2 text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
-                  </button>
-                </div>
+                {editId === l.id && (
+                  <EditListing listing={l} lang={lang} onClose={() => setEditId(null)} />
+                )}
               </li>
             );
           })}

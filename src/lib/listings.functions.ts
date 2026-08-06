@@ -51,7 +51,11 @@ type RawListing = {
   status: ListingStatus;
   created_at: string;
   listing_photos: RawPhoto[] | null;
-  listing_contacts?: { contact_name: string; contact_phone: string | null; contact_email: string } | null;
+  listing_contacts?: {
+    contact_name: string;
+    contact_phone: string | null;
+    contact_email: string;
+  } | null;
 };
 
 async function signPhotos(
@@ -69,7 +73,9 @@ async function signPhotos(
 ): Promise<{ id: string; url: string; sort: number }[]> {
   if (photos.length === 0) return [];
   const paths = photos.map((p) => p.image_url);
-  const { data, error } = await client.storage.from("listings").createSignedUrls(paths, 60 * 60 * 24 * 7);
+  const { data, error } = await client.storage
+    .from("listings")
+    .createSignedUrls(paths, 60 * 60 * 24 * 7);
   if (error) throw error;
   const map = new Map<string, string>();
   (data ?? []).forEach((d) => {
@@ -255,16 +261,19 @@ export const createListing = createServerFn({ method: "POST" })
     }
     try {
       const { fanOut } = await import("./notify.server");
-      await fanOut({
-        type: "admin_listing_review",
-        title_en: "New listing awaiting approval",
-        title_af: "Nuwe advertensie wag vir goedkeuring",
-        body_en: listing.title,
-        body_af: listing.title_af ?? listing.title,
-        link: "/admin/classifieds",
-        related_id: row.id as string,
-        excludeUserId: userId,
-      }, supabase);
+      await fanOut(
+        {
+          type: "admin_listing_review",
+          title_en: "New listing awaiting approval",
+          title_af: "Nuwe advertensie wag vir goedkeuring",
+          body_en: listing.title,
+          body_af: listing.title_af ?? listing.title,
+          link: "/admin/classifieds",
+          related_id: row.id as string,
+          excludeUserId: userId,
+        },
+        supabase,
+      );
     } catch (e) {
       console.error("[listings] admin notification failed", e);
     }
@@ -370,7 +379,6 @@ export const listPendingListings = createServerFn({ method: "GET" })
     if (res.error) throw new Error(`Could not load listings: ${res.error.message}`);
     const rows: unknown[] | null = res.data;
 
-
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
 
     listings.sort((a, b) => {
@@ -418,7 +426,6 @@ export const moderateListing = createServerFn({ method: "POST" })
       if (error) throw new Error(`Could not update listing: ${error.message}`);
     }
 
-
     if (data.status === "approved") {
       try {
         const { data: row } = await supabase
@@ -427,16 +434,19 @@ export const moderateListing = createServerFn({ method: "POST" })
           .eq("id", data.id)
           .maybeSingle();
         const { fanOut } = await import("./notify.server");
-        await fanOut({
-          type: "new_listing",
-          title_en: "New listing in the classifieds",
-          title_af: "Nuwe advertensie in die markplek",
-          body_en: (row?.title as string) ?? null,
-          body_af: ((row?.title_af as string | null) ?? (row?.title as string)) ?? null,
-          link: `/classifieds/${data.id}`,
-          related_id: data.id,
-          excludeUserId: (row?.user_id as string | null) ?? null,
-        }, supabase);
+        await fanOut(
+          {
+            type: "new_listing",
+            title_en: "New listing in the classifieds",
+            title_af: "Nuwe advertensie in die markplek",
+            body_en: (row?.title as string) ?? null,
+            body_af: (row?.title_af as string | null) ?? (row?.title as string) ?? null,
+            link: `/classifieds/${data.id}`,
+            related_id: data.id,
+            excludeUserId: (row?.user_id as string | null) ?? null,
+          },
+          supabase,
+        );
       } catch (e) {
         console.error("[listings] member notification failed", e);
       }
@@ -444,3 +454,44 @@ export const moderateListing = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin: edit any listing's content (title, description, price, category, etc.). */
+const adminEditSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(3).max(120),
+  title_af: z.string().trim().max(120).nullable().optional(),
+  description: z.string().trim().min(10).max(4000),
+  description_af: z.string().trim().max(4000).nullable().optional(),
+  price_zar: z.number().nonnegative().max(99999999).nullable().optional(),
+  category: z.enum(["parts", "cars", "memorabilia", "other"]),
+  condition: z.enum(["new", "used", "project"]),
+  location: z.string().trim().max(120).nullable().optional(),
+});
+
+export const adminUpdateListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => adminEditSchema.parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
+      _user_id: userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { id, ...values } = data;
+    const { elevated } = await import("./elevated.server");
+    const client = (await elevated(supabase)) as typeof supabase;
+    const { error } = await client
+      .from("listings")
+      .update({
+        ...values,
+        title_af: values.title_af ?? null,
+        description_af: values.description_af ?? null,
+        price_zar: values.price_zar ?? null,
+        location: values.location ?? null,
+      })
+      .eq("id", id);
+    if (error) throw new Error(`Could not save listing: ${error.message}`);
+    return { ok: true };
+  });

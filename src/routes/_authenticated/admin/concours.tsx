@@ -228,7 +228,15 @@ function AdminConcoursQuestions() {
               )}
             </label>
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-              Category (AF)
+              <span className="flex items-center justify-between gap-2">
+                Category (AF)
+                <TranslateButton
+                  source={draft.category ?? ""}
+                  from="en"
+                  to="af"
+                  onResult={(t) => setDraft((d) => ({ ...(d ?? {}), category_af: t }))}
+                />
+              </span>
               <input
                 value={draft.category_af ?? ""}
                 onChange={(e) => setDraft({ ...draft, category_af: e.target.value })}
@@ -237,7 +245,15 @@ function AdminConcoursQuestions() {
             </label>
 
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-              Question (EN)
+              <span className="flex items-center justify-between gap-2">
+                Question (EN)
+                <TranslateButton
+                  source={draft.text_af ?? ""}
+                  from="af"
+                  to="en"
+                  onResult={(t) => setDraft((d) => ({ ...(d ?? {}), text_en: t }))}
+                />
+              </span>
               <textarea
                 rows={2}
                 value={draft.text_en ?? ""}
@@ -246,7 +262,15 @@ function AdminConcoursQuestions() {
               />
             </label>
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
-              Question (AF)
+              <span className="flex items-center justify-between gap-2">
+                Question (AF)
+                <TranslateButton
+                  source={draft.text_en ?? ""}
+                  from="en"
+                  to="af"
+                  onResult={(t) => setDraft((d) => ({ ...(d ?? {}), text_af: t }))}
+                />
+              </span>
               <textarea
                 rows={2}
                 value={draft.text_af ?? ""}
@@ -254,6 +278,7 @@ function AdminConcoursQuestions() {
                 className={inp}
               />
             </label>
+
             <label className="block text-xs font-bold uppercase tracking-wider text-ink/70">
               Scoring
               <select

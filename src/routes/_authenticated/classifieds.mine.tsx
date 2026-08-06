@@ -13,15 +13,7 @@ import {
   type MyListing,
   type ListingStatus,
 } from "@/lib/listings.functions";
-import {
-  Plus,
-  Trash2,
-  EyeOff,
-  CheckCircle2,
-  Loader2,
-  ArrowLeft,
-  Pencil,
-} from "lucide-react";
+import { Plus, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft, Pencil } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 const fieldCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1.5 text-sm text-ink";
@@ -142,9 +134,7 @@ function EditMyListing({
         <select
           className={fieldCls}
           value={form.category}
-          onChange={(e) =>
-            setForm({ ...form, category: e.target.value as MyListing["category"] })
-          }
+          onChange={(e) => setForm({ ...form, category: e.target.value as MyListing["category"] })}
         >
           <option value="parts">parts</option>
           <option value="cars">cars</option>
@@ -217,7 +207,6 @@ function EditMyListing({
   );
 }
 
-
 const myListingsQuery = queryOptions({
   queryKey: ["listings", "mine"],
   queryFn: () => listMyListings(),
@@ -262,15 +251,11 @@ function MyListingsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const confirm = useConfirm();
 
-
   async function run(id: string, action: "delete" | "sold") {
     if (action === "delete") {
       const ok = await confirm({
         title: lang === "af" ? "Skrap hierdie advertensie?" : "Delete this listing?",
-        description:
-          lang === "af"
-            ? "Dit kan nie ontdoen word nie."
-            : "This cannot be undone.",
+        description: lang === "af" ? "Dit kan nie ontdoen word nie." : "This cannot be undone.",
         confirmLabel: lang === "af" ? "Skrap" : "Delete",
         cancelLabel: lang === "af" ? "Kanselleer" : "Cancel",
       });
@@ -356,7 +341,6 @@ function MyListingsPage() {
                 onDelete={() => run(l.id, "delete")}
                 lang={lang}
               />
-
             ))}
           </ul>
         )}
@@ -477,4 +461,3 @@ function MineRow({
     </li>
   );
 }
-

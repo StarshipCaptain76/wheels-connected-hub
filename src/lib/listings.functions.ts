@@ -544,7 +544,8 @@ export const updateMyListing = createServerFn({ method: "POST" })
       .select("id, title, title_af")
       .maybeSingle();
     if (error) throw new Error(`Could not save listing: ${error.message}`);
-    if (!updated) throw new Error("Edit blocked by security policy — check listings_owner_update RLS.");
+    if (!updated)
+      throw new Error("Edit blocked by security policy — check listings_owner_update RLS.");
 
     const { error: cErr } = await supabase
       .from("listing_contacts")

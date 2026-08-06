@@ -54,6 +54,45 @@ function EditMyListing({
     contact_email: listing.contact?.contact_email ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [added, setAdded] = useState<{ path: string; url: string }[]>([]);
+
+  const keptPhotos = listing.photos.filter((p) => !removedIds.includes(p.id));
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const uid = session.session?.user.id;
+      if (!uid) throw new Error("Not signed in");
+      const room = 6 - (keptPhotos.length + added.length);
+      const next: { path: string; url: string }[] = [];
+      for (const file of Array.from(files).slice(0, Math.max(0, room))) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error(lang === "af" ? "Maks 5MB per foto" : "Max 5MB per photo");
+          continue;
+        }
+        const ext = file.name.split(".").pop() || "jpg";
+        const path = `${uid}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("listings")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("listings")
+          .createSignedUrl(path, 60 * 60 * 12);
+        next.push({ path, url: signed?.signedUrl ?? "" });
+      }
+      setAdded((a) => [...a, ...next]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,6 +112,8 @@ function EditMyListing({
           contact_name: form.contact_name.trim(),
           contact_phone: form.contact_phone.trim() || null,
           contact_email: form.contact_email.trim(),
+          add_photo_paths: added.map((a) => a.path),
+          remove_photo_ids: removedIds,
         },
       });
       await qc.invalidateQueries({ queryKey: ["listings"] });

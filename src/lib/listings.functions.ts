@@ -408,21 +408,16 @@ export const moderateListing = createServerFn({ method: "POST" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { error } = await supabaseAdmin
-        .from("listings")
-        .update({ status: data.status })
-        .eq("id", data.id);
-      if (error) throw error;
-    } catch (e) {
-      const { error } = await supabase
+    {
+      const { elevated } = await import("./elevated.server");
+      const client = (await elevated(supabase)) as typeof supabase;
+      const { error } = await client
         .from("listings")
         .update({ status: data.status })
         .eq("id", data.id);
       if (error) throw new Error(`Could not update listing: ${error.message}`);
-      if (e instanceof Error) console.error("[admin listings] service role moderate failed", e);
     }
+
 
     if (data.status === "approved") {
       try {

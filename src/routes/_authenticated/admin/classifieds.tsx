@@ -310,10 +310,11 @@ function AdminClassifieds() {
             return (
               <li
                 key={l.id}
-                className={`flex flex-col gap-3 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] sm:flex-row sm:gap-4 ${
+                className={`rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)] ${
                   !isPending ? "opacity-80" : ""
                 }`}
               >
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 {l.photos[0] ? (
                   <img
                     src={l.photos[0].url}
@@ -373,8 +374,21 @@ function AdminClassifieds() {
                   >
                     {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditId(editId === l.id ? null : l.id)}
+                    title={lang === "af" ? "Wysig" : "Edit"}
+                    className="rounded border-2 border-ink bg-paper p-2 text-ink hover:opacity-90"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                 </div>
+                </div>
+                {editId === l.id && (
+                  <EditListing listing={l} lang={lang} onClose={() => setEditId(null)} />
+                )}
               </li>
+
             );
           })}
         </ul>

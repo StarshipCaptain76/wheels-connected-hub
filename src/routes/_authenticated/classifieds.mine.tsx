@@ -259,7 +259,9 @@ function MyListingsPage() {
   const delFn = useServerFn(deleteListing);
   const soldFn = useServerFn(markSold);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const confirm = useConfirm();
+
 
   async function run(id: string, action: "delete" | "sold") {
     if (action === "delete") {

@@ -359,30 +359,17 @@ export const listPendingListings = createServerFn({ method: "GET" })
     if (roleErr) throw new Error(`Role check failed: ${roleErr.message}`);
     if (!isAdmin) throw new Error("Forbidden");
 
-    let rows: unknown[] | null = null;
-    let client: typeof supabase = supabase;
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      client = supabaseAdmin as typeof supabase;
-      const res = await supabaseAdmin
-        .from("listings")
-        .select(LISTING_WITH_CONTACT_SELECT)
-        .in("status", ["pending", "approved", "rejected"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (res.error) throw res.error;
-      rows = res.data;
-    } catch (e) {
-      console.error("[admin listings] service role list failed, falling back", e);
-      const res = await supabase
-        .from("listings")
-        .select(LISTING_WITH_CONTACT_SELECT)
-        .in("status", ["pending", "approved", "rejected"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (res.error) throw res.error;
-      rows = res.data;
-    }
+    const { elevated } = await import("./elevated.server");
+    const client = (await elevated(supabase)) as typeof supabase;
+    const res = await client
+      .from("listings")
+      .select(LISTING_WITH_CONTACT_SELECT)
+      .in("status", ["pending", "approved", "rejected"])
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (res.error) throw new Error(`Could not load listings: ${res.error.message}`);
+    const rows: unknown[] | null = res.data;
+
 
     const listings = (rows ?? []).map((r) => mapListing(r as RawListing));
 

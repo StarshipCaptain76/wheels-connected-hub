@@ -200,7 +200,10 @@ function Index() {
 
       <SponsorCarousel />
 
+      <NewsletterHomeSection />
+
       <ConcoursHomeWinner />
+
 
       {featured && (
         <section className="border-b-2 border-ink bg-paper text-ink">

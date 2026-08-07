@@ -90,6 +90,27 @@ function About() {
           </div>
         </article>
 
+        <div className="mt-10 rounded-2xl border-2 border-ink bg-primary p-6 text-paper shadow-[4px_4px_0_0_var(--color-ink)] sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-paper/30 bg-paper/10">
+              <MessageCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-paper/80">
+                {af ? "Die oorsprong" : "The origin"}
+              </p>
+              <h2 className="mt-1 font-display text-3xl tracking-wide text-paper sm:text-4xl">
+                {af ? "Dit het met 'n WhatsApp begin" : "It started with a WhatsApp"}
+              </h2>
+              <p className="mt-3 text-paper/90">
+                {af
+                  ? "Die heel eerste klub-geselsie is op 14 November 2016 om 20:22 gestuur. Een boodskap het tot 'n ander gelei, 'n paar karre-foto's is gedeel, en voordat iemand dit besef het, het 'n klub aan die rol gekom. Daardie ene piep weerklink steeds in elke ontbytrit, elke show-and-shine en elke braai."
+                  : "The very first club chat was fired off on 14 November 2016 at 20:22. One message led to another, a few photos of cars were shared, and before anyone realised it, a club was rolling. That one ping is still echoing in every breakfast run, every show-and-shine and every braai."}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-10 space-y-6 text-lg leading-relaxed text-ink/80">
           <p>
             {af

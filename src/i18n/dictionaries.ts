@@ -336,6 +336,7 @@ export const dictionaries = {
     "home.heroTitle": "Just Wheels Hessequa",
     "home.heroSubtitle":
       "'n Luidrugtige familie van petrolkoppe, sleuteldraaiers en Sondagry-manne in die hart van die Suid-Kaap. Klassieke karre, hot rods, bakkies, motorfietse — as dit wiele het, hoort dit hier.",
+    "home.originBadge": "Dit het alles met een WhatsApp begin — 14 Nov 2016, 20:22",
     "home.nextEvent": "Volgende op",
     "home.tbaTitle": "Ontbytrit — datum word bevestig",
     "home.tbaBody":

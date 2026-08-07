@@ -192,11 +192,12 @@ export const draftEdition = createServerFn({ method: "POST" })
         .single();
       if (error || !ed) throw new Error("Edition not found");
       const edition = ed as NewsletterEdition;
-      if (!edition.pdf_path) throw new Error("Upload the newsletter PDF first.");
+      const sourcePath = edition.pdf_path ?? edition.pdf_path_af;
+      if (!sourcePath) throw new Error("Upload the newsletter PDF first.");
 
       const { data: file, error: dlErr } = await supabase.storage
         .from(BUCKET)
-        .download(edition.pdf_path);
+        .download(sourcePath);
       if (dlErr || !file) throw new Error("Could not read the uploaded PDF.");
       const buf = new Uint8Array(await (file as Blob).arrayBuffer());
       let bin = "";

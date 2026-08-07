@@ -363,6 +363,9 @@ export const dictionaries = {
     "about.areaTitle": "Waar ons ry",
     "about.areaBody":
       "Gebaseer in die Hessequa munisipaliteit: Riversdal, Stilbaai, Heidelberg, Albertinia, Gouritsmond, Witsand. Ritte strek langs die Tuinroete en die Klein Karoo.",
+    "about.originTitle": "Dit het met 'n WhatsApp begin",
+    "about.originBody":
+      "Die heel eerste klub-geselsie is op 14 November 2016 om 20:22 gestuur. Een boodskap het tot 'n ander gelei, 'n paar karre-foto's is gedeel, en voordat iemand dit besef het, het 'n klub aan die rol gekom. Daardie ene piep weerklink steeds in elke ontbytrit, elke show-and-shine en elke braai.",
 
     "join.title": "Sluit by Just Wheels aan",
     "join.subtitle": "Geen fooie, geen kleinletters — net wiele.",

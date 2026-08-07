@@ -36,7 +36,7 @@ export const Route = createFileRoute("/about")({
 });
 
 function About() {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   const af = lang === "af";
 
   return (

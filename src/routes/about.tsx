@@ -100,13 +100,9 @@ function About() {
                 {af ? "Die oorsprong" : "The origin"}
               </p>
               <h2 className="mt-1 font-display text-3xl tracking-wide text-paper sm:text-4xl">
-                {af ? "Dit het met 'n WhatsApp begin" : "It started with a WhatsApp"}
+                {t("about.originTitle")}
               </h2>
-              <p className="mt-3 text-paper/90">
-                {af
-                  ? "Die heel eerste klub-geselsie is op 14 November 2016 om 20:22 gestuur. Een boodskap het tot 'n ander gelei, 'n paar karre-foto's is gedeel, en voordat iemand dit besef het, het 'n klub aan die rol gekom. Daardie ene piep weerklink steeds in elke ontbytrit, elke show-and-shine en elke braai."
-                  : "The very first club chat was fired off on 14 November 2016 at 20:22. One message led to another, a few photos of cars were shared, and before anyone realised it, a club was rolling. That one ping is still echoing in every breakfast run, every show-and-shine and every braai."}
-              </p>
+              <p className="mt-3 text-paper/90">{t("about.originBody")}</p>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Download, Eye } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -15,6 +16,7 @@ const MONTHS_AF = [
 /** "From the workshop" — latest published newsletter edition + archive links. */
 export function NewsletterHomeSection() {
   const { lang } = useI18n();
+  const [open, setOpen] = useState(false);
   const isAf = lang === "af";
   const { data } = useQuery({
     queryKey: ["newsletter-editions", "published"],

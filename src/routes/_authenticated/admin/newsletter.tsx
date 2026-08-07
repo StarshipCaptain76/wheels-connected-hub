@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { listSubscribers, sendNewsletter } from "@/lib/newsletter.functions";
 import { Send, Users, Mail } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { NewsletterEditionsPanel } from "@/components/NewsletterEditionsPanel";
 
 const subsQuery = queryOptions({
   queryKey: ["newsletter", "subscribers"],

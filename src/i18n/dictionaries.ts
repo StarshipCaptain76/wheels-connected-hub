@@ -80,6 +80,9 @@ export const dictionaries = {
     "about.areaTitle": "Where we ride",
     "about.areaBody":
       "Based in the Hessequa municipality: Riversdale, Stilbaai, Heidelberg, Albertinia, Gouritsmond, Witsand. Runs extend along the Garden Route and the Klein Karoo.",
+    "about.originTitle": "It started with a WhatsApp",
+    "about.originBody":
+      "The very first club chat was fired off on 14 November 2016 at 20:22. One message led to another, a few photos of cars were shared, and before anyone realised it, a club was rolling. That one ping is still echoing in every breakfast run, every show-and-shine and every braai.",
 
     "join.title": "Join Just Wheels",
     "join.subtitle": "No fees, no fine print — just wheels.",

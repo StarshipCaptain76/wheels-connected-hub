@@ -17,6 +17,7 @@ export type NewsletterEdition = {
   body_af: string;
   admin_notes: string | null;
   pdf_path: string | null;
+  pdf_path_af: string | null;
   status: "draft" | "sent" | "published";
   is_published: boolean;
   sent_at: string | null;
@@ -26,7 +27,7 @@ export type NewsletterEdition = {
 };
 
 const SELECT =
-  "id, year, month, title_en, title_af, body_en, body_af, admin_notes, pdf_path, status, is_published, sent_at, sent_count, published_at, created_at";
+  "id, year, month, title_en, title_af, body_en, body_af, admin_notes, pdf_path, pdf_path_af, status, is_published, sent_at, sent_count, published_at, created_at";
 
 /* ------------------------------------------------------------------ */
 /* Public reads                                                        */
@@ -89,6 +90,9 @@ const saveSchema = z.object({
   /** base64 (no data: prefix) of a newly uploaded PDF */
   pdfBase64: z.string().max(14_000_000).optional(),
   pdfName: z.string().max(200).optional(),
+  /** base64 (no data: prefix) of a newly uploaded Afrikaans PDF */
+  pdfAfBase64: z.string().max(14_000_000).optional(),
+  pdfAfName: z.string().max(200).optional(),
 });
 
 export const saveEdition = createServerFn({ method: "POST" })
@@ -98,16 +102,21 @@ export const saveEdition = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
 
-    let pdfPath: string | undefined;
-    if (data.pdfBase64) {
-      const bytes = Uint8Array.from(atob(data.pdfBase64), (c) => c.charCodeAt(0));
-      const safeName = (data.pdfName ?? "newsletter.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-      pdfPath = `${data.year}-${String(data.month).padStart(2, "0")}/${Date.now()}-${safeName}`;
+    async function uploadPdf(b64: string, name: string | undefined, tag: string) {
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+      const safeName = (name ?? "newsletter.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${data.year}-${String(data.month).padStart(2, "0")}/${tag}-${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from(BUCKET)
-        .upload(pdfPath, bytes, { contentType: "application/pdf", upsert: true });
+        .upload(path, bytes, { contentType: "application/pdf", upsert: true });
       if (upErr) throw new Error(`PDF upload failed: ${upErr.message}`);
+      return path;
     }
+
+    let pdfPath: string | undefined;
+    if (data.pdfBase64) pdfPath = await uploadPdf(data.pdfBase64, data.pdfName, "en");
+    let pdfPathAf: string | undefined;
+    if (data.pdfAfBase64) pdfPathAf = await uploadPdf(data.pdfAfBase64, data.pdfAfName, "af");
 
     const row = {
       year: data.year,
@@ -118,6 +127,7 @@ export const saveEdition = createServerFn({ method: "POST" })
       body_af: data.bodyAf,
       admin_notes: data.adminNotes || null,
       ...(pdfPath ? { pdf_path: pdfPath } : {}),
+      ...(pdfPathAf ? { pdf_path_af: pdfPathAf } : {}),
       ...(data.isPublished === undefined
         ? {}
         : {
@@ -322,23 +332,27 @@ export const sendEdition = createServerFn({ method: "POST" })
 
     const monthLabel = `${MONTHS[edition.month - 1]} ${edition.year}`;
 
-    let attachment: { filename: string; content: string } | null = null;
-    if (edition.pdf_path) {
-      const { data: file } = await supabase.storage.from(BUCKET).download(edition.pdf_path);
-      if (file) {
-        const buf = new Uint8Array(await (file as Blob).arrayBuffer());
-        let bin = "";
-        for (let i = 0; i < buf.length; i += 8192) {
-          bin += String.fromCharCode(...buf.subarray(i, i + 8192));
-        }
-        attachment = {
-          filename: `Just-Wheels-${monthLabel.replace(" ", "-")}.pdf`,
-          content: btoa(bin),
-        };
+    type Attachment = { filename: string; content: string };
+    async function loadPdf(path: string | null, suffix: string): Promise<Attachment | null> {
+      if (!path) return null;
+      const { data: file } = await supabase.storage.from(BUCKET).download(path);
+      if (!file) return null;
+      const buf = new Uint8Array(await (file as Blob).arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 8192) {
+        bin += String.fromCharCode(...buf.subarray(i, i + 8192));
       }
+      return {
+        filename: `Just-Wheels-${monthLabel.replace(" ", "-")}${suffix}.pdf`,
+        content: btoa(bin),
+      };
     }
 
-    async function send(to: string, subject: string, html: string) {
+    const attachmentEn = await loadPdf(edition.pdf_path, "");
+    const attachmentAf = await loadPdf(edition.pdf_path_af, "-AF");
+
+    async function send(to: string, subject: string, html: string, isAf = false) {
+      const attachment = (isAf ? (attachmentAf ?? attachmentEn) : attachmentEn) ?? null;
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -378,7 +392,7 @@ export const sendEdition = createServerFn({ method: "POST" })
       const body = isAf && edition.body_af ? edition.body_af : edition.body_en;
       const unsubUrl = `${SITE_URL}/api/public/newsletter/unsubscribe?token=${s.unsubscribe_token}`;
       try {
-        await send(s.email, subject, shell(body, unsubUrl, isAf, monthLabel));
+        await send(s.email, subject, shell(body, unsubUrl, isAf, monthLabel), isAf);
         sent++;
         await new Promise((r) => setTimeout(r, 120));
       } catch (e) {

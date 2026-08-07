@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { listSubscribers, sendNewsletter } from "@/lib/newsletter.functions";
 import { Send, Users, Mail } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { NewsletterEditionsPanel } from "@/components/NewsletterEditionsPanel";
 
 const subsQuery = queryOptions({
   queryKey: ["newsletter", "subscribers"],
@@ -96,8 +97,11 @@ function AdminNewsletter() {
             </div>
           </div>
         </div>
+        <NewsletterEditionsPanel />
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <h2 className="mt-10 font-display text-2xl tracking-wide">One-off email blast</h2>
+        <div className="mt-3 grid gap-6 md:grid-cols-2">
+
           <div className="space-y-3">
             <label className="block">
               <span className="text-xs font-bold uppercase tracking-wider text-ink/60">

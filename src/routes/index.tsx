@@ -9,6 +9,7 @@ import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
+import { NewsletterHomeSection } from "@/components/NewsletterHomeSection";
 import { supabase } from "@/integrations/supabase/client";
 
 const nextEventQuery = queryOptions({
@@ -200,7 +201,10 @@ function Index() {
 
       <SponsorCarousel />
 
+      <NewsletterHomeSection />
+
       <ConcoursHomeWinner />
+
 
       {featured && (
         <section className="border-b-2 border-ink bg-paper text-ink">

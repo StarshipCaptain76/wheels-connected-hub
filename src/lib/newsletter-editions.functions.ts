@@ -55,12 +55,12 @@ export const listPublishedEditions = createServerFn({ method: "GET" }).handler(
 /* Admin helpers                                                       */
 /* ------------------------------------------------------------------ */
 
-async function assertAdmin(supabase: {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown }>;
-}, userId: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertAdmin(supabase: any, userId: string) {
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
   if (!data) throw new Error("Forbidden");
 }
+
 
 export const listEditions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

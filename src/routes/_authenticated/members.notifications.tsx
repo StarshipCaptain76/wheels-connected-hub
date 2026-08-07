@@ -118,6 +118,48 @@ function NotificationsPage() {
             );
           })}
         </ul>
+
+        <div className="mt-8 border-t-2 border-dashed border-ink/20 pt-4">
+          <button
+            type="button"
+            onClick={() => setShowArchive((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
+          >
+            <Archive className="h-4 w-4" />
+            {showArchive ? t("notif.hideArchived") : t("notif.showArchived")}
+          </button>
+
+          {showArchive && (
+            <>
+              <p className="mt-4 text-xs uppercase tracking-wider text-ink/50">
+                {t("notif.archived")}
+              </p>
+              <ul className="mt-3 space-y-2 opacity-70">
+                {archived.length === 0 && (
+                  <li className="rounded-xl border-2 border-dashed border-ink/30 px-4 py-6 text-center text-sm text-ink/60">
+                    {t("notif.archivedEmpty")}
+                  </li>
+                )}
+                {archived.map((n) => (
+                  <li
+                    key={n.id}
+                    className="rounded-xl border-2 border-ink/40 bg-paper p-3 text-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="font-bold text-ink">{notifTitle(n, lang)}</span>
+                      <span className="shrink-0 text-xs text-ink/50">
+                        {new Date(n.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {notifBody(n, lang) && (
+                      <p className="mt-1 text-ink/70">{notifBody(n, lang)}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
       </section>
     </SiteLayout>
   );

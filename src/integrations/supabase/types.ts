@@ -1031,6 +1031,66 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_editions: {
+        Row: {
+          admin_notes: string | null
+          body_af: string
+          body_en: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_published: boolean
+          month: number
+          pdf_path: string | null
+          published_at: string | null
+          sent_at: string | null
+          sent_count: number
+          status: string
+          title_af: string
+          title_en: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          admin_notes?: string | null
+          body_af?: string
+          body_en?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          month: number
+          pdf_path?: string | null
+          published_at?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          title_af?: string
+          title_en?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          admin_notes?: string | null
+          body_af?: string
+          body_en?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          month?: number
+          pdf_path?: string | null
+          published_at?: string | null
+          sent_at?: string | null
+          sent_count?: number
+          status?: string
+          title_af?: string
+          title_en?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string

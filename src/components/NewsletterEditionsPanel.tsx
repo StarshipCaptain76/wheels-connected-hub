@@ -380,7 +380,7 @@ export function NewsletterEditionsPanel() {
               className={`${btn} bg-paper text-ink`}
               onClick={() => run("save", async () => { await persist(); })}
             >
-              <Save className="h-4 w-4" /> Save
+              <Save className="h-4 w-4" /> Save draft
             </button>
             <button
               type="button"

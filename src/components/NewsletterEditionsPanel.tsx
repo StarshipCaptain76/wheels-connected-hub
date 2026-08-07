@@ -93,6 +93,8 @@ export function NewsletterEditionsPanel() {
   const [pdfAfFile, setPdfAfFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<null | string>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [includeMembers, setIncludeMembers] = useState(false);
+
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
     setDraft((d) => (d ? { ...d, [k]: v } : d));
@@ -438,7 +440,22 @@ export function NewsletterEditionsPanel() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <label className="mt-5 flex items-start gap-2 text-sm text-ink/80">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]"
+              checked={includeMembers}
+              onChange={(e) => setIncludeMembers(e.target.checked)}
+            />
+            <span>
+              Also send to all active club members
+              <span className="block text-xs text-ink/55">
+                Off by default — only newsletter subscribers receive the edition.
+              </span>
+            </span>
+          </label>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
               type="button"
               disabled={busy !== null || !draft.bodyEn}
@@ -460,7 +477,9 @@ export function NewsletterEditionsPanel() {
               className={`${btn} bg-primary text-paper`}
               onClick={async () => {
                 const ok = await confirm({
-                  title: "Send this edition to all subscribers?",
+                  title: includeMembers
+                    ? "Send this edition to all subscribers and club members?"
+                    : "Send this edition to all subscribers?",
                   description: "The email and PDF go out immediately and cannot be recalled.",
                   confirmLabel: "Send now",
                   destructive: false,
@@ -469,9 +488,9 @@ export function NewsletterEditionsPanel() {
                 await run("send", async () => {
                   const id = await persist(true);
                   if (!id) return;
-                  const res = await sendFn({ data: { id, testOnly: false } });
+                  const res = await sendFn({ data: { id, testOnly: false, includeMembers } });
                   setStatus(
-                    `Sent to ${res.sent} subscriber${res.sent === 1 ? "" : "s"}${
+                    `Sent to ${res.sent} recipient${res.sent === 1 ? "" : "s"}${
                       res.failed ? ` — ${res.failed} failed` : ""
                     }.`,
                   );
@@ -481,6 +500,7 @@ export function NewsletterEditionsPanel() {
             >
               <Send className="h-4 w-4" /> Send edition
             </button>
+
             <button
               type="button"
               className="text-sm text-ink/60 underline"

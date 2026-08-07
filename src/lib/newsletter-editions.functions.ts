@@ -313,8 +313,15 @@ function shell(bodyHtml: string, unsubUrl: string, isAf: boolean, monthLabel: st
 export const sendEdition = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), testOnly: z.boolean().default(false) }).parse(i),
+    z
+      .object({
+        id: z.string().uuid(),
+        testOnly: z.boolean().default(false),
+        includeMembers: z.boolean().default(false),
+      })
+      .parse(i),
   )
+
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);
@@ -384,14 +391,52 @@ export const sendEdition = createServerFn({ method: "POST" })
     if (subErr) throw subErr;
     const active = (subs ?? []).filter((s) => !s.unsubscribed_at);
 
+    type Recipient = { email: string; lang: string; token: string | null };
+    const seen = new Set<string>();
+    const recipients: Recipient[] = [];
+    for (const s of active) {
+      const key2 = s.email.toLowerCase();
+      if (seen.has(key2)) continue;
+      seen.add(key2);
+      recipients.push({ email: s.email, lang: s.lang, token: s.unsubscribe_token });
+    }
+
+    if (data.includeMembers) {
+      const { data: mems, error: memErr } = await supabase
+        .from("member_emails")
+        .select("user_id, email");
+      if (memErr) throw memErr;
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, preferred_lang, membership_status");
+      const langById = new Map(
+        (profs ?? []).map((p) => [p.id as string, (p.preferred_lang as string) || "en"]),
+      );
+      const activeIds = new Set(
+        (profs ?? [])
+          .filter((p) => (p.membership_status as string) === "active")
+          .map((p) => p.id as string),
+      );
+      for (const m of mems ?? []) {
+        if (!m.email) continue;
+        if (!activeIds.has(m.user_id as string)) continue;
+        const key2 = m.email.toLowerCase();
+        if (seen.has(key2)) continue;
+        seen.add(key2);
+        recipients.push({ email: m.email, lang: langById.get(m.user_id as string) ?? "en", token: null });
+      }
+    }
+
     let sent = 0;
     let failed = 0;
-    for (const s of active) {
+    for (const s of recipients) {
       const isAf = s.lang === "af";
       const subject =
         (isAf && edition.title_af ? edition.title_af : edition.title_en) || monthLabel;
       const body = isAf && edition.body_af ? edition.body_af : edition.body_en;
-      const unsubUrl = `${SITE_URL}/api/public/newsletter/unsubscribe?token=${s.unsubscribe_token}`;
+      const unsubUrl = s.token
+        ? `${SITE_URL}/api/public/newsletter/unsubscribe?token=${s.token}`
+        : `${SITE_URL}/members/notifications`;
       try {
         await send(s.email, subject, shell(body, unsubUrl, isAf, monthLabel), isAf);
         sent++;
@@ -401,6 +446,7 @@ export const sendEdition = createServerFn({ method: "POST" })
         console.error(`[newsletter-edition] send to ${s.email} failed`, e);
       }
     }
+
 
     await supabase
       .from("newsletter_editions")

@@ -56,6 +56,7 @@ export const dictionaries = {
     "home.heroTitle": "Just Wheels Hessequa",
     "home.heroSubtitle":
       "A rowdy family of petrolheads, wrench-turners and Sunday cruisers in the heart of the Southern Cape. Classic cars, hot rods, bakkies, bikes — if it's got wheels, it belongs here.",
+    "home.originBadge": "It all started with one WhatsApp — 14 Nov 2016, 20:22",
     "home.nextEvent": "Next up",
     "home.tbaTitle": "Breakfast Run — date to be confirmed",
     "home.tbaBody":

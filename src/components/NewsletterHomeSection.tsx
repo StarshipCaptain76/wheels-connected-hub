@@ -30,6 +30,9 @@ export function NewsletterHomeSection() {
   const label = (y: number, m: number) => `${(isAf ? MONTHS_AF : MONTHS_EN)[m - 1]} ${y}`;
   const title = (isAf && latest.title_af ? latest.title_af : latest.title_en) || label(latest.year, latest.month);
   const body = (isAf && latest.body_af ? latest.body_af : latest.body_en) || "";
+  // Prefer the reader's language PDF when that version was uploaded.
+  const pdfLang = isAf && latest.pdf_path_af ? "&lang=af" : "";
+  const otherLang = isAf ? "" : latest.pdf_path_af ? "&lang=af" : null;
 
   return (
     <section className="border-b-2 border-ink bg-card text-ink">
@@ -56,7 +59,7 @@ export function NewsletterHomeSection() {
           {latest.pdf_path && (
             <div className="mt-5 flex flex-wrap gap-3">
               <a
-                href={`/api/public/newsletter-pdf?id=${latest.id}`}
+                href={`/api/public/newsletter-pdf?id=${latest.id}${pdfLang}`}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
@@ -64,11 +67,21 @@ export function NewsletterHomeSection() {
                 <Eye className="h-4 w-4" /> {isAf ? "Lees nuusbrief" : "Read newsletter"}
               </a>
               <a
-                href={`/api/public/newsletter-pdf?id=${latest.id}&dl=1`}
+                href={`/api/public/newsletter-pdf?id=${latest.id}&dl=1${pdfLang}`}
                 className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
               >
                 <Download className="h-4 w-4" /> {isAf ? "Laai PDF af" : "Download PDF"}
               </a>
+              {otherLang !== null && (
+                <a
+                  href={`/api/public/newsletter-pdf?id=${latest.id}${otherLang}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                >
+                  <FileText className="h-4 w-4" /> Afrikaanse PDF
+                </a>
+              )}
             </div>
           )}
         </div>
@@ -81,7 +94,7 @@ export function NewsletterHomeSection() {
             {older.map((e) => (
               <a
                 key={e.id}
-                href={`/api/public/newsletter-pdf?id=${e.id}`}
+                href={`/api/public/newsletter-pdf?id=${e.id}${isAf && e.pdf_path_af ? "&lang=af" : ""}`}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-full border-2 border-ink bg-paper px-3 py-1 text-xs font-bold hover:bg-primary hover:text-paper"

@@ -28,6 +28,7 @@ type Draft = {
   adminNotes: string;
   isPublished: boolean;
   pdfPath: string | null;
+  pdfPathAf: string | null;
 };
 
 function emptyDraft(): Draft {
@@ -42,6 +43,7 @@ function emptyDraft(): Draft {
     adminNotes: "",
     isPublished: false,
     pdfPath: null,
+    pdfPathAf: null,
   };
 }
 
@@ -57,6 +59,7 @@ function toDraft(e: NewsletterEdition): Draft {
     adminNotes: e.admin_notes ?? "",
     isPublished: e.is_published,
     pdfPath: e.pdf_path,
+    pdfPathAf: e.pdf_path_af,
   };
 }
 
@@ -87,6 +90,7 @@ export function NewsletterEditionsPanel() {
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfAfFile, setPdfAfFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<null | string>(null);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -100,6 +104,7 @@ export function NewsletterEditionsPanel() {
   async function persist(silent = false): Promise<string | null> {
     if (!draft) return null;
     const pdfBase64 = pdfFile ? await fileToBase64(pdfFile) : undefined;
+    const pdfAfBase64 = pdfAfFile ? await fileToBase64(pdfAfFile) : undefined;
     const res = await saveFn({
       data: {
         ...(draft.id ? { id: draft.id } : {}),
@@ -112,10 +117,21 @@ export function NewsletterEditionsPanel() {
         adminNotes: draft.adminNotes,
         isPublished: draft.isPublished,
         ...(pdfBase64 ? { pdfBase64, pdfName: pdfFile!.name } : {}),
+        ...(pdfAfBase64 ? { pdfAfBase64, pdfAfName: pdfAfFile!.name } : {}),
       },
     });
     setPdfFile(null);
-    setDraft((d) => (d ? { ...d, id: res.id, pdfPath: pdfBase64 ? "uploaded" : d.pdfPath } : d));
+    setPdfAfFile(null);
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            id: res.id,
+            pdfPath: pdfBase64 ? "uploaded" : d.pdfPath,
+            pdfPathAf: pdfAfBase64 ? "uploaded" : d.pdfPathAf,
+          }
+        : d,
+    );
     await refresh();
     if (!silent) setStatus("Saved.");
     return res.id;
@@ -145,6 +161,7 @@ export function NewsletterEditionsPanel() {
           onClick={() => {
             setDraft(emptyDraft());
             setPdfFile(null);
+            setPdfAfFile(null);
             setStatus(null);
           }}
         >
@@ -170,22 +187,27 @@ export function NewsletterEditionsPanel() {
                 <td className="px-3 py-2 font-bold">{MONTHS[e.month - 1]} {e.year}</td>
                 <td className="px-3 py-2 text-ink/70">{e.title_en || "—"}</td>
                 <td className="px-3 py-2">
-                  {e.pdf_path ? (
-                    e.is_published ? (
-                      <a
-                        className="inline-flex items-center gap-1 text-primary underline"
-                        href={`/api/public/newsletter-pdf?id=${e.id}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> view
-                      </a>
-                    ) : (
-                      <span className="text-ink/50">uploaded</span>
-                    )
-                  ) : (
-                    <span className="text-ink/40">—</span>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {(["", "af"] as const).map((lg) => {
+                      const has = lg === "af" ? e.pdf_path_af : e.pdf_path;
+                      if (!has) return null;
+                      const tag = lg === "af" ? "AF" : "EN";
+                      return e.is_published ? (
+                        <a
+                          key={tag}
+                          className="inline-flex items-center gap-1 text-primary underline"
+                          href={`/api/public/newsletter-pdf?id=${e.id}${lg ? "&lang=af" : ""}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Eye className="h-3.5 w-3.5" /> {tag}
+                        </a>
+                      ) : (
+                        <span key={tag} className="text-ink/50">{tag}</span>
+                      );
+                    })}
+                    {!e.pdf_path && !e.pdf_path_af && <span className="text-ink/40">—</span>}
+                  </div>
                 </td>
                 <td className="px-3 py-2">
                   <span className="rounded bg-ink/10 px-2 py-0.5 text-xs">{e.status}</span>
@@ -205,6 +227,7 @@ export function NewsletterEditionsPanel() {
                     onClick={() => {
                       setDraft(toDraft(e));
                       setPdfFile(null);
+                      setPdfAfFile(null);
                       setStatus(null);
                     }}
                   >
@@ -279,25 +302,49 @@ export function NewsletterEditionsPanel() {
             </label>
           </div>
 
-          <label className="mt-4 block">
-            <span className="text-xs font-bold uppercase tracking-wider text-ink/60">
-              Newsletter PDF
-            </span>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(ev) => setPdfFile(ev.target.files?.[0] ?? null)}
-                className="text-sm"
-              />
-              {pdfFile && <span className="text-xs text-ink/60">{pdfFile.name}</span>}
-              {!pdfFile && draft.pdfPath && (
-                <span className="inline-flex items-center gap-1 text-xs text-ink/60">
-                  <Upload className="h-3.5 w-3.5" /> PDF already uploaded
-                </span>
-              )}
-            </div>
-          </label>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/60">
+                Newsletter PDF (English)
+              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(ev) => setPdfFile(ev.target.files?.[0] ?? null)}
+                  className="text-sm"
+                />
+                {pdfFile && <span className="text-xs text-ink/60">{pdfFile.name}</span>}
+                {!pdfFile && draft.pdfPath && (
+                  <span className="inline-flex items-center gap-1 text-xs text-ink/60">
+                    <Upload className="h-3.5 w-3.5" /> PDF already uploaded
+                  </span>
+                )}
+              </div>
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/60">
+                Newsletter PDF (Afrikaans)
+              </span>
+              <div className="mt-1 flex flex-wrap items-center gap-3">
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(ev) => setPdfAfFile(ev.target.files?.[0] ?? null)}
+                  className="text-sm"
+                />
+                {pdfAfFile && <span className="text-xs text-ink/60">{pdfAfFile.name}</span>}
+                {!pdfAfFile && draft.pdfPathAf && (
+                  <span className="inline-flex items-center gap-1 text-xs text-ink/60">
+                    <Upload className="h-3.5 w-3.5" /> PDF already uploaded
+                  </span>
+                )}
+              </div>
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-ink/50">
+            Afrikaans subscribers get the AF file when it&rsquo;s uploaded, otherwise the English one.
+          </p>
 
           <label className="mt-4 block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/60">
@@ -323,7 +370,7 @@ export function NewsletterEditionsPanel() {
             </button>
             <button
               type="button"
-              disabled={busy !== null || (!pdfFile && !draft.pdfPath)}
+              disabled={busy !== null || (!pdfFile && !draft.pdfPath && !pdfAfFile && !draft.pdfPathAf)}
               className={`${btn} bg-primary text-paper`}
               onClick={() =>
                 run("ai", async () => {

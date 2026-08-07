@@ -2,8 +2,10 @@
  * Server-only fan-out helper for in-app notifications.
  * Never throws: notification failures must not block the primary action.
  *
- * Uses the `fanout_notification` database function so it works with the
- * signed-in user's session when no service-role key is configured.
+ * Uses the caller's authenticated client with the `fanout_notification`
+ * database function. Public admin alerts use the publishable client.
+ * Never use the service-role client here: it has no auth.uid(), so the RPC
+ * correctly rejects member-facing notification types.
  */
 
 export type NotificationType =
@@ -33,8 +35,18 @@ export async function fanOut(
   client?: any,
 ): Promise<{ sent: number; reason?: string }> {
   try {
-    const { elevated } = await import("./elevated.server");
-    const sb = await elevated(client);
+    let sb = client;
+    if (!sb) {
+      const isPublicAdminAlert =
+        payload.type === "admin_new_member" || payload.type === "admin_new_sponsor";
+      if (!isPublicAdminAlert) {
+        const reason = "authenticated notification client required";
+        console.error("[notify] fan-out blocked", payload.type, reason);
+        return { sent: 0, reason };
+      }
+      const { createPublicSupabase } = await import("./public-supabase.server");
+      sb = createPublicSupabase();
+    }
 
     const { data, error } = await sb.rpc("fanout_notification", {
       _type: payload.type,

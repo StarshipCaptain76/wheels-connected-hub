@@ -495,7 +495,10 @@ export function NewsletterEditionsPanel() {
                   title: includeMembers
                     ? "Send this edition to all subscribers and club members?"
                     : "Send this edition to all subscribers?",
-                  description: "The email and PDF go out immediately and cannot be recalled.",
+                  description: draft.id && editions.find((e) => e.id === draft.id)?.sent_at
+                    ? "This edition was already sent — everyone will receive it again. The email and PDF go out immediately and cannot be recalled."
+                    : "The email and PDF go out immediately and cannot be recalled.",
+
                   confirmLabel: "Send now",
                   destructive: false,
                 });

@@ -218,9 +218,12 @@ export function NewsletterEditionsPanel() {
                       on home
                     </span>
                   )}
-                  {e.sent_count > 0 && (
-                    <span className="ml-1 text-xs text-ink/50">{e.sent_count} sent</span>
+                  {e.sent_at && (
+                    <span className="ml-1 block text-xs text-ink/50">
+                      Sent {new Date(e.sent_at).toLocaleDateString()} to {e.sent_count}
+                    </span>
                   )}
+
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button
@@ -272,7 +275,19 @@ export function NewsletterEditionsPanel() {
       {/* Editor */}
       {draft && (
         <div className="mt-6 rounded-lg border-2 border-ink bg-paper p-4">
+          {(() => {
+            const current = draft.id ? editions.find((e) => e.id === draft.id) : undefined;
+            if (!current?.sent_at) return null;
+            return (
+              <div className="mb-4 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm text-ink">
+                <strong>Already sent</strong> — {new Date(current.sent_at).toLocaleString()} to{" "}
+                {current.sent_count} recipient{current.sent_count === 1 ? "" : "s"}. Sending again
+                will email everyone a second time.
+              </div>
+            );
+          })()}
           <div className="flex flex-wrap gap-3">
+
             <label className="block">
               <span className="text-xs font-bold uppercase tracking-wider text-ink/60">Month</span>
               <select
@@ -368,7 +383,7 @@ export function NewsletterEditionsPanel() {
               className={`${btn} bg-paper text-ink`}
               onClick={() => run("save", async () => { await persist(); })}
             >
-              <Save className="h-4 w-4" /> Save
+              <Save className="h-4 w-4" /> Save draft
             </button>
             <button
               type="button"
@@ -480,7 +495,10 @@ export function NewsletterEditionsPanel() {
                   title: includeMembers
                     ? "Send this edition to all subscribers and club members?"
                     : "Send this edition to all subscribers?",
-                  description: "The email and PDF go out immediately and cannot be recalled.",
+                  description: draft.id && editions.find((e) => e.id === draft.id)?.sent_at
+                    ? "This edition was already sent — everyone will receive it again. The email and PDF go out immediately and cannot be recalled."
+                    : "The email and PDF go out immediately and cannot be recalled.",
+
                   confirmLabel: "Send now",
                   destructive: false,
                 });

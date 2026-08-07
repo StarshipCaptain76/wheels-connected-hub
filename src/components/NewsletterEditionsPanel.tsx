@@ -218,9 +218,12 @@ export function NewsletterEditionsPanel() {
                       on home
                     </span>
                   )}
-                  {e.sent_count > 0 && (
-                    <span className="ml-1 text-xs text-ink/50">{e.sent_count} sent</span>
+                  {e.sent_at && (
+                    <span className="ml-1 block text-xs text-ink/50">
+                      Sent {new Date(e.sent_at).toLocaleDateString()} to {e.sent_count}
+                    </span>
                   )}
+
                 </td>
                 <td className="px-3 py-2 text-right">
                   <button

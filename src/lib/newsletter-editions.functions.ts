@@ -313,8 +313,15 @@ function shell(bodyHtml: string, unsubUrl: string, isAf: boolean, monthLabel: st
 export const sendEdition = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
-    z.object({ id: z.string().uuid(), testOnly: z.boolean().default(false) }).parse(i),
+    z
+      .object({
+        id: z.string().uuid(),
+        testOnly: z.boolean().default(false),
+        includeMembers: z.boolean().default(false),
+      })
+      .parse(i),
   )
+
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     await assertAdmin(supabase, userId);

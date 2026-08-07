@@ -47,10 +47,33 @@ export const DEFAULT_PREFS: NotificationPrefs = {
 
 const SELECT = "id, type, title_en, title_af, body_en, body_af, link, read_at, created_at";
 
+/** Read notifications older than this are auto-archived (hidden from the main list). */
+export const ARCHIVE_AFTER_DAYS = 28;
+
+function archiveCutoffISO() {
+  return new Date(Date.now() - ARCHIVE_AFTER_DAYS * 24 * 60 * 60 * 1000).toISOString();
+}
+
 export async function fetchNotifications(limit = 50): Promise<AppNotification[]> {
+  const cutoff = archiveCutoffISO();
   const { data, error } = await supabase
     .from("notifications")
     .select(SELECT)
+    .or(`read_at.is.null,created_at.gte.${cutoff}`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as AppNotification[];
+}
+
+/** Read notifications older than the cutoff. */
+export async function fetchArchivedNotifications(limit = 100): Promise<AppNotification[]> {
+  const cutoff = archiveCutoffISO();
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(SELECT)
+    .not("read_at", "is", null)
+    .lt("created_at", cutoff)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;

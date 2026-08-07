@@ -1,0 +1,3 @@
+DROP POLICY IF EXISTS "Published editions are public" ON public.newsletter_editions;
+CREATE POLICY "Published editions readable by anyone" ON public.newsletter_editions FOR SELECT TO anon USING (is_published = true);
+CREATE POLICY "Members read published, admins read all" ON public.newsletter_editions FOR SELECT TO authenticated USING (is_published = true OR has_role(auth.uid(), 'admin'::app_role));

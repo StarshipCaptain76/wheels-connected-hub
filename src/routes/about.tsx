@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
-import { Mail } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
@@ -36,7 +36,7 @@ export const Route = createFileRoute("/about")({
 });
 
 function About() {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   const af = lang === "af";
 
   return (
@@ -89,6 +89,23 @@ function About() {
             </div>
           </div>
         </article>
+
+        <div className="mt-10 rounded-2xl border-2 border-ink bg-primary p-6 text-paper shadow-[4px_4px_0_0_var(--color-ink)] sm:p-8">
+          <div className="flex items-start gap-4">
+            <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-paper/30 bg-paper/10">
+              <MessageCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-paper/80">
+                {af ? "Die oorsprong" : "The origin"}
+              </p>
+              <h2 className="mt-1 font-display text-3xl tracking-wide text-paper sm:text-4xl">
+                {t("about.originTitle")}
+              </h2>
+              <p className="mt-3 text-paper/90">{t("about.originBody")}</p>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-10 space-y-6 text-lg leading-relaxed text-ink/80">
           <p>

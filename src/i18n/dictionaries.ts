@@ -56,6 +56,7 @@ export const dictionaries = {
     "home.heroTitle": "Just Wheels Hessequa",
     "home.heroSubtitle":
       "A rowdy family of petrolheads, wrench-turners and Sunday cruisers in the heart of the Southern Cape. Classic cars, hot rods, bakkies, bikes — if it's got wheels, it belongs here.",
+    "home.originBadge": "It all started with one WhatsApp — 14 Nov 2016, 20:22",
     "home.nextEvent": "Next up",
     "home.tbaTitle": "Breakfast Run — date to be confirmed",
     "home.tbaBody":
@@ -79,6 +80,9 @@ export const dictionaries = {
     "about.areaTitle": "Where we ride",
     "about.areaBody":
       "Based in the Hessequa municipality: Riversdale, Stilbaai, Heidelberg, Albertinia, Gouritsmond, Witsand. Runs extend along the Garden Route and the Klein Karoo.",
+    "about.originTitle": "It started with a WhatsApp",
+    "about.originBody":
+      "The very first club chat was fired off on 14 November 2016 at 20:22. One message led to another, a few photos of cars were shared, and before anyone realised it, a club was rolling. That one ping is still echoing in every breakfast run, every show-and-shine and every braai.",
 
     "join.title": "Join Just Wheels",
     "join.subtitle": "No fees, no fine print — just wheels.",
@@ -335,6 +339,7 @@ export const dictionaries = {
     "home.heroTitle": "Just Wheels Hessequa",
     "home.heroSubtitle":
       "'n Luidrugtige familie van petrolkoppe, sleuteldraaiers en Sondagry-manne in die hart van die Suid-Kaap. Klassieke karre, hot rods, bakkies, motorfietse — as dit wiele het, hoort dit hier.",
+    "home.originBadge": "Dit het alles met een WhatsApp begin — 14 Nov 2016, 20:22",
     "home.nextEvent": "Volgende op",
     "home.tbaTitle": "Ontbytrit — datum word bevestig",
     "home.tbaBody":
@@ -358,6 +363,9 @@ export const dictionaries = {
     "about.areaTitle": "Waar ons ry",
     "about.areaBody":
       "Gebaseer in die Hessequa munisipaliteit: Riversdal, Stilbaai, Heidelberg, Albertinia, Gouritsmond, Witsand. Ritte strek langs die Tuinroete en die Klein Karoo.",
+    "about.originTitle": "Dit het met 'n WhatsApp begin",
+    "about.originBody":
+      "Die heel eerste klub-geselsie is op 14 November 2016 om 20:22 gestuur. Een boodskap het tot 'n ander gelei, 'n paar karre-foto's is gedeel, en voordat iemand dit besef het, het 'n klub aan die rol gekom. Daardie ene piep weerklink steeds in elke ontbytrit, elke show-and-shine en elke braai.",
 
     "join.title": "Sluit by Just Wheels aan",
     "join.subtitle": "Geen fooie, geen kleinletters — net wiele.",

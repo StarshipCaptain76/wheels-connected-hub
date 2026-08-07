@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL, LOGO_URL_HERO } from "@/lib/brand";
-import { Calendar, IdCard, Users } from "lucide-react";
+import { Calendar, IdCard, MessageCircle, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
@@ -150,6 +150,10 @@ function Index() {
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-ink/40 bg-paper px-3 py-1.5 text-xs font-semibold text-ink/70">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              {t("home.originBadge")}
+            </div>
             <div className="mt-8 flex flex-wrap gap-3">
               {/* Hide "Become a Member" when the user is already signed in */}
               {signedIn !== true && (

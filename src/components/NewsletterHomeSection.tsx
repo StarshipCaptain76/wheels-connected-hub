@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Download, Eye } from "lucide-react";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -15,6 +16,7 @@ const MONTHS_AF = [
 /** "From the workshop" — latest published newsletter edition + archive links. */
 export function NewsletterHomeSection() {
   const { lang } = useI18n();
+  const [open, setOpen] = useState(false);
   const isAf = lang === "af";
   const { data } = useQuery({
     queryKey: ["newsletter-editions", "published"],
@@ -30,9 +32,8 @@ export function NewsletterHomeSection() {
   const label = (y: number, m: number) => `${(isAf ? MONTHS_AF : MONTHS_EN)[m - 1]} ${y}`;
   const title = (isAf && latest.title_af ? latest.title_af : latest.title_en) || label(latest.year, latest.month);
   const body = (isAf && latest.body_af ? latest.body_af : latest.body_en) || "";
-  // Prefer the reader's language PDF when that version was uploaded.
+  // Serve the reader's language: Afrikaans file when available, otherwise English.
   const pdfLang = isAf && latest.pdf_path_af ? "&lang=af" : "";
-  const otherLang = isAf ? "" : latest.pdf_path_af ? "&lang=af" : null;
 
   return (
     <section className="border-b-2 border-ink bg-card text-ink">
@@ -50,41 +51,39 @@ export function NewsletterHomeSection() {
           </div>
           <h2 className="mt-1 font-display text-3xl tracking-wide">{title}</h2>
 
-          <div
-            className="prose-sm mt-3 max-w-2xl text-sm leading-relaxed text-ink/80 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2"
-            // Newsletter copy is authored by club admins only.
-            dangerouslySetInnerHTML={{ __html: body }}
-          />
-
-          {latest.pdf_path && (
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                href={`/api/public/newsletter-pdf?id=${latest.id}${pdfLang}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-              >
-                <Eye className="h-4 w-4" /> {isAf ? "Lees nuusbrief" : "Read newsletter"}
-              </a>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {latest.pdf_path && (
               <a
                 href={`/api/public/newsletter-pdf?id=${latest.id}&dl=1${pdfLang}`}
-                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
               >
                 <Download className="h-4 w-4" /> {isAf ? "Laai PDF af" : "Download PDF"}
               </a>
-              {otherLang !== null && (
-                <a
-                  href={`/api/public/newsletter-pdf?id=${latest.id}${otherLang}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-                >
-                  <FileText className="h-4 w-4" /> Afrikaanse PDF
-                </a>
-              )}
-            </div>
+            )}
+            {body && (
+              <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+              >
+                <Eye className="h-4 w-4" />
+                {open
+                  ? isAf ? "Verberg brief" : "Hide letter"
+                  : isAf ? "Lees brief" : "Read letter"}
+              </button>
+            )}
+          </div>
+
+          {open && body && (
+            <div
+              className="prose-sm mt-5 max-w-2xl border-t-2 border-dashed border-ink/20 pt-4 text-sm leading-relaxed text-ink/80 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2"
+              // Newsletter copy is authored by club admins only.
+              dangerouslySetInnerHTML={{ __html: body }}
+            />
           )}
         </div>
+
 
         {older.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">

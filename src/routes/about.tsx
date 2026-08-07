@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
-import { Mail } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
 
 const SITE_ORIGIN = "https://justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;

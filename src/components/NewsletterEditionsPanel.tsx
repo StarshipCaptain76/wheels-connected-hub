@@ -93,6 +93,8 @@ export function NewsletterEditionsPanel() {
   const [pdfAfFile, setPdfAfFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<null | string>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [includeMembers, setIncludeMembers] = useState(false);
+
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) =>
     setDraft((d) => (d ? { ...d, [k]: v } : d));

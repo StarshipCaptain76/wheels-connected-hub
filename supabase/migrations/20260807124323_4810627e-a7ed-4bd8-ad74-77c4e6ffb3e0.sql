@@ -1,0 +1,1 @@
+ALTER TABLE public.newsletter_editions ADD COLUMN IF NOT EXISTS pdf_path_af text;

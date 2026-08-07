@@ -1042,6 +1042,7 @@ export type Database = {
           is_published: boolean
           month: number
           pdf_path: string | null
+          pdf_path_af: string | null
           published_at: string | null
           sent_at: string | null
           sent_count: number
@@ -1061,6 +1062,7 @@ export type Database = {
           is_published?: boolean
           month: number
           pdf_path?: string | null
+          pdf_path_af?: string | null
           published_at?: string | null
           sent_at?: string | null
           sent_count?: number
@@ -1080,6 +1082,7 @@ export type Database = {
           is_published?: boolean
           month?: number
           pdf_path?: string | null
+          pdf_path_af?: string | null
           published_at?: string | null
           sent_at?: string | null
           sent_count?: number

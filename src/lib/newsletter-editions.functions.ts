@@ -35,22 +35,28 @@ const SELECT =
 
 export const listPublishedEditions = createServerFn({ method: "GET" }).handler(
   async (): Promise<NewsletterEdition[]> => {
-    const { createPublicSupabase } = await import("./public-supabase.server");
-    const anon = createPublicSupabase();
-    const { data, error } = await anon
-      .from("newsletter_editions")
-      .select(SELECT)
-      .eq("is_published", true)
-      .order("year", { ascending: false })
-      .order("month", { ascending: false })
-      .limit(24);
-    if (error) {
-      console.error("[newsletter-editions] public list failed", error.message);
+    try {
+      const { createPublicSupabase } = await import("./public-supabase.server");
+      const anon = createPublicSupabase();
+      const { data, error } = await anon
+        .from("newsletter_editions")
+        .select(SELECT)
+        .eq("is_published", true)
+        .order("year", { ascending: false })
+        .order("month", { ascending: false })
+        .limit(24);
+      if (error) {
+        console.error("[newsletter-editions] public list failed", error.message);
+        return [];
+      }
+      return (data ?? []) as NewsletterEdition[];
+    } catch (e) {
+      console.error("[newsletter-editions] public list threw", (e as Error)?.message);
       return [];
     }
-    return (data ?? []) as NewsletterEdition[];
   },
 );
+
 
 /* ------------------------------------------------------------------ */
 /* Admin helpers                                                       */

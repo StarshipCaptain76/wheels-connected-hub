@@ -38,14 +38,21 @@ export const Route = createFileRoute("/_authenticated/members/notifications")({
 function NotificationsPage() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  const [showArchive, setShowArchive] = useState(false);
   const { data: items = [], isLoading } = useQuery({
     queryKey: ["notifications", "all"],
     queryFn: () => fetchNotifications(100),
+  });
+  const { data: archived = [] } = useQuery({
+    queryKey: ["notifications", "archived"],
+    queryFn: () => fetchArchivedNotifications(100),
+    enabled: showArchive,
   });
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["notifications"] });
   }
+
 
   return (
     <SiteLayout>

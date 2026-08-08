@@ -153,13 +153,12 @@ export const listEventAttendees = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ context, data }): Promise<AttendeeRow[]> => {
     const { supabase } = context;
-    const { data: rsvps, error } = await supabase
-      .from("event_rsvps")
-      .select("user_id, status, party_size, note")
-      .eq("event_id", data.id)
-      .in("status", ["going", "maybe"]);
+    const { data: rsvps, error } = await supabase.rpc("event_attendees", {
+      _event_id: data.id,
+    });
     if (error) throw error;
     if (!rsvps?.length) return [];
+
 
     const ids = rsvps.map((r) => r.user_id);
     const { data: profiles } = await supabase

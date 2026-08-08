@@ -1429,6 +1429,14 @@ export type Database = {
     }
     Functions: {
       daily_featured_id: { Args: never; Returns: string }
+      event_attendees: {
+        Args: { _event_id: string }
+        Returns: {
+          party_size: number
+          status: Database["public"]["Enums"]["rsvp_status"]
+          user_id: string
+        }[]
+      }
       fanout_notification: {
         Args: {
           _body_af?: string

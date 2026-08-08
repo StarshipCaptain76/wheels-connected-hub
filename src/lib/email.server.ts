@@ -19,7 +19,7 @@ export function escapeHtml(value: string): string {
 
 export const ADMIN_EMAIL = "admin@justwheels.co.za";
 export const SPONSORS_FROM = "Just Wheels Sponsors <sponsors@notify.justwheels.co.za>";
-export const SITE_ORIGIN = "https://justwheels.co.za";
+export const SITE_ORIGIN = "https://www.justwheels.co.za";
 
 export function emailShell(title: string, bodyHtml: string): string {
   return (

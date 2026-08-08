@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
 import { Check, MessageCircle } from "lucide-react";
 
-const SITE_ORIGIN = "https://justwheels.co.za";
+const SITE_ORIGIN = "https://www.justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
 const WA_HUGO = "https://wa.me/27836869237";
 

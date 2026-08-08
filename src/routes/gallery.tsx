@@ -16,7 +16,7 @@ const galleryQuery = queryOptions({
   staleTime: 60_000,
 });
 
-const SITE_ORIGIN = "https://justwheels.co.za";
+const SITE_ORIGIN = "https://www.justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
 
 export const Route = createFileRoute("/gallery")({

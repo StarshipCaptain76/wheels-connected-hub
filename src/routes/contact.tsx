@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { sendContactMessage } from "@/lib/contact.functions";
 import { MessageCircle } from "lucide-react";
 
-const SITE_ORIGIN = "https://justwheels.co.za";
+const SITE_ORIGIN = "https://www.justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}/__l5e/assets-v1/1ea9f7fc-2fa5-428f-a1df-f1a298d9caaa/justwheels-logo.jpeg`;
 const WA_HUGO = "https://wa.me/27836869237";
 const WA_DAWIE = "https://wa.me/27824602220";

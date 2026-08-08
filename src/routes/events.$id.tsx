@@ -33,7 +33,7 @@ const eventQuery = (id: string) =>
     staleTime: 60_000,
   });
 
-const SITE_ORIGIN = "https://justwheels.co.za";
+const SITE_ORIGIN = "https://www.justwheels.co.za";
 
 export const Route = createFileRoute("/events/$id")({
   loader: async ({ context, params }) => {

@@ -59,7 +59,7 @@ const approveSchema = z.object({
   billing_ends_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
-const PLACEHOLDER_LOGO = "https://justwheels.co.za/icon-512.png";
+const PLACEHOLDER_LOGO = "https://www.justwheels.co.za/icon-512.png";
 
 export const approveSponsorApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

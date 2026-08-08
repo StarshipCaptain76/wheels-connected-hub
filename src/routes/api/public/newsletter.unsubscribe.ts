@@ -18,7 +18,7 @@ export const Route = createFileRoute("/api/public/newsletter/unsubscribe")({
                 p{margin:0 0 20px;color:#333;line-height:1.5}
                 a{display:inline-block;background:#111;color:#fff;padding:10px 20px;text-decoration:none;border-radius:6px;font-weight:bold}
               </style>
-            </head><body><div class="card"><h1>${title}</h1><p>${body}</p><a href="https://justwheels.co.za/">Back to Just Wheels</a></div></body></html>`,
+            </head><body><div class="card"><h1>${title}</h1><p>${body}</p><a href="https://www.justwheels.co.za/">Back to Just Wheels</a></div></body></html>`,
             { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } },
           );
 

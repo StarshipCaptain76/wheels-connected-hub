@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ADMIN_EMAIL = "admin@justwheels.co.za";
 const FROM = "Just Wheels <news@notify.justwheels.co.za>";
-const SITE_URL = "https://justwheels.co.za";
+const SITE_URL = "https://www.justwheels.co.za";
 const BUCKET = "newsletters";
 
 export type NewsletterEdition = {

@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL } from "@/lib/brand";
 import { Mail, MessageCircle } from "lucide-react";
 
-const SITE_ORIGIN = "https://justwheels.co.za";
+const SITE_ORIGIN = "https://www.justwheels.co.za";
 const OG_LOGO = `${SITE_ORIGIN}${LOGO_URL}`;
 /** Founder photo — place file at public/oom-johan.jpeg */
 const FOUNDER_PHOTO = "/oom-johan.jpeg";

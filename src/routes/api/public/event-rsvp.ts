@@ -4,7 +4,7 @@ const VALID = ["going", "maybe", "not_going"] as const;
 type Resp = (typeof VALID)[number];
 
 function page(title: string, body: string, eventId?: string) {
-  const link = eventId ? `https://justwheels.co.za/events/${eventId}` : "https://justwheels.co.za/";
+  const link = eventId ? `https://www.justwheels.co.za/events/${eventId}` : "https://www.justwheels.co.za/";
   return new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8"/>
       <meta name="viewport" content="width=device-width,initial-scale=1"/>

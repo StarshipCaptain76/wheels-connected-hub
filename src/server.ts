@@ -44,12 +44,38 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+/** Only the primary domain may be indexed; lovable.app hosts get noindex. */
+const PRIMARY_HOST = "www.justwheels.co.za";
+
+function isPrimaryHost(request: Request): boolean {
+  try {
+    const host = (
+      request.headers.get("x-forwarded-host") ??
+      request.headers.get("host") ??
+      new URL(request.url).host
+    ).toLowerCase();
+    return host === PRIMARY_HOST;
+  } catch {
+    return true;
+  }
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      if (!isPrimaryHost(request)) {
+        const headers = new Headers(normalized.headers);
+        headers.set("X-Robots-Tag", "noindex, nofollow");
+        return new Response(normalized.body, {
+          status: normalized.status,
+          statusText: normalized.statusText,
+          headers,
+        });
+      }
+      return normalized;
     } catch (error) {
       console.error(error);
       return new Response(renderErrorPage(), {

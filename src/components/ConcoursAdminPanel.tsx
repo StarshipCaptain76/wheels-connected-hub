@@ -5,7 +5,8 @@ import {
   getEventConcours,
   upsertEventConcours,
   revealConcoursLeaderboard,
-  listConcoursVehicles,
+  listConcoursVehiclesAdmin,
+  deleteConcoursVehicle,
   listAllConcoursQuestionsAdmin,
   upsertConcoursQuestion,
   publishConcoursResults,
@@ -29,6 +30,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const publish = useServerFn(publishConcoursResults);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
+  const delVehicle = useServerFn(deleteConcoursVehicle);
   const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
 
 
@@ -38,9 +40,9 @@ export function ConcoursAdminPanel({ eventId }: Props) {
     queryFn: () => getEventConcours({ data: { eventId: eventId! } }),
   });
   const vehiclesQ = useQuery({
-    queryKey: ["concours-vehicles", eventId],
+    queryKey: ["concours-vehicles-admin", eventId],
     enabled: !!eventId,
-    queryFn: () => listConcoursVehicles({ data: { eventId: eventId! } }),
+    queryFn: () => listConcoursVehiclesAdmin({ data: { eventId: eventId! } }),
   });
   const questionsQ = useQuery({
     queryKey: ["concours-questions-admin"],
@@ -157,7 +159,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
           textAf: editingQ.text_af,
           scoringType: (editingQ.scoring_type as "scale_1_10" | "yes_no" | "yes_no_na" | "count") ?? "scale_1_10",
           sortOrder: editingQ.sort_order ?? 0,
-          active: true,
+          active: editingQ.active !== false,
         },
       });
       setEditingQ(null);
@@ -222,8 +224,6 @@ export function ConcoursAdminPanel({ eventId }: Props) {
   const c: EventConcours | null = concoursQ.data ?? null;
   const vehicles = vehiclesQ.data ?? [];
   const vehicleCount = vehicles.length;
-  const bank = (questionsQ.data ?? []).filter((q) => (q as ConcoursQuestion & { active?: boolean }));
-
   // vehicles sorted by score for winner picker
   const ranked = [...vehicles]
     .filter((v) => v.average_score != null)
@@ -251,8 +251,9 @@ export function ConcoursAdminPanel({ eventId }: Props) {
           <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 text-sm text-ink/80">
             <p className="font-bold text-primary">Concours Mini</p>
             <p className="mt-1">
-              Enable here. On the day: members/spectators GPS check-in on the event page; admins add
-              cars with [+].
+              Enable here. On the day: club members sign in and GPS check-in on the event page.
+              Spectators score without an account (GPS checked when they submit). Admins add cars
+              with [+].
             </p>
           </div>
 
@@ -355,13 +356,51 @@ export function ConcoursAdminPanel({ eventId }: Props) {
 
               <div className="flex items-start gap-2 rounded-lg border-2 border-dashed border-ink/30 p-3 text-sm text-ink/70">
                 <Camera className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-bold text-ink">
                     Vehicles on event page ({vehicleCount} so far)
                   </p>
                   <p className="mt-0.5">
                     Admins check in on site, then use [+] on the public event page.
                   </p>
+                  {vehicles.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {vehicles.map((v) => (
+                        <li
+                          key={v.id}
+                          className="flex items-center justify-between gap-2 rounded border border-ink/20 bg-paper px-2 py-1 text-xs text-ink"
+                        >
+                          <span className="truncate">
+                            {v.tagged_display_name || v.label || "Vehicle"}
+                            {v.average_score != null ? ` · ${v.average_score}` : ""}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={async () => {
+                              if (!confirm("Remove this vehicle and its scores?")) return;
+                              setBusy(true);
+                              try {
+                                await delVehicle({ data: { vehicleId: v.id } });
+                                await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
+                                await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+                                await qc.invalidateQueries({
+                                  queryKey: ["concours-scores-admin", eventId],
+                                });
+                              } catch (err) {
+                                alert(err instanceof Error ? err.message : "Delete failed");
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                            className="shrink-0 text-[10px] font-bold uppercase text-primary"
+                          >
+                            Remove
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
             </>
@@ -464,11 +503,14 @@ export function ConcoursAdminPanel({ eventId }: Props) {
             {(questionsQ.data ?? []).map((q) => (
               <li
                 key={q.id}
-                className="flex items-start justify-between gap-2 rounded border-2 border-ink/20 bg-paper p-2 text-sm"
+                className={`flex items-start justify-between gap-2 rounded border-2 border-ink/20 bg-paper p-2 text-sm ${
+                  q.active === false ? "opacity-55" : ""
+                }`}
               >
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase text-primary">
                     {q.category} · {q.scoring_type}
+                    {q.active === false ? " · inactive" : ""}
                   </p>
                   <p className="font-bold text-ink">{q.text_en}</p>
                   <p className="text-xs text-ink/60">{q.text_af}</p>
@@ -540,6 +582,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                           data: { scoreId: s.id, totalScore: v },
                         });
                         await qc.invalidateQueries({ queryKey: ["concours-scores-admin", eventId] });
+                        await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
                         await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
                       } catch (err) {
                         alert(err instanceof Error ? err.message : "Update failed");
@@ -557,6 +600,7 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                       try {
                         await delScore({ data: { scoreId: s.id } });
                         await qc.invalidateQueries({ queryKey: ["concours-scores-admin", eventId] });
+                        await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
                         await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
                       } catch (err) {
                         alert(err instanceof Error ? err.message : "Delete failed");

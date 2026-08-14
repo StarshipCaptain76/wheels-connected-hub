@@ -113,9 +113,11 @@ export type Database = {
           sponsor_logo_url: string | null
           sponsor_name: string | null
           updated_at: string
+          winner_average_score: number | null
           winner_headline_af: string | null
           winner_headline_en: string | null
           winner_photo_url: string | null
+          winner_submission_count: number | null
           winner_vehicle_id: string | null
         }
         Insert: {
@@ -132,9 +134,11 @@ export type Database = {
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
           updated_at?: string
+          winner_average_score?: number | null
           winner_headline_af?: string | null
           winner_headline_en?: string | null
           winner_photo_url?: string | null
+          winner_submission_count?: number | null
           winner_vehicle_id?: string | null
         }
         Update: {
@@ -151,9 +155,11 @@ export type Database = {
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
           updated_at?: string
+          winner_average_score?: number | null
           winner_headline_af?: string | null
           winner_headline_en?: string | null
           winner_photo_url?: string | null
+          winner_submission_count?: number | null
           winner_vehicle_id?: string | null
         }
         Relationships: [
@@ -190,6 +196,7 @@ export type Database = {
           total_score: number | null
           user_id: string | null
           vehicle_id: string
+          voter_fingerprint: string | null
           weight: number
         }
         Insert: {
@@ -201,6 +208,7 @@ export type Database = {
           total_score?: number | null
           user_id?: string | null
           vehicle_id: string
+          voter_fingerprint?: string | null
           weight?: number
         }
         Update: {
@@ -212,6 +220,7 @@ export type Database = {
           total_score?: number | null
           user_id?: string | null
           vehicle_id?: string
+          voter_fingerprint?: string | null
           weight?: number
         }
         Relationships: [

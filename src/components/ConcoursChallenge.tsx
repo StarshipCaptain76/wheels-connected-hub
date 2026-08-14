@@ -7,6 +7,7 @@ import {
   listConcoursVehicles,
   submitConcoursScore,
   addConcoursVehicle,
+  deleteConcoursVehicle,
   tagConcoursVehicle,
   linkConcoursToGarage,
   listMyGaragePicks,
@@ -14,6 +15,7 @@ import {
   checkInToEvent,
   type ConcoursVehicle,
 } from "@/lib/concours.functions";
+import { concoursPhase } from "@/lib/concours-window";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { ImageUploadField } from "@/components/ImageUploadField";
@@ -22,18 +24,66 @@ import { Trophy, ChevronLeft, ChevronRight, Check, Plus, User, X, MapPin, Loader
 type Props = {
   eventId: string;
   eventStartsAt: string;
+  eventEndsAt?: string | null;
 };
 
-export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
+function getVoterKey(): string {
+  const k = "jw-concours-voter";
+  try {
+    let v = localStorage.getItem(k);
+    if (
+      !v ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+    ) {
+      v = crypto.randomUUID();
+      localStorage.setItem(k, v);
+    }
+    return v;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+function gpsErrorMessage(err: unknown, lang: "en" | "af"): string {
+  if (err && typeof err === "object" && "code" in err) {
+    return lang === "af"
+      ? "GPS toegang geweier of misluk — skakel liggingdienste aan."
+      : "GPS denied or failed — turn on location services.";
+  }
+  if (err instanceof Error && err.message === "GPS_UNSUPPORTED") {
+    return lang === "af"
+      ? "Jou toestel ondersteun nie GPS nie."
+      : "Your device does not support GPS.";
+  }
+  return err instanceof Error ? err.message : "GPS failed";
+}
+
+async function readGps(): Promise<{ lat: number; lng: number }> {
+  if (!navigator.geolocation) {
+    throw new Error("GPS_UNSUPPORTED");
+  }
+  const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 20_000,
+      maximumAge: 30_000,
+    });
+  });
+  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+}
+
+export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props) {
   const { lang } = useI18n();
   const qc = useQueryClient();
   const submit = useServerFn(submitConcoursScore);
   const addVehicle = useServerFn(addConcoursVehicle);
+  const removeVehicle = useServerFn(deleteConcoursVehicle);
   const tagVehicle = useServerFn(tagConcoursVehicle);
   const linkGarage = useServerFn(linkConcoursToGarage);
   const doCheckIn = useServerFn(checkInToEvent);
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [identityReady, setIdentityReady] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -44,7 +94,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
     supabase.auth.getSession().then(async ({ data }) => {
       const session = data.session;
       setSignedIn(!!session);
-      if (!session?.user) return;
+      if (!session?.user) {
+        setIdentityReady(true);
+        return;
+      }
       setMyUserId(session.user.id);
       const { data: profile } = await supabase
         .from("profiles")
@@ -61,8 +114,17 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
         _role: "admin",
       });
       setIsAdmin(!!admin);
+      setIdentityReady(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSignedIn(!!s));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSignedIn(!!s);
+      if (!s) {
+        setIsMember(false);
+        setIsAdmin(false);
+        setMyUserId(null);
+        setIdentityReady(true);
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -101,63 +163,34 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
 
   const [checkInBusy, setCheckInBusy] = useState(false);
   const [checkInErr, setCheckInErr] = useState<string | null>(null);
+  const [spectatorGps, setSpectatorGps] = useState<{ lat: number; lng: number } | null>(null);
 
-  async function handleCheckIn(asSpectator: boolean) {
+  async function handleMemberCheckIn() {
     setCheckInBusy(true);
     setCheckInErr(null);
     try {
-      if (!navigator.geolocation) {
-        throw new Error(
-          lang === "af"
-            ? "Jou toestel ondersteun nie GPS nie."
-            : "Your device does not support GPS.",
-        );
-      }
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 20_000,
-          maximumAge: 30_000,
-        });
-      });
+      const pos = await readGps();
       await doCheckIn({
         data: {
           eventId,
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          isSpectator: asSpectator,
+          lat: pos.lat,
+          lng: pos.lng,
         },
       });
       await qc.invalidateQueries({ queryKey: ["event-checkin", eventId] });
     } catch (err) {
-      const msg =
-        err && typeof err === "object" && "code" in err
-          ? lang === "af"
-            ? "GPS toegang geweier of misluk — skakel liggingdienste aan."
-            : "GPS denied or failed — turn on location services."
-          : err instanceof Error
-            ? err.message
-            : "Check-in failed";
-      setCheckInErr(msg);
+      setCheckInErr(gpsErrorMessage(err, lang));
     } finally {
       setCheckInBusy(false);
     }
   }
 
-  const checkedIn = !!checkInQ.data?.checkedIn;
-  const isSpectator = !!checkInQ.data?.isSpectator;
-  // Spectators always get half the questions
-  const scoringAsMember = isMember && checkedIn && !isSpectator;
-
-  const isEventDay = useMemo(() => {
-    const start = new Date(eventStartsAt);
-    const now = new Date();
-    return (
-      start.getFullYear() === now.getFullYear() &&
-      start.getMonth() === now.getMonth() &&
-      start.getDate() === now.getDate()
-    );
-  }, [eventStartsAt]);
+  const checkedIn = !!checkInQ.data?.checkedIn && !checkInQ.data?.isSpectator;
+  const scoringAsMember = !!isMember && checkedIn;
+  const phase = useMemo(
+    () => concoursPhase(eventStartsAt, eventEndsAt),
+    [eventStartsAt, eventEndsAt],
+  );
 
   const [selectedVehicle, setSelectedVehicle] = useState<ConcoursVehicle | null>(null);
   const [answers, setAnswers] = useState<Record<string, number | string | null>>({});
@@ -190,8 +223,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
   if (concoursQ.isLoading) return null;
   if (!c?.enabled) return null;
 
+  const scoringOpen = phase === "open" && !c.results_published_at;
+
   // Pre-event teaser
-  if (!isEventDay) {
+  if (phase === "before") {
     return (
       <section className="mt-8 rounded-lg border-2 border-primary/50 bg-primary/5 p-5">
         <h2 className="flex items-center gap-2 font-display text-2xl text-ink">
@@ -266,12 +301,24 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
       setMemberHits([]);
       return;
     }
-    const { data } = await supabase
+    const trimmed = q.trim();
+    const asNumber = Number(trimmed);
+    let query = supabase
       .from("profiles")
       .select("id, display_name, member_number")
-      .or(`display_name.ilike.%${q}%,member_number.eq.${Number(q) || 0}`)
       .eq("membership_status", "active")
       .limit(8);
+    if (Number.isFinite(asNumber) && asNumber > 0 && /^\d+$/.test(trimmed)) {
+      query = query.eq("member_number", asNumber);
+    } else {
+      const safe = trimmed.replace(/[%_,.()]/g, " ").replace(/\s+/g, " ").trim();
+      if (!safe) {
+        setMemberHits([]);
+        return;
+      }
+      query = query.ilike("display_name", `%${safe}%`);
+    }
+    const { data } = await query;
     setMemberHits(
       (data ?? []).map((r) => ({
         id: r.id as string,
@@ -311,9 +358,21 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
     setBusy(true);
     setDoneMsg(null);
     try {
-      const res = await submit({
-        data: { eventId, vehicleId: selectedVehicle.id, answers },
-      });
+      const payload: {
+        eventId: string;
+        vehicleId: string;
+        answers: Record<string, number | string | null>;
+        lat?: number;
+        lng?: number;
+        voterKey?: string;
+      } = { eventId, vehicleId: selectedVehicle.id, answers };
+      if (!scoringAsMember) {
+        const pos = spectatorGps ?? (await readGps());
+        payload.lat = pos.lat;
+        payload.lng = pos.lng;
+        payload.voterKey = getVoterKey();
+      }
+      const res = await submit({ data: payload });
       setDoneMsg(
         lang === "af"
           ? `Ingedien! Jou telling: ${res.totalScore}`
@@ -436,7 +495,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
                 <input
                   type="number"
                   min={0}
-                  max={50}
+                  max={10}
                   value={(answers[q.id] as number) ?? ""}
                   onChange={(e) =>
                     setAnswers((a) => ({
@@ -472,7 +531,13 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
               ) : (
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={
+                    busy ||
+                    !questions.every((qq) => {
+                      const val = answers[qq.id];
+                      return val !== undefined && val !== null && val !== "";
+                    })
+                  }
                   onClick={handleSubmit}
                   className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase text-paper disabled:opacity-50"
                 >
@@ -509,7 +574,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
           )}
         </div>
 
-        {isAdmin && checkedIn && (
+        {isAdmin && checkedIn && scoringOpen && (
           <button
             type="button"
             onClick={() => setShowAdd((v) => !v)}
@@ -566,19 +631,23 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
       )}
 
       <p className="mt-3 text-sm text-ink/70">
-        {lang === "af"
-          ? isMember
-            ? "Kies ’n voertuig en stem. Tik jou naam om jouself te tag."
-            : "Kies ’n voertuig en stem met 50% van die vrae."
+        {phase === "after" || c.results_published_at
+          ? lang === "af"
+            ? "Stemming is toe. Dankie dat jy deelgeneem het."
+            : "Voting is closed. Thanks for taking part."
           : isMember
-            ? "Pick a car and score it. Tag yourself if it’s yours."
-            : "Pick a car and score with 50% of the questions."}
+            ? lang === "af"
+              ? "Kies ’n voertuig en stem. Tik jou naam om jouself te tag."
+              : "Pick a car and score it. Tag yourself if it’s yours."
+            : lang === "af"
+              ? "Kies ’n voertuig en stem met 50% van die vrae — geen aanmelding nodig nie. GPS word by indiening nagegaan."
+              : "Pick a car and score with 50% of the questions — no sign-in needed. GPS is checked when you submit."}
       </p>
 
       {doneMsg && <p className="mt-2 text-sm font-bold text-primary">{doneMsg}</p>}
 
-      {/* GPS check-in gate */}
-      {!checkedIn && (
+      {/* Member GPS check-in only — spectators score unsigned with GPS at submit */}
+      {isMember && !checkedIn && scoringOpen && (
         <div className="mt-4 rounded-lg border-2 border-primary bg-primary/10 p-4">
           <p className="flex items-center gap-2 font-bold text-ink">
             <MapPin className="h-5 w-5 text-primary" />
@@ -586,8 +655,8 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
           </p>
           <p className="mt-1 text-sm text-ink/70">
             {lang === "af"
-              ? "GPS-verifikasie (±2 km van die bestemming) is nodig om te stem. Kies lid of toeskouer."
-              : "GPS verification (±2 km of the venue) is required to score. Choose member or spectator."}
+              ? "Lede moet GPS-verifikasie (±2 km van die bestemming) doen vir ’n volle stem."
+              : "Members need GPS verification (±2 km of the venue) for a full vote."}
           </p>
           {checkInQ.data?.destinationLat == null && (
             <p className="mt-2 text-xs text-primary">
@@ -597,60 +666,34 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-2">
-            {signedIn && isMember && (
-              <button
-                type="button"
-                disabled={checkInBusy || checkInQ.data?.destinationLat == null}
-                onClick={() => handleCheckIn(false)}
-                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
-              >
-                {checkInBusy ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <MapPin className="h-4 w-4" />
-                )}
-                {lang === "af" ? "Lid — teken in" : "Member — check in"}
-              </button>
-            )}
             <button
               type="button"
-              disabled={checkInBusy || checkInQ.data?.destinationLat == null || !signedIn}
-              onClick={() => handleCheckIn(true)}
-              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink disabled:opacity-50"
+              disabled={checkInBusy || checkInQ.data?.destinationLat == null}
+              onClick={() => void handleMemberCheckIn()}
+              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
             >
               {checkInBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <User className="h-4 w-4" />
+                <MapPin className="h-4 w-4" />
               )}
-              {lang === "af" ? "Ek is ’n toeskouer" : "I am a spectator"}
+              {lang === "af" ? "Lid — teken in" : "Member — check in"}
             </button>
           </div>
-          {!signedIn && (
-            <p className="mt-2 text-xs text-ink/60">
-              {lang === "af"
-                ? "Teken eers in as gas of lid om die toeskouer-knoppie te gebruik."
-                : "Sign in first (guest or member) to use the spectator button."}
-            </p>
-          )}
           {checkInErr && <p className="mt-2 text-sm font-bold text-primary">{checkInErr}</p>}
         </div>
       )}
 
-      {checkedIn && (
+      {isMember && checkedIn && (
         <p className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-green-700">
           <Check className="h-3.5 w-3.5" />
-          {isSpectator
-            ? lang === "af"
-              ? "Toeskouer — ingeteken"
-              : "Spectator — checked in"
-            : lang === "af"
-              ? "Lid — ingeteken op die terrein"
-              : "Member — checked in on site"}
-          {checkInQ.data?.distanceM != null
-            ? ` · ${checkInQ.data.distanceM} m`
-            : ""}
+          {lang === "af" ? "Lid — ingeteken op die terrein" : "Member — checked in on site"}
+          {checkInQ.data?.distanceM != null ? ` · ${checkInQ.data.distanceM} m` : ""}
         </p>
+      )}
+
+      {checkInErr && !(isMember && !checkedIn && scoringOpen) && (
+        <p className="mt-2 text-sm font-bold text-primary">{checkInErr}</p>
       )}
 
       {vehicles.length === 0 && (
@@ -667,12 +710,29 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
             <button
               type="button"
               onClick={() => {
-                if (signedIn && !checkedIn) {
+                if (!scoringOpen || !identityReady) return;
+                if (isMember && !checkedIn) {
                   setCheckInErr(
                     lang === "af"
                       ? "Teken eers in op die terrein om te stem."
                       : "Check in on site first to score.",
                   );
+                  return;
+                }
+                if (!scoringAsMember) {
+                  void (async () => {
+                    setCheckInErr(null);
+                    try {
+                      const pos = await readGps();
+                      setSpectatorGps(pos);
+                      setSelectedVehicle(v);
+                      setAnswers({});
+                      setQIdx(0);
+                      setDoneMsg(null);
+                    } catch (err) {
+                      setCheckInErr(gpsErrorMessage(err, lang));
+                    }
+                  })();
                   return;
                 }
                 setSelectedVehicle(v);
@@ -710,21 +770,23 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
               </div>
             </button>
 
-            {/* Tag controls */}
-            {isMember && (
+            {/* Tag / admin controls */}
+            {(isMember || isAdmin) && (
               <div className="mt-2 border-t border-ink/10 pt-2">
                 {taggingId === v.id ? (
                   <div className="space-y-2">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => claimAsMe(v.id)}
-                      className="inline-flex items-center gap-1 rounded border-2 border-ink bg-primary px-2 py-1 text-xs font-bold uppercase text-paper"
-                    >
-                      <User className="h-3 w-3" />
-                      {lang === "af" ? "Dis myne" : "This is mine"}
-                    </button>
-                    {(garagePicksQ.data?.length ?? 0) > 0 && (
+                    {isMember && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => claimAsMe(v.id)}
+                        className="inline-flex items-center gap-1 rounded border-2 border-ink bg-primary px-2 py-1 text-xs font-bold uppercase text-paper"
+                      >
+                        <User className="h-3 w-3" />
+                        {lang === "af" ? "Dis myne" : "This is mine"}
+                      </button>
+                    )}
+                    {isMember && (garagePicksQ.data?.length ?? 0) > 0 && (
                       <select
                         className="w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs"
                         defaultValue=""
@@ -757,29 +819,33 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
                         ))}
                       </select>
                     )}
-                    <input
-                      value={memberSearch}
-                      onChange={(e) => searchMembers(e.target.value)}
-                      placeholder={
-                        lang === "af" ? "Soek lidnaam of #…" : "Search member name or #…"
-                      }
-                      className="w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs"
-                    />
-                    {memberHits.length > 0 && (
-                      <ul className="max-h-28 overflow-y-auto rounded border border-ink/20 bg-card text-xs">
-                        {memberHits.map((m) => (
-                          <li key={m.id}>
-                            <button
-                              type="button"
-                              onClick={() => tagMember(v.id, m)}
-                              className="w-full px-2 py-1.5 text-left hover:bg-primary/10"
-                            >
-                              {m.display_name ?? "—"}{" "}
-                              <span className="text-ink/50">#{m.member_number}</span>
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                    {isAdmin && (
+                      <>
+                        <input
+                          value={memberSearch}
+                          onChange={(e) => searchMembers(e.target.value)}
+                          placeholder={
+                            lang === "af" ? "Soek lidnaam of #…" : "Search member name or #…"
+                          }
+                          className="w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs"
+                        />
+                        {memberHits.length > 0 && (
+                          <ul className="max-h-28 overflow-y-auto rounded border border-ink/20 bg-card text-xs">
+                            {memberHits.map((m) => (
+                              <li key={m.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => tagMember(v.id, m)}
+                                  className="w-full px-2 py-1.5 text-left hover:bg-primary/10"
+                                >
+                                  {m.display_name ?? "—"}{" "}
+                                  <span className="text-ink/50">#{m.member_number}</span>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
                     )}
                     <button
                       type="button"
@@ -794,20 +860,51 @@ export function ConcoursChallenge({ eventId, eventStartsAt }: Props) {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setTaggingId(v.id)}
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    <User className="h-3 w-3" />
-                    {v.tagged_display_name
-                      ? lang === "af"
-                        ? "Verander tag"
-                        : "Change tag"
-                      : lang === "af"
-                        ? "Tag lid"
-                        : "Tag member"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTaggingId(v.id)}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      <User className="h-3 w-3" />
+                      {v.tagged_display_name
+                        ? lang === "af"
+                          ? "Verander tag"
+                          : "Change tag"
+                        : lang === "af"
+                          ? "Tag lid"
+                          : "Tag member"}
+                    </button>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              lang === "af"
+                                ? "Verwyder hierdie voertuig?"
+                                : "Remove this vehicle?",
+                            )
+                          ) {
+                            return;
+                          }
+                          setBusy(true);
+                          try {
+                            await removeVehicle({ data: { vehicleId: v.id } });
+                            await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Delete failed");
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {lang === "af" ? "Verwyder" : "Remove"}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -31,6 +32,8 @@ export type EventConcours = {
   winner_photo_url?: string | null;
   winner_headline_en?: string | null;
   winner_headline_af?: string | null;
+  winner_average_score?: number | null;
+  winner_submission_count?: number | null;
   results_on_home?: boolean;
   results_published_at?: string | null;
 };
@@ -64,6 +67,19 @@ async function assertAdmin(supabase: AnyClient, userId: string) {
   if (!isAdmin) throw new Error("Forbidden");
 }
 
+const CHECKIN_RADIUS_M = 2000; // 2 km — rural venues, GPS drift
+
+function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
 function pickBalancedQuestions(all: ConcoursQuestion[], count: number): ConcoursQuestion[] {
   const byCat = new Map<string, ConcoursQuestion[]>();
   for (const q of all) {
@@ -94,6 +110,207 @@ function pickBalancedQuestions(all: ConcoursQuestion[], count: number): Concours
   return selected;
 }
 
+function isClubMemberStatus(status: string | null | undefined): boolean {
+  return status === "active" || status === "member";
+}
+
+function spectatorQuestionIds(selectedIds: string[]): string[] {
+  const half = Math.ceil(selectedIds.length / 2);
+  return selectedIds.slice(0, half);
+}
+
+function orderQuestionsByIds(rows: ConcoursQuestion[], ids: string[]): ConcoursQuestion[] {
+  const byId = new Map(rows.map((q) => [q.id, q]));
+  return ids.map((id) => byId.get(id)).filter((q): q is ConcoursQuestion => !!q);
+}
+
+function scoreAnswers(
+  answers: Record<string, number | string | null>,
+  allowedIds: string[],
+): { totalScore: number; answered: number } {
+  let sum = 0;
+  let count = 0;
+  for (const qid of allowedIds) {
+    const val = answers[qid];
+    if (typeof val === "number" && !Number.isNaN(val)) {
+      sum += Math.max(0, Math.min(10, val));
+      count += 1;
+    } else if (val === "yes") {
+      sum += 10;
+      count += 1;
+    } else if (val === "no") {
+      sum += 0;
+      count += 1;
+    } else if (val === "na") {
+      // N/A is answered but excluded from the average
+    }
+  }
+  return {
+    totalScore: count > 0 ? Math.round((sum / count) * 10) / 10 : 0,
+    answered: count,
+  };
+}
+
+function assertAllQuestionsAnswered(
+  answers: Record<string, number | string | null>,
+  allowedIds: string[],
+) {
+  const missing = allowedIds.filter((id) => {
+    const val = answers[id];
+    return val === undefined || val === null || val === "";
+  });
+  if (missing.length > 0) {
+    throw new Error("Please answer every question before submitting.");
+  }
+}
+
+function weightedAverage(
+  scores: Array<{ total_score: number | null; weight: number | null }>,
+): { average: number | null; count: number } {
+  let wSum = 0;
+  let wTot = 0;
+  let count = 0;
+  for (const s of scores) {
+    if (s.total_score == null) continue;
+    const w = Number(s.weight) || 1;
+    wSum += Number(s.total_score) * w;
+    wTot += w;
+    count += 1;
+  }
+  return {
+    average: wTot > 0 ? Math.round((wSum / wTot) * 10) / 10 : null,
+    count,
+  };
+}
+
+async function sha256Hex(raw: string): Promise<string> {
+  const data = new TextEncoder().encode(raw);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function assertScoringOpen(sb: AnyClient, eventId: string) {
+  const { data: ev, error } = await sb
+    .from("events")
+    .select("starts_at, ends_at, destination_lat, destination_lng")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!ev) throw new Error("Event not found");
+  if (!isConcoursWindowOpen(ev.starts_at as string, ev.ends_at as string | null)) {
+    throw new Error("Concours scoring is only open on the event days.");
+  }
+  return ev as {
+    starts_at: string;
+    ends_at: string | null;
+    destination_lat: number | null;
+    destination_lng: number | null;
+  };
+}
+
+function assertWithinVenue(
+  lat: number,
+  lng: number,
+  destLat: number | null,
+  destLng: number | null,
+): number {
+  if (destLat == null || destLng == null) {
+    throw new Error("This event has no destination coordinates yet — ask an admin to set the map pin.");
+  }
+  const distanceM = haversineM(lat, lng, destLat, destLng);
+  if (distanceM > CHECKIN_RADIUS_M) {
+    throw new Error(
+      `You seem to be about ${Math.round(distanceM / 100) / 10} km away (need to be within ${CHECKIN_RADIUS_M / 1000} km of the venue).`,
+    );
+  }
+  return distanceM;
+}
+
+async function createAuthedSupabaseFromRequest(): Promise<{
+  supabase: AnyClient;
+  userId: string;
+} | null> {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const request = getRequest();
+    const authHeader = request?.headers?.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) return null;
+    const token = authHeader.slice(7);
+    if (!token || token.split(".").length !== 3) return null;
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const url =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      import.meta.env?.VITE_SUPABASE_URL;
+    const key =
+      process.env.SUPABASE_PUBLISHABLE_KEY ||
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) return null;
+
+    const supabase = createClient(url, key, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    }) as unknown as AnyClient;
+
+    const { data } = await supabase.auth.getUser(token);
+    const userId = data?.user?.id as string | undefined;
+    if (!userId) return null;
+    return { supabase, userId };
+  } catch {
+    return null;
+  }
+}
+
+async function upsertScoreRow(
+  sb: AnyClient,
+  payload: Record<string, unknown>,
+  kind: "member" | "spectator",
+) {
+  if (kind === "member") {
+    const { error } = await sb.from("event_concours_scores").upsert(payload, {
+      onConflict: "event_id,vehicle_id,user_id",
+    });
+    if (!error) return;
+    const { data: row } = await sb
+      .from("event_concours_scores")
+      .select("id")
+      .eq("event_id", payload.event_id)
+      .eq("vehicle_id", payload.vehicle_id)
+      .eq("user_id", payload.user_id)
+      .maybeSingle();
+    if (row?.id) {
+      const { error: uerr } = await sb.from("event_concours_scores").update(payload).eq("id", row.id);
+      if (uerr) throw new Error(uerr.message);
+      return;
+    }
+    const { error: ierr } = await sb.from("event_concours_scores").insert(payload);
+    if (ierr) throw new Error(ierr.message);
+    return;
+  }
+
+  const { data: row } = await sb
+    .from("event_concours_scores")
+    .select("id")
+    .eq("event_id", payload.event_id)
+    .eq("vehicle_id", payload.vehicle_id)
+    .eq("voter_fingerprint", payload.voter_fingerprint)
+    .maybeSingle();
+  if (row?.id) {
+    const { error: uerr } = await sb.from("event_concours_scores").update(payload).eq("id", row.id);
+    if (uerr) throw new Error(uerr.message);
+    return;
+  }
+  const { error } = await sb.from("event_concours_scores").insert(payload);
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("You have already scored this car.");
+    }
+    throw new Error(error.message);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public reads (anon)
 // ---------------------------------------------------------------------------
@@ -114,22 +331,18 @@ export const getEventConcours = createServerFn({ method: "GET" })
 
 export const listConcoursQuestions = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) =>
-    z.object({ ids: z.array(z.string().uuid()).optional() }).parse(i),
+    z.object({ ids: z.array(z.string().uuid()).min(1) }).parse(i),
   )
   .handler(async ({ data }): Promise<ConcoursQuestion[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase() as unknown as AnyClient;
-    let q = supabase
+    const { data: rows, error } = await supabase
       .from("concours_questions")
       .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
       .eq("active", true)
-      .order("sort_order");
-    if (data.ids && data.ids.length > 0) {
-      q = q.in("id", data.ids);
-    }
-    const { data: rows, error } = await q;
+      .in("id", data.ids);
     if (error) throw new Error(error.message);
-    return (rows ?? []) as ConcoursQuestion[];
+    return orderQuestionsByIds((rows ?? []) as ConcoursQuestion[], data.ids);
   });
 
 export const listConcoursVehicles = createServerFn({ method: "GET" })
@@ -146,32 +359,66 @@ export const listConcoursVehicles = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     if (!vehicles?.length) return [];
 
+    const { data: ec } = await supabase
+      .from("event_concours")
+      .select("leaderboard_revealed")
+      .eq("event_id", data.eventId)
+      .maybeSingle();
+    const revealed = Boolean(ec?.leaderboard_revealed);
+
     const { data: scores } = await supabase
       .from("event_concours_scores")
-      .select("vehicle_id, total_score, weight, is_member")
+      .select("vehicle_id, total_score, weight")
       .eq("event_id", data.eventId);
 
-    const byVehicle = new Map<string, { weightedSum: number; weightSum: number; count: number }>();
+    const byVehicle = new Map<string, { total_score: number | null; weight: number | null }[]>();
     for (const s of scores ?? []) {
-      if (s.total_score == null) continue;
-      const cur = byVehicle.get(s.vehicle_id) ?? { weightedSum: 0, weightSum: 0, count: 0 };
-      const w = Number(s.weight) || 1;
-      cur.weightedSum += Number(s.total_score) * w;
-      cur.weightSum += w;
-      cur.count += 1;
-      byVehicle.set(s.vehicle_id, cur);
+      const list = byVehicle.get(s.vehicle_id) ?? [];
+      list.push(s);
+      byVehicle.set(s.vehicle_id, list);
     }
 
     return (vehicles as ConcoursVehicle[]).map((v) => {
-      const stats = byVehicle.get(v.id);
+      const stats = weightedAverage(byVehicle.get(v.id) ?? []);
       return {
         ...v,
-        average_score:
-          stats && stats.weightSum > 0
-            ? Math.round((stats.weightedSum / stats.weightSum) * 10) / 10
-            : null,
-        submission_count: stats?.count ?? 0,
+        average_score: revealed ? stats.average : null,
+        submission_count: stats.count,
       };
+    });
+  });
+
+export const listConcoursVehiclesAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }): Promise<ConcoursVehicle[]> => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const { data: vehicles, error } = await sb
+      .from("event_concours_vehicles")
+      .select("*")
+      .eq("event_id", data.eventId)
+      .order("sort_order");
+    if (error) throw new Error(error.message);
+    if (!vehicles?.length) return [];
+
+    const { data: scores } = await sb
+      .from("event_concours_scores")
+      .select("vehicle_id, total_score, weight")
+      .eq("event_id", data.eventId);
+
+    const byVehicle = new Map<string, { total_score: number | null; weight: number | null }[]>();
+    for (const s of scores ?? []) {
+      const list = byVehicle.get(s.vehicle_id) ?? [];
+      list.push(s);
+      byVehicle.set(s.vehicle_id, list);
+    }
+
+    return (vehicles as ConcoursVehicle[]).map((v) => {
+      const stats = weightedAverage(byVehicle.get(v.id) ?? []);
+      return { ...v, average_score: stats.average, submission_count: stats.count };
     });
   });
 
@@ -208,17 +455,29 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
 
     let selectedIds: string[] = (existing?.selected_question_ids as string[] | undefined) ?? [];
 
-    if (
-      !existing ||
-      data.reRollQuestions ||
-      selectedIds.length !== data.questionCount
-    ) {
+    if (!existing || data.reRollQuestions || selectedIds.length === 0) {
       const { data: allQ } = await sb
         .from("concours_questions")
         .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
         .eq("active", true);
       const picked = pickBalancedQuestions((allQ ?? []) as ConcoursQuestion[], data.questionCount);
       selectedIds = picked.map((q) => q.id);
+    } else if (selectedIds.length !== data.questionCount) {
+      const { data: allQ } = await sb
+        .from("concours_questions")
+        .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
+        .eq("active", true);
+      const bank = (allQ ?? []) as ConcoursQuestion[];
+      if (selectedIds.length > data.questionCount) {
+        selectedIds = selectedIds.slice(0, data.questionCount);
+      } else {
+        const have = new Set(selectedIds);
+        const extra = pickBalancedQuestions(
+          bank.filter((q) => !have.has(q.id)),
+          data.questionCount - selectedIds.length,
+        );
+        selectedIds = [...selectedIds, ...extra.map((q) => q.id)];
+      }
     }
 
     const payload = {
@@ -276,6 +535,8 @@ export const addConcoursVehicle = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
 
+    await assertScoringOpen(sb, data.eventId);
+
     // Admin must be checked in on site
     const { data: cin } = await sb
       .from("event_checkins")
@@ -313,13 +574,19 @@ export const deleteConcoursVehicle = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
 
+    const { error: scoreErr } = await sb
+      .from("event_concours_scores")
+      .delete()
+      .eq("vehicle_id", data.vehicleId);
+    if (scoreErr) throw new Error(scoreErr.message);
+
     const { error } = await sb.from("event_concours_vehicles").delete().eq("id", data.vehicleId);
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
 
 // ---------------------------------------------------------------------------
-// Scoring — public allowed (50% questions, 0.5 weight); members full + 1.0
+// Scoring — unsigned spectators (half questions, 0.5 weight); signed-in club members full + 1.0
 // ---------------------------------------------------------------------------
 
 export const submitConcoursScore = createServerFn({ method: "POST" })
@@ -329,118 +596,118 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         eventId: z.string().uuid(),
         vehicleId: z.string().uuid(),
         answers: z.record(z.union([z.number(), z.string(), z.null()])),
+        lat: z.number().min(-90).max(90).optional(),
+        lng: z.number().min(-180).max(180).optional(),
+        voterKey: z.string().uuid().optional(),
       })
       .parse(i),
   )
   .handler(async ({ data }) => {
     const { createPublicSupabase } = await import("./public-supabase.server");
-    const supabase = createPublicSupabase() as unknown as AnyClient;
+    const publicSb = createPublicSupabase() as unknown as AnyClient;
 
-    // Optional auth: if a Bearer token is present, treat as member when profile says so
-    let userId: string | null = null;
-    let isMember = false;
-    let weight = 0.5;
+    const ev = await assertScoringOpen(publicSb, data.eventId);
 
-    try {
-      const { getRequest } = await import("@tanstack/react-start/server");
-      const request = getRequest();
-      const authHeader = request?.headers?.get("authorization");
-      if (authHeader?.startsWith("Bearer ")) {
-        const token = authHeader.slice(7);
-        const { data: userData } = await supabase.auth.getUser(token);
-        if (userData?.user?.id) {
-          userId = userData.user.id;
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("membership_status")
-            .eq("id", userId)
-            .maybeSingle();
-          isMember =
-            profile?.membership_status === "active" ||
-            profile?.membership_status === "member";
-          weight = isMember ? 1.0 : 0.5;
-        }
-      }
-    } catch {
-      // stay as public
-    }
-
-    // Anyone signed in must be checked in on site to score
-    if (userId) {
-      const { data: cin } = await supabase
-        .from("event_checkins")
-        .select("id, is_spectator")
-        .eq("event_id", data.eventId)
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!cin) {
-        throw new Error("Check in on site first (GPS) before scoring.");
-      }
-      // Spectators always score at 50% weight even if they have a member profile
-      if (cin.is_spectator) {
-        isMember = false;
-        weight = 0.5;
-      }
-    }
-
-    const { data: ec } = await supabase
+    const { data: ec } = await publicSb
       .from("event_concours")
-      .select("selected_question_ids, enabled")
+      .select("selected_question_ids, enabled, results_published_at")
       .eq("event_id", data.eventId)
       .maybeSingle();
-
     if (!ec?.enabled) throw new Error("Concours is not enabled for this event");
+    if (ec.results_published_at) throw new Error("Scoring is closed — results are already published.");
+
+    const { data: veh } = await publicSb
+      .from("event_concours_vehicles")
+      .select("id, event_id")
+      .eq("id", data.vehicleId)
+      .maybeSingle();
+    if (!veh || veh.event_id !== data.eventId) throw new Error("Vehicle is not part of this event.");
 
     const selectedIds: string[] = (ec.selected_question_ids as string[]) ?? [];
     if (selectedIds.length === 0) throw new Error("No questions configured");
 
-    let allowedIds = selectedIds;
-    if (!isMember) {
-      const half = Math.ceil(selectedIds.length / 2);
-      allowedIds = selectedIds.slice(0, half);
+    const authed = await createAuthedSupabaseFromRequest();
+    let clubMember = false;
+    if (authed) {
+      const { data: profile } = await authed.supabase
+        .from("profiles")
+        .select("membership_status")
+        .eq("id", authed.userId)
+        .maybeSingle();
+      clubMember = isClubMemberStatus(profile?.membership_status as string | undefined);
     }
 
-    let sum = 0;
-    let count = 0;
-    for (const [qid, val] of Object.entries(data.answers)) {
-      if (!allowedIds.includes(qid)) continue;
-      if (typeof val === "number" && !Number.isNaN(val)) {
-        const n = Math.max(0, Math.min(10, val > 10 ? 10 : val));
-        sum += n;
-        count += 1;
-      } else if (val === "yes") {
-        sum += 10;
-        count += 1;
-      } else if (val === "no") {
-        sum += 0;
-        count += 1;
+    if (clubMember && authed) {
+      const { data: cin } = await authed.supabase
+        .from("event_checkins")
+        .select("id, is_spectator")
+        .eq("event_id", data.eventId)
+        .eq("user_id", authed.userId)
+        .maybeSingle();
+      if (!cin || cin.is_spectator) {
+        throw new Error("Check in on site first (GPS) before scoring.");
       }
+
+      const allowedIds = selectedIds;
+      assertAllQuestionsAnswered(data.answers, allowedIds);
+      const { totalScore } = scoreAnswers(data.answers, allowedIds);
+
+      const payload = {
+        event_id: data.eventId,
+        vehicle_id: data.vehicleId,
+        user_id: authed.userId,
+        is_member: true,
+        weight: 1.0,
+        answers: data.answers,
+        total_score: totalScore,
+        voter_fingerprint: null,
+        submitted_at: new Date().toISOString(),
+      };
+      let writer: AnyClient = authed.supabase;
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        writer = supabaseAdmin as unknown as AnyClient;
+      } catch {
+        writer = authed.supabase;
+      }
+      await upsertScoreRow(writer, payload, "member");
+      return { ok: true as const, totalScore, isMember: true, weight: 1.0 };
     }
 
-    const totalScore = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
+    if (data.lat == null || data.lng == null) {
+      throw new Error("Location is required to score as a spectator.");
+    }
+    if (!data.voterKey) {
+      throw new Error("Missing spectator vote key — refresh and try again.");
+    }
+    assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
+
+    const allowedIds = spectatorQuestionIds(selectedIds);
+    assertAllQuestionsAnswered(data.answers, allowedIds);
+    const { totalScore } = scoreAnswers(data.answers, allowedIds);
+    const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
+
+    let writer: AnyClient = publicSb;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      writer = supabaseAdmin as unknown as AnyClient;
+    } catch {
+      writer = publicSb;
+    }
 
     const payload = {
       event_id: data.eventId,
       vehicle_id: data.vehicleId,
-      user_id: userId,
-      is_member: isMember,
-      weight,
+      user_id: null,
+      is_member: false,
+      weight: 0.5,
       answers: data.answers,
       total_score: totalScore,
+      voter_fingerprint: fingerprint,
       submitted_at: new Date().toISOString(),
     };
-
-    if (userId) {
-      const { error } = await supabase.from("event_concours_scores").upsert(payload, {
-        onConflict: "event_id,vehicle_id,user_id",
-      });
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await supabase.from("event_concours_scores").insert(payload);
-      if (error) throw new Error(error.message);
-    }
-
-    return { ok: true as const, totalScore, isMember, weight };
+    await upsertScoreRow(writer, payload, "spectator");
+    return { ok: true as const, totalScore, isMember: false, weight: 0.5 };
   });
 
 
@@ -461,7 +728,11 @@ export const tagConcoursVehicle = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const sb = supabase as unknown as AnyClient;
 
-    // Any signed-in user can tag (member or admin)
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (data.taggedUserId && data.taggedUserId !== userId && !isAdmin) {
+      throw new Error("Only club admins can tag another member's car");
+    }
+
     const payload: Record<string, unknown> = {
       tagged_user_id: data.taggedUserId,
       tagged_display_name: data.taggedDisplayName ?? null,
@@ -574,19 +845,6 @@ export const listMyGaragePicks = createServerFn({ method: "GET" })
 // Location check-in (must be near event destination to score / add cars)
 // ---------------------------------------------------------------------------
 
-const CHECKIN_RADIUS_M = 2000; // 2 km — rural venues, GPS drift
-
-function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-}
-
 export type CheckInStatus = {
   checkedIn: boolean;
   isSpectator: boolean;
@@ -644,28 +902,13 @@ export const checkInToEvent = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const sb = supabase as unknown as AnyClient;
 
-    const { data: ev, error: evErr } = await sb
-      .from("events")
-      .select("destination_lat, destination_lng, starts_at, ends_at")
-      .eq("id", data.eventId)
-      .maybeSingle();
-    if (evErr) throw new Error(evErr.message);
-    if (!ev) throw new Error("Event not found");
-
-    const destLat = ev.destination_lat as number | null;
-    const destLng = ev.destination_lng as number | null;
-    if (destLat == null || destLng == null) {
-      throw new Error(
-        "This event has no destination coordinates yet — ask an admin to set the map pin.",
-      );
-    }
-
-    const distanceM = haversineM(data.lat, data.lng, destLat, destLng);
-    if (distanceM > CHECKIN_RADIUS_M) {
-      throw new Error(
-        `You seem to be about ${Math.round(distanceM / 100) / 10} km away (need to be within ${CHECKIN_RADIUS_M / 1000} km of the venue).`,
-      );
-    }
+    const ev = await assertScoringOpen(sb, data.eventId);
+    const distanceM = assertWithinVenue(
+      data.lat,
+      data.lng,
+      ev.destination_lat,
+      ev.destination_lng,
+    );
 
     const { error } = await sb.from("event_checkins").upsert(
       {
@@ -674,7 +917,7 @@ export const checkInToEvent = createServerFn({ method: "POST" })
         lat: data.lat,
         lng: data.lng,
         distance_m: distanceM,
-        is_spectator: data.isSpectator ?? false,
+        is_spectator: false,
         checked_in_at: new Date().toISOString(),
       },
       { onConflict: "event_id,user_id" },
@@ -771,6 +1014,18 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
 
+    let winnerAverage: number | null = null;
+    let winnerCount = 0;
+    if (data.winnerVehicleId) {
+      const { data: scores } = await sb
+        .from("event_concours_scores")
+        .select("total_score, weight")
+        .eq("vehicle_id", data.winnerVehicleId);
+      const stats = weightedAverage(scores ?? []);
+      winnerAverage = stats.average;
+      winnerCount = stats.count;
+    }
+
     const { error } = await sb
       .from("event_concours")
       .update({
@@ -778,6 +1033,8 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
         winner_photo_url: data.winnerPhotoUrl,
         winner_headline_en: data.winnerHeadlineEn ?? null,
         winner_headline_af: data.winnerHeadlineAf ?? null,
+        winner_average_score: winnerAverage,
+        winner_submission_count: winnerCount,
         results_on_home: data.resultsOnHome,
         results_published_at: data.resultsOnHome ? new Date().toISOString() : null,
         leaderboard_revealed: true,
@@ -812,7 +1069,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
     const { data: ec, error } = await supabase
       .from("event_concours")
       .select(
-        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, prize_en, prize_af, results_published_at",
+        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, prize_en, prize_af, results_published_at, winner_average_score, winner_submission_count",
       )
       .eq("results_on_home", true)
       .not("winner_photo_url", "is", null)
@@ -831,8 +1088,9 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
 
     let vehicleLabel: string | null = null;
     let taggedDisplayName: string | null = null;
-    let averageScore: number | null = null;
-    let submissionCount = 0;
+    let averageScore: number | null =
+      ec.winner_average_score == null ? null : Number(ec.winner_average_score);
+    let submissionCount = Number(ec.winner_submission_count ?? 0);
 
     if (ec.winner_vehicle_id) {
       const { data: v } = await supabase
@@ -843,20 +1101,15 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
       vehicleLabel = (v?.label as string | null) ?? null;
       taggedDisplayName = (v?.tagged_display_name as string | null) ?? null;
 
-      const { data: scores } = await supabase
-        .from("event_concours_scores")
-        .select("total_score, weight")
-        .eq("vehicle_id", ec.winner_vehicle_id);
-      let wSum = 0;
-      let wTot = 0;
-      for (const s of scores ?? []) {
-        if (s.total_score == null) continue;
-        const w = Number(s.weight) || 1;
-        wSum += Number(s.total_score) * w;
-        wTot += w;
-        submissionCount += 1;
+      if (averageScore == null) {
+        const { data: scores } = await supabase
+          .from("event_concours_scores")
+          .select("total_score, weight")
+          .eq("vehicle_id", ec.winner_vehicle_id);
+        const stats = weightedAverage(scores ?? []);
+        averageScore = stats.average;
+        submissionCount = stats.count;
       }
-      averageScore = wTot > 0 ? Math.round((wSum / wTot) * 10) / 10 : null;
     }
 
     return {

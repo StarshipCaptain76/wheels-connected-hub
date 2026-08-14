@@ -39,28 +39,14 @@ export const getMemberByNumber = createServerFn({ method: "GET" })
     // Hidden members are only visible to themselves (admins use the admin portal)
     if (!isSelf && !visible) return null;
 
-    const nowIso = new Date().toISOString();
-    const { data: rsvps } = await supabase
-      .from("event_rsvps")
-      .select("event_id, status, events!inner(id, title, starts_at, is_published)")
-      .eq("user_id", p.id)
-      .in("status", ["going", "maybe"])
-      .gte("events.starts_at", nowIso)
-      .eq("events.is_published", true);
+    const { data: rsvps, error: rsvpErr } = await supabase.rpc("member_upcoming_events", {
+      _user_id: p.id,
+    });
+    if (rsvpErr) throw new Error(rsvpErr.message);
 
-    const upcoming =
-      (rsvps ?? [])
-        .map((r) => {
-          const ev = r.events as unknown as { id: string; title: string; starts_at: string } | null;
-          if (!ev) return null;
-          return {
-            event_id: ev.id,
-            title: ev.title,
-            starts_at: ev.starts_at,
-            status: r.status,
-          };
-        })
-        .filter(Boolean) as MemberGarage["upcoming"];
+    const upcoming = ((rsvps ?? []) as MemberGarage["upcoming"]).slice().sort((a, b) =>
+      a.starts_at.localeCompare(b.starts_at),
+    );
 
     const { signStoredUrl } = await import("./storage-urls.server");
     const avatarSigned = await signStoredUrl(supabase, p.avatar_url as string | null);
@@ -77,6 +63,6 @@ export const getMemberByNumber = createServerFn({ method: "GET" })
       featured_bio: p.featured_bio,
       featured_photo_url: p.featured_photo_url,
       directory_visible: p.directory_visible !== false,
-      upcoming: upcoming.sort((a, b) => a.starts_at.localeCompare(b.starts_at)),
+      upcoming,
     };
   });

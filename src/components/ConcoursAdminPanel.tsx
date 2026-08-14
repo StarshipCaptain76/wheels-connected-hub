@@ -8,6 +8,7 @@ import {
   listConcoursVehiclesAdmin,
   deleteConcoursVehicle,
   listAllConcoursQuestionsAdmin,
+  listConcoursQuestions,
   upsertConcoursQuestion,
   publishConcoursResults,
   listConcoursScoresAdmin,
@@ -48,6 +49,12 @@ export function ConcoursAdminPanel({ eventId }: Props) {
     queryKey: ["concours-questions-admin"],
     enabled: !!eventId,
     queryFn: () => listAllConcoursQuestionsAdmin(),
+  });
+  const pickedIds = concoursQ.data?.selected_question_ids ?? [];
+  const pickedQ = useQuery({
+    queryKey: ["concours-questions-picked", eventId, pickedIds],
+    enabled: !!eventId && pickedIds.length > 0,
+    queryFn: () => listConcoursQuestions({ data: { ids: pickedIds } }),
   });
   const scoresQ = useQuery({
     queryKey: ["concours-scores-admin", eventId],
@@ -121,6 +128,8 @@ export function ConcoursAdminPanel({ eventId }: Props) {
           : `Saved · ${res.selectedCount} questions ready`,
       );
       await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+      await qc.invalidateQueries({ queryKey: ["concours-questions-picked", eventId] });
+      await qc.invalidateQueries({ queryKey: ["concours-questions", eventId] });
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -292,9 +301,38 @@ export function ConcoursAdminPanel({ eventId }: Props) {
                     onClick={() => save(true)}
                     className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase disabled:opacity-50"
                   >
-                    <RefreshCw className="h-3.5 w-3.5" /> Re-roll from bank
+                    <RefreshCw className="h-3.5 w-3.5" /> Shuffle from full bank
                   </button>
                 </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-ink/20 bg-paper p-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                  This event’s questions ({pickedQ.data?.length ?? pickedIds.length}
+                  {questionCount ? ` of ${questionCount}` : ""})
+                </p>
+                <p className="mt-1 text-xs text-ink/60">
+                  Drawn at random from every active question. Shuffle to draw a new set. Save
+                  settings does not reshuffle an existing set.
+                </p>
+                {pickedIds.length === 0 ? (
+                  <p className="mt-2 text-sm text-ink/60">
+                    Save settings to draw the first random set.
+                  </p>
+                ) : pickedQ.isLoading ? (
+                  <p className="mt-2 text-sm text-ink/60">Loading picked questions…</p>
+                ) : (
+                  <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm">
+                    {(pickedQ.data ?? []).map((q) => (
+                      <li key={q.id}>
+                        <span className="text-[10px] font-bold uppercase text-primary">
+                          {q.category}
+                        </span>
+                        <span className="ml-1 text-ink">{q.text_en}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
 
               <label className="block">
@@ -411,8 +449,8 @@ export function ConcoursAdminPanel({ eventId }: Props) {
       {adminTab === "questions" && (
         <div className="space-y-3">
           <p className="text-xs text-ink/60">
-            Master question bank used when rolling questions for an event. Edit scoring type and
-            bilingual text.
+            Master question bank for every event. This is the full list — the set drawn for this
+            event is on the Settings tab. Edit scoring type and bilingual text here.
           </p>
           <button
             type="button"

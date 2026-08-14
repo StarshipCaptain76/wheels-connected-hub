@@ -80,34 +80,13 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-function pickBalancedQuestions(all: ConcoursQuestion[], count: number): ConcoursQuestion[] {
-  const byCat = new Map<string, ConcoursQuestion[]>();
-  for (const q of all) {
-    const list = byCat.get(q.category) ?? [];
-    list.push(q);
-    byCat.set(q.category, list);
+function pickRandomQuestions(all: ConcoursQuestion[], count: number): ConcoursQuestion[] {
+  const pool = [...all];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  for (const list of byCat.values()) {
-    for (let i = list.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [list[i], list[j]] = [list[j], list[i]];
-    }
-  }
-  const categories = Array.from(byCat.keys());
-  const selected: ConcoursQuestion[] = [];
-  let catIdx = 0;
-  while (selected.length < count && categories.length > 0) {
-    const cat = categories[catIdx % categories.length];
-    const list = byCat.get(cat)!;
-    if (list.length > 0) {
-      selected.push(list.shift()!);
-    } else {
-      categories.splice(catIdx % categories.length, 1);
-      continue;
-    }
-    catIdx++;
-  }
-  return selected;
+  return pool.slice(0, Math.max(0, Math.min(count, pool.length)));
 }
 
 function isClubMemberStatus(status: string | null | undefined): boolean {
@@ -460,7 +439,7 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
         .from("concours_questions")
         .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
         .eq("active", true);
-      const picked = pickBalancedQuestions((allQ ?? []) as ConcoursQuestion[], data.questionCount);
+      const picked = pickRandomQuestions((allQ ?? []) as ConcoursQuestion[], data.questionCount);
       selectedIds = picked.map((q) => q.id);
     } else if (selectedIds.length !== data.questionCount) {
       const { data: allQ } = await sb
@@ -472,7 +451,7 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
         selectedIds = selectedIds.slice(0, data.questionCount);
       } else {
         const have = new Set(selectedIds);
-        const extra = pickBalancedQuestions(
+        const extra = pickRandomQuestions(
           bank.filter((q) => !have.has(q.id)),
           data.questionCount - selectedIds.length,
         );

@@ -1446,6 +1446,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      member_upcoming_events: {
+        Args: { _user_id: string }
+        Returns: {
+          event_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["rsvp_status"]
+          title: string
+        }[]
+      }
       fanout_notification: {
         Args: {
           _body_af?: string

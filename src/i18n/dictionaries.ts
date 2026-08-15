@@ -27,6 +27,7 @@ export const dictionaries = {
     "notif.saveFailed": "Could not save settings",
     "notif.type.new_listing": "New classifieds listings",
     "notif.type.new_event": "New events",
+    "notif.type.event_reminder": "Reminder the day before an event",
     "notif.type.event_photo": "New photos on past events",
     "notif.type.new_newsletter": "New newsletters",
     "notif.type.photo_tag": "Tagged in a photo",

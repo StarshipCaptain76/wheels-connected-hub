@@ -133,6 +133,47 @@ function Index() {
   const garageThumb = featured?.garage_thumb_url?.trim() || null;
   const bio = featured?.featured_bio?.trim() || null;
 
+  // Day-relative state is computed after hydration so SSR and client markup match.
+  const [dayState, setDayState] = useState<"today" | "tomorrow" | null>(null);
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const startsAt = nextEvent?.starts_at ?? null;
+
+  useEffect(() => {
+    if (!startsAt) {
+      setDayState(null);
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const diff = sastDayDiff(startsAt);
+      setDayState(diff === 0 ? "today" : diff === 1 ? "tomorrow" : null);
+      if (diff !== 0) {
+        setCountdown(null);
+        return;
+      }
+      const ms = new Date(startsAt).getTime() - Date.now();
+      if (ms <= 0) {
+        setCountdown(t("home.underWay"));
+        return;
+      }
+      const mins = Math.round(ms / 60000);
+      setCountdown(
+        mins < 60
+          ? t("home.startsInMinutes").replace("{n}", String(mins))
+          : t("home.startsInHours").replace("{n}", String(Math.round(mins / 60))),
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [startsAt, t]);
+
+  const isToday = dayState === "today";
+  const isTomorrow = dayState === "tomorrow";
+  const startTime = startsAt ? formatTime(startsAt, lang) : null;
+
+
+
   return (
     <SiteLayout>
       <section className="border-b-2 border-ink bg-paper text-ink">

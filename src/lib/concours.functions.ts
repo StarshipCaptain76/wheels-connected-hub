@@ -168,6 +168,41 @@ async function sha256Hex(raw: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Small stable hash so a car's random question draw is reproducible at submit. */
+function seedHash(raw: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Questions for one car: the admin-selected set first, then an equal number of
+ * extras drawn from the bank — deterministic per (event, vehicle), so every
+ * car feels different while the server can re-validate the same set at submit.
+ */
+async function questionIdsForVehicle(
+  sb: AnyClient,
+  eventId: string,
+  vehicleId: string,
+  selectedIds: string[],
+): Promise<{ adminIds: string[]; randomIds: string[]; allIds: string[] }> {
+  const adminIds = selectedIds;
+  const { data: bank } = await sb
+    .from("concours_questions")
+    .select("id")
+    .eq("active", true);
+  const chosen = new Set(adminIds);
+  const pool = ((bank ?? []) as Array<{ id: string }>)
+    .map((q) => q.id)
+    .filter((id) => !chosen.has(id))
+    .sort((a, b) => seedHash(`${eventId}:${vehicleId}:${a}`) - seedHash(`${eventId}:${vehicleId}:${b}`));
+  const randomIds = pool.slice(0, adminIds.length);
+  return { adminIds, randomIds, allIds: [...adminIds, ...randomIds] };
+}
+
 async function assertScoringOpen(sb: AnyClient, eventId: string) {
   const { data: ev, error } = await sb
     .from("events")

@@ -1272,6 +1272,9 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
       winnerPhotoUrl: ec.winner_photo_url as string,
       winnerHeadlineEn: (ec.winner_headline_en as string | null) ?? null,
       winnerHeadlineAf: (ec.winner_headline_af as string | null) ?? null,
+      winnerBlurbEn: (ec.winner_blurb_en as string | null) ?? null,
+      winnerBlurbAf: (ec.winner_blurb_af as string | null) ?? null,
+
       vehicleLabel,
       taggedDisplayName,
       averageScore,

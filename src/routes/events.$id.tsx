@@ -163,6 +163,25 @@ function EventDetailPage() {
   const isPast = new Date(data.starts_at).getTime() < Date.now();
   const iconUrl = data.cover_url || null;
 
+  // Live = started, and not yet past its end time (or midnight of the event day).
+  const startMs = new Date(data.starts_at).getTime();
+  const endOfDay = new Date(data.starts_at);
+  endOfDay.setHours(23, 59, 59, 999);
+  const endMs = data.ends_at ? new Date(data.ends_at).getTime() : endOfDay.getTime();
+  const nowMs = Date.now();
+  const isLive = nowMs >= startMs && nowMs <= endMs;
+
+  const concoursBlock = (
+    <div id="concours" className="scroll-mt-24">
+      <ConcoursChallenge
+        eventId={data.id}
+        eventStartsAt={data.starts_at}
+        eventEndsAt={data.ends_at}
+      />
+    </div>
+  );
+
+
   const waypointCoords = data.waypoints
     .filter((w) => w.lat != null && w.lng != null)
     .map((w) => ({ lat: w.lat as number, lng: w.lng as number, label: w.label }));
@@ -232,6 +251,9 @@ function EventDetailPage() {
         </div>
 
         {description && <p className="mt-4 text-lg text-ink/80">{description}</p>}
+
+        {isLive && concoursBlock}
+
 
         {destination && (
           <section className="mt-8">
@@ -350,11 +372,8 @@ function EventDetailPage() {
 
         <EventPhotosGallery eventId={data.id} lang={lang} />
 
-        <ConcoursChallenge
-          eventId={data.id}
-          eventStartsAt={data.starts_at}
-          eventEndsAt={data.ends_at}
-        />
+        {!isLive && concoursBlock}
+
       </section>
     </SiteLayout>
   );

@@ -32,6 +32,9 @@ export type EventConcours = {
   winner_photo_url?: string | null;
   winner_headline_en?: string | null;
   winner_headline_af?: string | null;
+  winner_blurb_en?: string | null;
+  winner_blurb_af?: string | null;
+
   winner_average_score?: number | null;
   winner_submission_count?: number | null;
   results_on_home?: boolean;
@@ -1146,7 +1149,10 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
         winnerPhotoUrl: z.string().url().nullable(),
         winnerHeadlineEn: z.string().max(200).nullable().optional(),
         winnerHeadlineAf: z.string().max(200).nullable().optional(),
+        winnerBlurbEn: z.string().max(1200).nullable().optional(),
+        winnerBlurbAf: z.string().max(1200).nullable().optional(),
         resultsOnHome: z.boolean(),
+
       })
       .parse(i),
   )
@@ -1174,6 +1180,9 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
         winner_photo_url: data.winnerPhotoUrl,
         winner_headline_en: data.winnerHeadlineEn ?? null,
         winner_headline_af: data.winnerHeadlineAf ?? null,
+        winner_blurb_en: data.winnerBlurbEn ?? null,
+        winner_blurb_af: data.winnerBlurbAf ?? null,
+
         winner_average_score: winnerAverage,
         winner_submission_count: winnerCount,
         results_on_home: data.resultsOnHome,
@@ -1195,6 +1204,9 @@ export type ConcoursHomeWinner = {
   winnerPhotoUrl: string;
   winnerHeadlineEn: string | null;
   winnerHeadlineAf: string | null;
+  winnerBlurbEn: string | null;
+  winnerBlurbAf: string | null;
+
   vehicleLabel: string | null;
   taggedDisplayName: string | null;
   averageScore: number | null;
@@ -1211,7 +1223,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
     const { data: ec, error } = await supabase
       .from("event_concours")
       .select(
-        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, prize_en, prize_af, results_published_at, winner_average_score, winner_submission_count",
+        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, winner_blurb_en, winner_blurb_af, prize_en, prize_af, results_published_at, winner_average_score, winner_submission_count",
       )
       .eq("results_on_home", true)
       .not("winner_photo_url", "is", null)
@@ -1263,6 +1275,9 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
       winnerPhotoUrl: ec.winner_photo_url as string,
       winnerHeadlineEn: (ec.winner_headline_en as string | null) ?? null,
       winnerHeadlineAf: (ec.winner_headline_af as string | null) ?? null,
+      winnerBlurbEn: (ec.winner_blurb_en as string | null) ?? null,
+      winnerBlurbAf: (ec.winner_blurb_af as string | null) ?? null,
+
       vehicleLabel,
       taggedDisplayName,
       averageScore,
@@ -1412,3 +1427,48 @@ export const deleteConcoursScoreAdmin = createServerFn({ method: "POST" })
   });
 
 export const getLatestConcoursWinner = getLatestConcoursHomeWinner;
+
+/** Admin: generate a light-hearted EN/AF blurb about why the winning car won. */
+export const generateConcoursWinnerBlurb = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({ eventId: z.string().uuid(), vehicleId: z.string().uuid() })
+      .parse(i),
+  )
+  .handler(async ({ context, data }): Promise<{ en: string; af: string }> => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const { data: ev } = await sb
+      .from("events")
+      .select("title")
+      .eq("id", data.eventId)
+      .maybeSingle();
+
+    const { data: v } = await sb
+      .from("event_concours_vehicles")
+      .select("label, tagged_display_name")
+      .eq("id", data.vehicleId)
+      .maybeSingle();
+
+    const { data: scores } = await sb
+      .from("event_concours_scores")
+      .select("total_score, weight")
+      .eq("vehicle_id", data.vehicleId);
+    const stats = weightedAverage(scores ?? []);
+
+    const { buildWinnerBlurb } = await import("./concours-blurb.server");
+    return buildWinnerBlurb(sb, {
+      eventId: data.eventId,
+      vehicleId: data.vehicleId,
+      eventTitle: (ev?.title as string | null) ?? "Club event",
+      vehicleName:
+        (v?.tagged_display_name as string | null) ||
+        (v?.label as string | null) ||
+        "The winning car",
+      averageScore: stats.average,
+      submissionCount: stats.count,
+    });
+  });

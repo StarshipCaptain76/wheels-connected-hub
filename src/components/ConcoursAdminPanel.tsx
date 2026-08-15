@@ -11,6 +11,7 @@ import {
   listConcoursQuestions,
   upsertConcoursQuestion,
   publishConcoursResults,
+  generateConcoursWinnerBlurb,
   listConcoursScoresAdmin,
   updateConcoursScoreAdmin,
   deleteConcoursScoreAdmin,
@@ -29,6 +30,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const reveal = useServerFn(revealConcoursLeaderboard);
   const upsertQ = useServerFn(upsertConcoursQuestion);
   const publish = useServerFn(publishConcoursResults);
+  const genBlurb = useServerFn(generateConcoursWinnerBlurb);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
   const delVehicle = useServerFn(deleteConcoursVehicle);
@@ -76,6 +78,10 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState("");
   const [winnerHeadlineEn, setWinnerHeadlineEn] = useState("");
   const [winnerHeadlineAf, setWinnerHeadlineAf] = useState("");
+  const [winnerBlurbEn, setWinnerBlurbEn] = useState("");
+  const [winnerBlurbAf, setWinnerBlurbAf] = useState("");
+  const [blurbBusy, setBlurbBusy] = useState(false);
+
   const [resultsOnHome, setResultsOnHome] = useState(false);
 
   // Question editor
@@ -94,7 +100,10 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
       setWinnerPhotoUrl(c.winner_photo_url ?? "");
       setWinnerHeadlineEn(c.winner_headline_en ?? "");
       setWinnerHeadlineAf(c.winner_headline_af ?? "");
+      setWinnerBlurbEn(c.winner_blurb_en ?? "");
+      setWinnerBlurbAf(c.winner_blurb_af ?? "");
       setResultsOnHome(!!c.results_on_home);
+
     }
   }, [concoursQ.data]);
 
@@ -206,10 +215,30 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     }
   }
 
+  async function generateBlurb() {
+    if (!winnerVehicleId) {
+      setMsg("Pick the winning car first");
+      return;
+    }
+    setBlurbBusy(true);
+    setMsg(null);
+    try {
+      const out = await genBlurb({ data: { eventId: eventId!, vehicleId: winnerVehicleId } });
+      setWinnerBlurbEn(out.en);
+      setWinnerBlurbAf(out.af);
+      setMsg("Blurb generated — edit it if you like, then publish");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Blurb generation failed");
+    } finally {
+      setBlurbBusy(false);
+    }
+  }
+
   async function saveResults() {
     setBusy(true);
     setMsg(null);
     try {
+
       await publish({
         data: {
           eventId: eventId!,
@@ -217,6 +246,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
           winnerPhotoUrl: winnerPhotoUrl || null,
           winnerHeadlineEn: winnerHeadlineEn || null,
           winnerHeadlineAf: winnerHeadlineAf || null,
+          winnerBlurbEn: winnerBlurbEn || null,
+          winnerBlurbAf: winnerBlurbAf || null,
+
           resultsOnHome,
         },
       });
@@ -733,6 +765,38 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               className={inp}
             />
           </label>
+
+          <div className="rounded-md border-2 border-ink/20 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                Winner blurb (why it won)
+              </span>
+              <button
+                type="button"
+                disabled={blurbBusy || !winnerVehicleId}
+                onClick={generateBlurb}
+                className="rounded-md border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+              >
+                {blurbBusy ? "Writing…" : "Generate with AI"}
+              </button>
+            </div>
+            <textarea
+              value={winnerBlurbEn}
+              onChange={(e) => setWinnerBlurbEn(e.target.value)}
+              rows={3}
+              placeholder="English blurb"
+              className={`${inp} mt-2`}
+            />
+            <textarea
+              value={winnerBlurbAf}
+              onChange={(e) => setWinnerBlurbAf(e.target.value)}
+              rows={3}
+              placeholder="Afrikaanse blurb"
+              className={`${inp} mt-2`}
+            />
+          </div>
+
+
 
           <label className="flex items-center gap-2">
             <input

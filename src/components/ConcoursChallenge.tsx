@@ -187,6 +187,9 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     () => new Set([...(myScoresQ.data ?? []), ...justScored]),
     [myScoresQ.data, justScored],
   );
+  const scoredCount = vehicles.filter((v) => scoredIds.has(v.id)).length;
+  const allScored = vehicles.length > 0 && scoredCount === vehicles.length;
+
 
   if (concoursQ.isLoading) return null;
   if (!c?.enabled) return null;
@@ -552,15 +555,75 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         )}
       </div>
 
+      {scoringOpen && vehicles.length > 0 && (
+        <div className="mt-4 rounded-lg border-2 border-ink bg-primary p-4 text-paper shadow-[4px_4px_0_0_var(--color-ink)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border-2 border-paper/70 bg-paper/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-paper" />
+            {lang === "af" ? "Stemming is nou oop" : "Scoring is open now"}
+          </span>
+          <p className="mt-2 font-display text-2xl leading-tight sm:text-3xl">
+            {allScored
+              ? lang === "af"
+                ? "Jy het al die karre gepunt!"
+                : "You’ve scored every car!"
+              : lang === "af"
+                ? "Punte gee vir die karre"
+                : "Score the cars"}
+          </p>
+          <p className="mt-1 text-sm text-paper/85">
+            {scoredCount} / {vehicles.length}{" "}
+            {lang === "af" ? "karre gepunt" : "cars scored"}
+            {!isMember && (
+              <>
+                {" · "}
+                {lang === "af"
+                  ? "toeskouers kan ook stem"
+                  : "spectators can vote too"}
+              </>
+            )}
+          </p>
+          {!allScored && (
+            <button
+              type="button"
+              disabled={!!prepId}
+              onClick={() => {
+                const next = vehicles.find((v) => !scoredIds.has(v.id));
+                if (next) void openVehicle(next);
+              }}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-5 py-4 font-display text-xl uppercase tracking-wide text-ink transition hover:bg-ink hover:text-paper disabled:opacity-60 sm:w-auto"
+            >
+              {prepId ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Trophy className="h-5 w-5" />
+              )}
+              {scoredCount > 0
+                ? lang === "af"
+                  ? "Gaan voort met punte"
+                  : "Continue scoring"
+                : lang === "af"
+                  ? "Begin punte gee"
+                  : "Start scoring"}
+            </button>
+          )}
+          <p className="mt-2 text-xs text-paper/75">
+            {lang === "af"
+              ? "Ons vra net een keer vir jou ligging."
+              : "We only ask for your location once."}
+          </p>
+        </div>
+      )}
+
       <p className="mt-3 text-sm text-ink/70">
         {phase === "after" || c.results_published_at
           ? lang === "af"
             ? "Stemming is toe. Dankie dat jy deelgeneem het."
             : "Voting is closed. Thanks for taking part."
           : lang === "af"
-            ? "Tik ’n kar en beantwoord die vrae — dit stoor outomaties as jy klaar is. Ons vra net een keer vir jou ligging."
-            : "Tap a car and answer the questions — it saves itself when you finish. We only ask for your location once."}
+            ? "Tik ’n kar en beantwoord die vrae — dit stoor outomaties as jy klaar is."
+            : "Tap a car and answer the questions — it saves itself when you finish."}
       </p>
+
 
       {isAdmin && (
         <p className="mt-1 text-xs text-ink/60">

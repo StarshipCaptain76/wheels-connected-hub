@@ -32,6 +32,10 @@ export function ConcoursHomeWinner() {
   const prize =
     lang === "af" && data.prizeAf ? data.prizeAf : data.prizeEn;
 
+  const blurb =
+    (lang === "af" ? data.winnerBlurbAf || data.winnerBlurbEn : data.winnerBlurbEn) || null;
+
+
   return (
     <section className="border-b-2 border-ink bg-paper text-ink">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -70,6 +74,12 @@ export function ConcoursHomeWinner() {
                 </>
               )}
             </p>
+            {blurb && (
+              <p className="rounded-md border-l-4 border-primary bg-primary/5 px-3 py-2 text-sm italic leading-relaxed text-ink/85">
+                “{blurb}”
+              </p>
+            )}
+
             {prize && (
               <p className="text-sm font-bold text-primary">
                 {lang === "af" ? "Pryse: " : "Prize: "}

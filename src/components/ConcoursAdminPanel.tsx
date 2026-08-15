@@ -11,6 +11,7 @@ import {
   listConcoursQuestions,
   upsertConcoursQuestion,
   publishConcoursResults,
+  generateConcoursWinnerBlurb,
   listConcoursScoresAdmin,
   updateConcoursScoreAdmin,
   deleteConcoursScoreAdmin,
@@ -29,6 +30,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const reveal = useServerFn(revealConcoursLeaderboard);
   const upsertQ = useServerFn(upsertConcoursQuestion);
   const publish = useServerFn(publishConcoursResults);
+  const genBlurb = useServerFn(generateConcoursWinnerBlurb);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
   const delVehicle = useServerFn(deleteConcoursVehicle);

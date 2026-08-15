@@ -32,6 +32,10 @@ export function ConcoursHomeWinner() {
   const prize =
     lang === "af" && data.prizeAf ? data.prizeAf : data.prizeEn;
 
+  const blurb =
+    (lang === "af" ? data.winnerBlurbAf || data.winnerBlurbEn : data.winnerBlurbEn) || null;
+
+
   return (
     <section className="border-b-2 border-ink bg-paper text-ink">
       <div className="mx-auto max-w-6xl px-4 py-8">

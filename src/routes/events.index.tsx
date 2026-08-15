@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
@@ -131,13 +132,121 @@ function formatTime(iso: string, lang: "en" | "af") {
   });
 }
 
+/** Whole-day difference between the event date and today, in South African time. */
+function sastDayDiff(iso: string): number {
+  const key = (d: Date) => {
+    const s = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+    return Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate());
+  };
+  return Math.round((key(new Date(iso)) - key(new Date())) / 86_400_000);
+}
+
+const isDbId = (id: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+function TodayHero({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
+  const { t } = useI18n();
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const startsAt = event.starts_at;
+
+  useEffect(() => {
+    const tick = () => {
+      const ms = new Date(startsAt).getTime() - Date.now();
+      if (ms <= 0) {
+        setCountdown(t("home.underWay"));
+        return;
+      }
+      const mins = Math.round(ms / 60000);
+      setCountdown(
+        mins < 60
+          ? t("home.startsInMinutes").replace("{n}", String(mins))
+          : t("home.startsInHours").replace("{n}", String(Math.round(mins / 60))),
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [startsAt, t]);
+
+  const title = lang === "af" && event.title_af ? event.title_af : event.title;
+  const description =
+    lang === "af" && event.description_af ? event.description_af : event.description;
+
+  return (
+    <div className="border-b-2 border-ink bg-ink text-white">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-display text-xs tracking-[0.3em] text-white/80">
+            {t("home.happeningToday").toUpperCase()}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+            {t("home.todayBadge")}
+          </span>
+        </div>
+        <h2 className="mt-2 font-display text-4xl tracking-wide sm:text-6xl">{title}</h2>
+        <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
+          {formatTime(event.starts_at, lang)}
+          {event.location ? (
+            <span className="ml-2 font-sans text-sm font-semibold text-white/85">
+              · {event.location}
+            </span>
+          ) : null}
+        </p>
+        {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
+        {description ? (
+          <p className="mt-3 max-w-2xl text-sm text-white/85 line-clamp-3">{description}</p>
+        ) : null}
+        <div className="mt-5 flex flex-wrap gap-3">
+          {isDbId(event.id) && (
+            <a
+              href={`/events/${event.id}`}
+              className="inline-flex items-center rounded-md border-2 border-white bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white"
+            >
+              {t("home.seeDetails")}
+            </a>
+          )}
+          {event.location && (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-md border-2 border-white/70 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:border-white"
+            >
+              {t("home.getDirections")}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EventsPage() {
   const { t, lang } = useI18n();
   const { data: upcoming } = useSuspenseQuery(upcomingQuery);
   const { data: past } = useSuspenseQuery(pastQuery);
 
+  // Computed after hydration so SSR and client markup match.
+  const [todayIds, setTodayIds] = useState<string[]>([]);
+  useEffect(() => {
+    const tick = () =>
+      setTodayIds(upcoming.filter((e) => sastDayDiff(e.starts_at) === 0).map((e) => e.id));
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [upcoming]);
+
+  const todaySet = new Set(todayIds);
+  const todayEvents = upcoming.filter((e) => todaySet.has(e.id));
+  const restUpcoming = upcoming.filter((e) => !todaySet.has(e.id));
+
   return (
     <SiteLayout>
+      {todayEvents.map((ev) => (
+        <TodayHero key={ev.id} event={ev} lang={lang} />
+      ))}
+
       <section className="border-b-2 border-ink bg-ink text-paper">
         <div className="mx-auto max-w-6xl px-4 py-14">
           <div className="mb-3 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
@@ -158,7 +267,7 @@ function EventsPage() {
         <h2 className="font-display text-3xl tracking-wide text-ink">
           {lang === "af" ? "Komende" : "Upcoming"}
         </h2>
-        {upcoming.length === 0 ? (
+        {restUpcoming.length === 0 ? (
           <div className="mt-6 rounded-lg border-2 border-dashed border-ink/30 bg-card p-12 text-center">
             <p className="font-display text-2xl text-ink">
               {lang === "af" ? "Geen komende byeenkomste nie." : "No upcoming events yet."}
@@ -171,12 +280,13 @@ function EventsPage() {
           </div>
         ) : (
           <ul className="mt-6 grid gap-6 md:grid-cols-2">
-            {upcoming.map((ev) => (
+            {restUpcoming.map((ev) => (
               <EventCard key={ev.id} event={ev} lang={lang} />
             ))}
           </ul>
         )}
       </section>
+
 
       {past.length > 0 && (
         <section className="border-t-2 border-ink bg-steel/10">

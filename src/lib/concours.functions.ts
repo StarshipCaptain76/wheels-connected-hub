@@ -814,7 +814,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     if (data.lat == null || data.lng == null) {
       throw new Error("Location is required to score as a spectator.");
     }
-    if (!data.voterKey) {
+    if (!authed && !data.voterKey) {
       throw new Error("Missing spectator vote key — refresh and try again.");
     }
     assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
@@ -828,7 +828,12 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     const allowedIds = spectatorIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);
     const { totalScore } = scoreAnswers(data.answers, allowedIds);
-    const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
+    // Signed-in people get a personal fingerprint so a shared phone doesn't
+    // lock the car for the next voter; anonymous spectators use the device key.
+    const fingerprint = authed
+      ? await sha256Hex(`${data.eventId}:user:${authed.userId}`)
+      : await sha256Hex(`${data.eventId}:${data.voterKey}`);
+
 
     const rpcClient = (authed?.supabase ?? publicSb) as unknown as AnyClient;
     const { error: rpcErr } = await rpcClient.rpc("submit_concours_spectator_score", {

@@ -185,23 +185,88 @@ function Index() {
         </div>
       </section>
 
-      <Link
-        {...(nextEvent
-          ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
-          : ({ to: "/events" } as const))}
-        className="block border-b-2 border-ink bg-primary text-white transition-colors hover:bg-primary/90"
+      <div
+        className={
+          isToday
+            ? "border-b-2 border-ink bg-ink text-white"
+            : "border-b-2 border-ink bg-primary text-white"
+        }
       >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-xs tracking-[0.3em] text-white/80">
-              {t("home.nextEvent").toUpperCase()}
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <Link
+            {...(nextEvent
+              ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
+              : ({ to: "/events" } as const))}
+            className="flex flex-wrap items-center justify-between gap-4"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-xs tracking-[0.3em] text-white/80">
+                  {(isToday ? t("home.happeningToday") : t("home.nextEvent")).toUpperCase()}
+                </span>
+                {isToday && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                    {t("home.todayBadge")}
+                  </span>
+                )}
+                {isTomorrow && (
+                  <span className="rounded-full border border-white/60 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+                    {t("home.tomorrowBadge")}
+                  </span>
+                )}
+              </div>
+              <div
+                className={
+                  isToday
+                    ? "font-display text-3xl tracking-wide sm:text-5xl"
+                    : "font-display text-2xl tracking-wide sm:text-3xl"
+                }
+              >
+                {nextTitle}
+              </div>
+              {isToday && startTime && (
+                <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
+                  {startTime}
+                  {nextEvent?.location ? (
+                    <span className="ml-2 font-sans text-sm font-semibold text-white/85">
+                      · {nextEvent.location}
+                    </span>
+                  ) : null}
+                </p>
+              )}
+              {!isToday && nextMeta && (
+                <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>
+              )}
+              {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
             </div>
-            <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
-            {nextMeta && <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>}
-          </div>
-          <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
+            <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
+          </Link>
+
+          {isToday && nextEvent && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                to="/events/$id"
+                params={{ id: nextEvent.id }}
+                className="inline-flex items-center rounded-md border-2 border-white bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white"
+              >
+                {t("home.seeDetails")}
+              </Link>
+              {nextEvent.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextEvent.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md border-2 border-white/70 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:border-white"
+                >
+                  {t("home.getDirections")}
+                </a>
+              )}
+            </div>
+          )}
         </div>
-      </Link>
+      </div>
+
 
       <SponsorCarousel />
 

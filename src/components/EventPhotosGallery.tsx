@@ -7,6 +7,7 @@ import {
   listEventPhotos,
   addEventPhoto,
   deleteEventPhoto,
+  notifyEventPhotosAdded,
   type EventPhoto,
 } from "@/lib/event-photos.functions";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -47,6 +48,7 @@ export function EventPhotosGallery({
   const listFn = useServerFn(listEventPhotos);
   const addFn = useServerFn(addEventPhoto);
   const delFn = useServerFn(deleteEventPhoto);
+  const notifyFn = useServerFn(notifyEventPhotosAdded);
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -105,6 +107,7 @@ export function EventPhotosGallery({
       if (!uid) throw new Error(lang === "af" ? "Teken eers in" : "Sign in first");
 
       let ok = 0;
+      let usedFallback = false;
       const fails: string[] = [];
 
       for (let i = 0; i < Math.min(files.length, 12); i++) {
@@ -161,6 +164,7 @@ export function EventPhotosGallery({
             await supabase.storage.from("events").remove([path]);
           } else {
             ok += 1;
+            usedFallback = true;
           }
         }
       }
@@ -170,6 +174,13 @@ export function EventPhotosGallery({
       if (fails.length && ok === 0) throw new Error(fails.join(" · "));
       if (fails.length) setError(fails.join(" · "));
       if (ok > 0) {
+        if (usedFallback) {
+          try {
+            await notifyFn({ data: { eventId } });
+          } catch {
+            /* notify is best-effort */
+          }
+        }
         setStatus(lang === "af" ? `${ok} foto(s) gelaai` : `${ok} photo(s) uploaded`);
         setTimeout(() => setStatus(null), 3000);
       }

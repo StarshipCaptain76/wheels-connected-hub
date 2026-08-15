@@ -11,6 +11,7 @@
 export type NotificationType =
   | "new_listing"
   | "new_event"
+  | "event_photo"
   | "new_newsletter"
   | "admin_new_sponsor"
   | "admin_new_member"

@@ -1139,6 +1139,7 @@ export type Database = {
           admin_new_member: boolean
           admin_new_sponsor: boolean
           created_at: string
+          event_photo: boolean
           new_event: boolean
           new_listing: boolean
           new_newsletter: boolean
@@ -1151,6 +1152,7 @@ export type Database = {
           admin_new_member?: boolean
           admin_new_sponsor?: boolean
           created_at?: string
+          event_photo?: boolean
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
@@ -1163,6 +1165,7 @@ export type Database = {
           admin_new_member?: boolean
           admin_new_sponsor?: boolean
           created_at?: string
+          event_photo?: boolean
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
@@ -1500,6 +1503,10 @@ export type Database = {
         Returns: string
       }
       newsletter_unsubscribe: { Args: { _token: string }; Returns: string }
+      notify_event_photos: {
+        Args: { _event_id: string; _exclude?: string }
+        Returns: number
+      }
       notify_user: {
         Args: {
           _body_af?: string

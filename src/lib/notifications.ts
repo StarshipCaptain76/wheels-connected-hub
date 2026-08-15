@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type NotificationType =
   | "new_listing"
   | "new_event"
+  | "event_photo"
   | "new_newsletter"
   | "photo_tag"
   | "admin_new_sponsor"
@@ -12,6 +13,7 @@ export type NotificationType =
 export const MEMBER_TYPES: NotificationType[] = [
   "new_listing",
   "new_event",
+  "event_photo",
   "new_newsletter",
   "photo_tag",
 ];
@@ -38,6 +40,7 @@ export type NotificationPrefs = Record<NotificationType, boolean>;
 export const DEFAULT_PREFS: NotificationPrefs = {
   new_listing: true,
   new_event: true,
+  event_photo: true,
   new_newsletter: true,
   photo_tag: true,
   admin_new_sponsor: true,
@@ -98,12 +101,7 @@ export async function markAllRead() {
 }
 
 export async function fetchPrefs(): Promise<NotificationPrefs> {
-  const { data, error } = await supabase
-    .from("notification_prefs")
-    .select(
-      "new_listing, new_event, new_newsletter, admin_new_sponsor, admin_new_member, admin_listing_review",
-    )
-    .maybeSingle();
+  const { data, error } = await supabase.from("notification_prefs").select("*").maybeSingle();
   if (error) throw error;
   return { ...DEFAULT_PREFS, ...(data ?? {}) } as NotificationPrefs;
 }

@@ -139,8 +139,21 @@ export const addEventPhoto = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
+    const { notifyPastEventPhotos } = await import("./events-notify.server");
+    await notifyPastEventPhotos(data.eventId, userId, supabase);
+
     const urls = await resolveUrls(supabase, [row.storage_path]);
     return { id: row.id as string, url: urls.get(row.storage_path) ?? "" };
+  });
+
+/** Best-effort fan-out after a client-side fallback insert. */
+export const notifyEventPhotosAdded = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }) => {
+    const { notifyPastEventPhotos } = await import("./events-notify.server");
+    await notifyPastEventPhotos(data.eventId, context.userId, context.supabase);
+    return { ok: true };
   });
 
 export const deleteEventPhoto = createServerFn({ method: "POST" })

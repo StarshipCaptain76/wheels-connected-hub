@@ -1146,7 +1146,10 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
         winnerPhotoUrl: z.string().url().nullable(),
         winnerHeadlineEn: z.string().max(200).nullable().optional(),
         winnerHeadlineAf: z.string().max(200).nullable().optional(),
+        winnerBlurbEn: z.string().max(1200).nullable().optional(),
+        winnerBlurbAf: z.string().max(1200).nullable().optional(),
         resultsOnHome: z.boolean(),
+
       })
       .parse(i),
   )

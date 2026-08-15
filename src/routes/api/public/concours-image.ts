@@ -1,0 +1,103 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+/**
+ * Stable image endpoint for concours vehicle photos.
+ *
+ * Photos live in the private `gallery` bucket but are stored as plain
+ * /object/public/… URLs, which the browser cannot load. This route streams the
+ * bytes from a cacheable URL that never expires.
+ *
+ * GET /api/public/concours-image?vid=<vehicleId>
+ */
+
+function parsePath(url: string | null | undefined): { bucket: string; path: string } | null {
+  if (!url) return null;
+  const m = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/);
+  if (!m) return null;
+  return { bucket: m[1], path: decodeURIComponent(m[2].split("?")[0]) };
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  avif: "image/avif",
+};
+
+async function handle(request: Request) {
+  const url = new URL(request.url);
+  const vid = url.searchParams.get("vid");
+  if (!vid || !/^[0-9a-f-]{32,36}$/i.test(vid)) {
+    return new Response("Bad request", { status: 400 });
+  }
+
+  const { createPublicSupabase } = await import("@/lib/public-supabase.server");
+  const anon = createPublicSupabase();
+
+  let stored: string | null = null;
+  const { data: row } = await anon
+    .from("event_concours_vehicles")
+    .select("photo_url")
+    .eq("id", vid)
+    .maybeSingle();
+  stored = (row as { photo_url?: string } | null)?.photo_url ?? null;
+
+  if (!stored && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data } = await supabaseAdmin
+        .from("event_concours_vehicles")
+        .select("photo_url")
+        .eq("id", vid)
+        .maybeSingle();
+      stored = (data as { photo_url?: string } | null)?.photo_url ?? null;
+    } catch (e) {
+      console.error("[concours-image] admin lookup failed", e);
+    }
+  }
+
+  const ref = parsePath(stored);
+  if (!ref) {
+    // Not a storage URL — if it is an absolute external image, redirect.
+    if (stored && /^https?:\/\//i.test(stored)) {
+      return Response.redirect(stored, 302);
+    }
+    return new Response("Not found", { status: 404 });
+  }
+
+  let blob: Blob | null = null;
+  const { data: dl } = await anon.storage.from(ref.bucket).download(ref.path);
+  if (dl) {
+    blob = dl as Blob;
+  } else if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data } = await supabaseAdmin.storage.from(ref.bucket).download(ref.path);
+      if (data) blob = data as Blob;
+    } catch (e) {
+      console.error("[concours-image] admin download failed", e);
+    }
+  }
+
+  if (!blob) return new Response("Not found", { status: 404 });
+
+  const ext = (ref.path.split(".").pop() ?? "").toLowerCase();
+  const type =
+    blob.type && blob.type !== "application/octet-stream"
+      ? blob.type
+      : (CONTENT_TYPES[ext] ?? "image/jpeg");
+
+  return new Response(await blob.arrayBuffer(), {
+    status: 200,
+    headers: {
+      "Content-Type": type,
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+    },
+  });
+}
+
+export const Route = createFileRoute("/api/public/concours-image")({
+  server: { handlers: { GET: ({ request }) => handle(request) } },
+});

@@ -3,6 +3,11 @@ export function eventImageUrl(eventId: string, kind: "cover" | "hero" = "cover")
   return `/api/public/event-image?id=${encodeURIComponent(eventId)}&k=${kind}`;
 }
 
+/** Stable URL for a concours vehicle photo (streams from the private bucket). */
+export function concoursImageUrl(vehicleId: string): string {
+  return `/api/public/concours-image?vid=${encodeURIComponent(vehicleId)}`;
+}
+
 /** True when a stored URL points at one of our private storage buckets. */
 export function isPrivateStorageUrl(url: string | null | undefined): boolean {
   if (!url) return false;

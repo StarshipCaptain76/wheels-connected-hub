@@ -209,7 +209,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
       }
       const { data: updated, error } = await supabase
         .from("events")
-        .update(values)
+        .update(values as never)
         .eq("id", id)
         .select("id")
         .maybeSingle();
@@ -226,7 +226,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await supabase
       .from("events")
-      .insert(values)
+      .insert(values as never)
       .select("id")
       .single();
     if (error) throw error;

@@ -93,10 +93,6 @@ function isClubMemberStatus(status: string | null | undefined): boolean {
   return status === "active" || status === "member";
 }
 
-function spectatorQuestionIds(selectedIds: string[]): string[] {
-  const half = Math.ceil(selectedIds.length / 2);
-  return selectedIds.slice(0, half);
-}
 
 function orderQuestionsByIds(rows: ConcoursQuestion[], ids: string[]): ConcoursQuestion[] {
   const byId = new Map(rows.map((q) => [q.id, q]));
@@ -166,6 +162,41 @@ async function sha256Hex(raw: string): Promise<string> {
   const data = new TextEncoder().encode(raw);
   const buf = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Small stable hash so a car's random question draw is reproducible at submit. */
+function seedHash(raw: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    h ^= raw.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Questions for one car: the admin-selected set first, then an equal number of
+ * extras drawn from the bank — deterministic per (event, vehicle), so every
+ * car feels different while the server can re-validate the same set at submit.
+ */
+async function questionIdsForVehicle(
+  sb: AnyClient,
+  eventId: string,
+  vehicleId: string,
+  selectedIds: string[],
+): Promise<{ adminIds: string[]; randomIds: string[]; allIds: string[] }> {
+  const adminIds = selectedIds;
+  const { data: bank } = await sb
+    .from("concours_questions")
+    .select("id")
+    .eq("active", true);
+  const chosen = new Set(adminIds);
+  const pool = ((bank ?? []) as Array<{ id: string }>)
+    .map((q) => q.id)
+    .filter((id) => !chosen.has(id))
+    .sort((a, b) => seedHash(`${eventId}:${vehicleId}:${a}`) - seedHash(`${eventId}:${vehicleId}:${b}`));
+  const randomIds = pool.slice(0, adminIds.length);
+  return { adminIds, randomIds, allIds: [...adminIds, ...randomIds] };
 }
 
 async function assertScoringOpen(sb: AnyClient, eventId: string) {
@@ -520,17 +551,6 @@ export const addConcoursVehicle = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
 
-    await assertScoringOpen(sb, data.eventId);
-
-    // Admin must be checked in on site
-    const { data: cin } = await sb
-      .from("event_checkins")
-      .select("id")
-      .eq("event_id", data.eventId)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!cin) throw new Error("Check in on site first (GPS) before adding vehicles.");
-
     const { count } = await sb
       .from("event_concours_vehicles")
       .select("*", { count: "exact", head: true })
@@ -549,6 +569,123 @@ export const addConcoursVehicle = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return row as ConcoursVehicle;
+  });
+
+/** Admin: add many cars in one go — photos only, no labels, no tagging. */
+export const addConcoursVehiclesBulk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        photoUrls: z.array(z.string().url()).min(1).max(40),
+      })
+      .parse(i),
+  )
+  .handler(async ({ context, data }) => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const { count } = await sb
+      .from("event_concours_vehicles")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", data.eventId);
+    const base = count ?? 0;
+
+    const rows = data.photoUrls.map((url, i) => ({
+      event_id: data.eventId,
+      photo_url: url,
+      label: null,
+      label_af: null,
+      sort_order: base + i,
+    }));
+
+    const { data: inserted, error } = await sb
+      .from("event_concours_vehicles")
+      .insert(rows)
+      .select("id");
+    if (error) throw new Error(error.message);
+    return { ok: true as const, added: (inserted ?? []).length };
+  });
+
+/** Question set for one car: admin picks + a per-car random draw. */
+export const getVehicleQuestionSet = createServerFn({ method: "GET" })
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        vehicleId: z.string().uuid(),
+        full: z.boolean().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data }): Promise<ConcoursQuestion[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const sb = createPublicSupabase() as unknown as AnyClient;
+
+    const { data: ec } = await sb
+      .from("event_concours")
+      .select("selected_question_ids, enabled")
+      .eq("event_id", data.eventId)
+      .maybeSingle();
+    const selectedIds: string[] = (ec?.selected_question_ids as string[]) ?? [];
+    if (!ec?.enabled || selectedIds.length === 0) return [];
+
+    const { adminIds, allIds } = await questionIdsForVehicle(
+      sb,
+      data.eventId,
+      data.vehicleId,
+      selectedIds,
+    );
+    const ids = data.full ? allIds : adminIds;
+
+    const { data: rows, error } = await sb
+      .from("concours_questions")
+      .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
+      .eq("active", true)
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    return orderQuestionsByIds((rows ?? []) as ConcoursQuestion[], ids);
+  });
+
+/** Vehicle ids the caller has already scored (member session or device key). */
+export const listMyConcoursScores = createServerFn({ method: "GET" })
+  .inputValidator((i: unknown) =>
+    z
+      .object({
+        eventId: z.string().uuid(),
+        voterKey: z.string().uuid().optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data }): Promise<string[]> => {
+    const authed = await createAuthedSupabaseFromRequest();
+    if (authed) {
+      const { data: rows } = await authed.supabase
+        .from("event_concours_scores")
+        .select("vehicle_id")
+        .eq("event_id", data.eventId)
+        .eq("user_id", authed.userId);
+      if (rows?.length) return (rows as Array<{ vehicle_id: string }>).map((r) => r.vehicle_id);
+    }
+    if (!data.voterKey) return [];
+
+    const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
+    let reader: AnyClient;
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      reader = supabaseAdmin as unknown as AnyClient;
+    } catch {
+      const { createPublicSupabase } = await import("./public-supabase.server");
+      reader = createPublicSupabase() as unknown as AnyClient;
+    }
+    const { data: rows } = await reader
+      .from("event_concours_scores")
+      .select("vehicle_id")
+      .eq("event_id", data.eventId)
+      .eq("voter_fingerprint", fingerprint);
+    return ((rows ?? []) as Array<{ vehicle_id: string }>).map((r) => r.vehicle_id);
   });
 
 export const deleteConcoursVehicle = createServerFn({ method: "POST" })
@@ -622,6 +759,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       clubMember = isClubMemberStatus(profile?.membership_status as string | undefined);
     }
 
+    let memberCheckedIn = false;
     if (clubMember && authed) {
       const { data: cin } = await authed.supabase
         .from("event_checkins")
@@ -629,11 +767,17 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         .eq("event_id", data.eventId)
         .eq("user_id", authed.userId)
         .maybeSingle();
-      if (!cin || cin.is_spectator) {
-        throw new Error("Check in on site first (GPS) before scoring.");
-      }
+      memberCheckedIn = !!cin && !cin.is_spectator;
+    }
 
-      const allowedIds = selectedIds;
+    if (clubMember && authed && memberCheckedIn) {
+      const { allIds } = await questionIdsForVehicle(
+        publicSb,
+        data.eventId,
+        data.vehicleId,
+        selectedIds,
+      );
+      const allowedIds = allIds;
       assertAllQuestionsAnswered(data.answers, allowedIds);
       const { totalScore } = scoreAnswers(data.answers, allowedIds);
 
@@ -667,7 +811,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     }
     assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
 
-    const allowedIds = spectatorQuestionIds(selectedIds);
+    const allowedIds = selectedIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);
     const { totalScore } = scoreAnswers(data.answers, allowedIds);
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
@@ -1041,6 +1185,7 @@ export type ConcoursHomeWinner = {
   eventTitle: string;
   eventTitleAf: string | null;
   eventStartsAt: string;
+  winnerVehicleId: string | null;
   winnerPhotoUrl: string;
   winnerHeadlineEn: string | null;
   winnerHeadlineAf: string | null;
@@ -1108,6 +1253,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
       eventTitle: ev.title as string,
       eventTitleAf: (ev.title_af as string | null) ?? null,
       eventStartsAt: ev.starts_at as string,
+      winnerVehicleId: (ec.winner_vehicle_id as string | null) ?? null,
       winnerPhotoUrl: ec.winner_photo_url as string,
       winnerHeadlineEn: (ec.winner_headline_en as string | null) ?? null,
       winnerHeadlineAf: (ec.winner_headline_af as string | null) ?? null,

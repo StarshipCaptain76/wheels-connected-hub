@@ -215,7 +215,27 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
 
   async function saveResults() {
     setBusy(true);
+  async function generateBlurb() {
+    if (!winnerVehicleId) {
+      setMsg("Pick the winning car first");
+      return;
+    }
+    setBlurbBusy(true);
     setMsg(null);
+    try {
+      const out = await genBlurb({ data: { eventId: eventId!, vehicleId: winnerVehicleId } });
+      setWinnerBlurbEn(out.en);
+      setWinnerBlurbAf(out.af);
+      setMsg("Blurb generated — edit it if you like, then publish");
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Blurb generation failed");
+    } finally {
+      setBlurbBusy(false);
+    }
+  }
+
+    setMsg(null);
+
     try {
       await publish({
         data: {

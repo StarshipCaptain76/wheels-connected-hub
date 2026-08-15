@@ -182,7 +182,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   const c = concoursQ.data;
   const vehicles = vehiclesQ.data ?? [];
-  const scoredIds = useMemo(() => new Set(myScoresQ.data ?? []), [myScoresQ.data]);
+  const scoredIds = useMemo(
+    () => new Set([...(myScoresQ.data ?? []), ...justScored]),
+    [myScoresQ.data, justScored],
+  );
 
   if (concoursQ.isLoading) return null;
   if (!c?.enabled) return null;

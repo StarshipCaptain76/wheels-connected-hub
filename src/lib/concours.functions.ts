@@ -785,14 +785,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         voter_fingerprint: null,
         submitted_at: new Date().toISOString(),
       };
-      let writer: AnyClient = authed.supabase;
-      try {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        writer = supabaseAdmin as unknown as AnyClient;
-      } catch {
-        writer = authed.supabase;
-      }
-      await upsertScoreRow(writer, payload, "member");
+      await upsertScoreRow(authed.supabase as unknown as AnyClient, payload, "member");
       return { ok: true as const, totalScore, isMember: true, weight: 1.0 };
     }
 
@@ -809,26 +802,15 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     const { totalScore } = scoreAnswers(data.answers, allowedIds);
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
 
-    let writer: AnyClient = publicSb;
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      writer = supabaseAdmin as unknown as AnyClient;
-    } catch {
-      writer = publicSb;
-    }
-
-    const payload = {
-      event_id: data.eventId,
-      vehicle_id: data.vehicleId,
-      user_id: null,
-      is_member: false,
-      weight: 0.5,
-      answers: data.answers,
-      total_score: totalScore,
-      voter_fingerprint: fingerprint,
-      submitted_at: new Date().toISOString(),
-    };
-    await upsertScoreRow(writer, payload, "spectator");
+    const rpcClient = (authed?.supabase ?? publicSb) as unknown as AnyClient;
+    const { error: rpcErr } = await rpcClient.rpc("submit_concours_spectator_score", {
+      _event_id: data.eventId,
+      _vehicle_id: data.vehicleId,
+      _fingerprint: fingerprint,
+      _answers: data.answers,
+      _total: totalScore,
+    });
+    if (rpcErr) throw new Error(rpcErr.message);
     return { ok: true as const, totalScore, isMember: false, weight: 0.5 };
   });
 

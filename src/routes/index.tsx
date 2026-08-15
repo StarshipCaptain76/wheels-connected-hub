@@ -78,6 +78,24 @@ function formatDate(iso: string, lang: "en" | "af") {
   });
 }
 
+function formatTime(iso: string, lang: "en" | "af") {
+  return new Date(iso).toLocaleTimeString(lang === "af" ? "af-ZA" : "en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Johannesburg",
+  });
+}
+
+/** Whole-day difference between the event date and today, in South African time. */
+function sastDayDiff(iso: string): number {
+  const key = (d: Date) => {
+    const s = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+    return Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate());
+  };
+  return Math.round((key(new Date(iso)) - key(new Date())) / 86_400_000);
+}
+
+
 function initials(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   const parts = name.trim().split(/\s+/).filter(Boolean);

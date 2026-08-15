@@ -132,6 +132,8 @@ export type Database = {
           sponsor_name: string | null
           updated_at: string
           winner_average_score: number | null
+          winner_blurb_af: string | null
+          winner_blurb_en: string | null
           winner_headline_af: string | null
           winner_headline_en: string | null
           winner_photo_url: string | null
@@ -153,6 +155,8 @@ export type Database = {
           sponsor_name?: string | null
           updated_at?: string
           winner_average_score?: number | null
+          winner_blurb_af?: string | null
+          winner_blurb_en?: string | null
           winner_headline_af?: string | null
           winner_headline_en?: string | null
           winner_photo_url?: string | null
@@ -174,6 +178,8 @@ export type Database = {
           sponsor_name?: string | null
           updated_at?: string
           winner_average_score?: number | null
+          winner_blurb_af?: string | null
+          winner_blurb_en?: string | null
           winner_headline_af?: string | null
           winner_headline_en?: string | null
           winner_photo_url?: string | null

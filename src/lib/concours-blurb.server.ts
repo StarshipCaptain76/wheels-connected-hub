@@ -5,8 +5,9 @@
 
 type AnyClient = {
   from: (t: string) => any;
-  rpc: (fn: string, args?: Record<string, unknown>) => any;
+  rpc: (fn: string, args: Record<string, unknown>) => any;
 };
+
 
 type ScoreRow = {
   answers: Record<string, number | string | null> | null;

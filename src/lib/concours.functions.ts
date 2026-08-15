@@ -743,6 +743,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
 
     const authed = await createAuthedSupabaseFromRequest();
     let clubMember = false;
+    let adminBypass = false;
     if (authed) {
       const { data: profile } = await authed.supabase
         .from("profiles")
@@ -750,10 +751,16 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         .eq("id", authed.userId)
         .maybeSingle();
       clubMember = isClubMemberStatus(profile?.membership_status as string | undefined);
+      const { data: isAdmin } = await authed.supabase.rpc("has_role", {
+        _user_id: authed.userId,
+        _role: "admin",
+      });
+      adminBypass = !!isAdmin;
+      if (adminBypass) clubMember = true;
     }
 
-    let memberCheckedIn = false;
-    if (clubMember && authed) {
+    let memberCheckedIn = adminBypass;
+    if (clubMember && authed && !memberCheckedIn) {
       const { data: cin } = await authed.supabase
         .from("event_checkins")
         .select("id, is_spectator")
@@ -1013,12 +1020,10 @@ export const checkInToEvent = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
 
     const ev = await assertScoringOpen(sb, data.eventId);
-    const distanceM = assertWithinVenue(
-      data.lat,
-      data.lng,
-      ev.destination_lat,
-      ev.destination_lng,
-    );
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const distanceM = isAdmin
+      ? 0
+      : assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
 
     const { error } = await sb.from("event_checkins").upsert(
       {

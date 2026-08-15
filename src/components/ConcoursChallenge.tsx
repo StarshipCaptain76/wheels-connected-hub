@@ -267,15 +267,25 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     setPrepId(v.id);
     setMsg(null);
     try {
-      const pos = gps ?? (await readGps());
-      setGps(pos);
-      let asMember = false;
-      if (isMember) {
+      let pos = gps;
+      if (!pos) {
         try {
-          await doCheckIn({ data: { eventId, lat: pos.lat, lng: pos.lng } });
+          pos = await readGps();
+        } catch (err) {
+          if (!isAdmin) throw err;
+          pos = null;
+        }
+      }
+      if (pos) setGps(pos);
+      let asMember = false;
+      if (isMember || isAdmin) {
+        try {
+          await doCheckIn({
+            data: { eventId, lat: pos?.lat ?? 0, lng: pos?.lng ?? 0 },
+          });
           asMember = true;
         } catch {
-          asMember = false;
+          asMember = isAdmin;
         }
       }
       setMemberMode(asMember);

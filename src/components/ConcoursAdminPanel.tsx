@@ -76,6 +76,10 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const [winnerPhotoUrl, setWinnerPhotoUrl] = useState("");
   const [winnerHeadlineEn, setWinnerHeadlineEn] = useState("");
   const [winnerHeadlineAf, setWinnerHeadlineAf] = useState("");
+  const [winnerBlurbEn, setWinnerBlurbEn] = useState("");
+  const [winnerBlurbAf, setWinnerBlurbAf] = useState("");
+  const [blurbBusy, setBlurbBusy] = useState(false);
+
   const [resultsOnHome, setResultsOnHome] = useState(false);
 
   // Question editor

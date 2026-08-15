@@ -1177,6 +1177,9 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
         winner_photo_url: data.winnerPhotoUrl,
         winner_headline_en: data.winnerHeadlineEn ?? null,
         winner_headline_af: data.winnerHeadlineAf ?? null,
+        winner_blurb_en: data.winnerBlurbEn ?? null,
+        winner_blurb_af: data.winnerBlurbAf ?? null,
+
         winner_average_score: winnerAverage,
         winner_submission_count: winnerCount,
         results_on_home: data.resultsOnHome,

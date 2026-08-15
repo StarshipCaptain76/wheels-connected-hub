@@ -650,7 +650,7 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
     return orderQuestionsByIds((rows ?? []) as ConcoursQuestion[], ids);
   });
 
-/** Vehicle ids the caller has already scored (member session or device key). */
+/** Vehicle ids the caller (this person only) has already scored. */
 export const listMyConcoursScores = createServerFn({ method: "GET" })
   .inputValidator((i: unknown) =>
     z
@@ -662,25 +662,39 @@ export const listMyConcoursScores = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }): Promise<string[]> => {
     const authed = await createAuthedSupabaseFromRequest();
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const reader = createPublicSupabase() as unknown as AnyClient;
+
     if (authed) {
+      // Signed-in people are tracked by their own account (plus their personal
+      // spectator fingerprint), never by the shared device key.
+      const ids = new Set<string>();
       const { data: rows } = await authed.supabase
         .from("event_concours_scores")
         .select("vehicle_id")
         .eq("event_id", data.eventId)
         .eq("user_id", authed.userId);
-      if (rows?.length) return (rows as Array<{ vehicle_id: string }>).map((r) => r.vehicle_id);
+      for (const r of (rows ?? []) as Array<{ vehicle_id: string }>) ids.add(r.vehicle_id);
+
+      const userFingerprint = await sha256Hex(`${data.eventId}:user:${authed.userId}`);
+      const { data: fpRows } = await reader.rpc("concours_scored_vehicles", {
+        _event_id: data.eventId,
+        _fingerprint: userFingerprint,
+      });
+      for (const id of ((fpRows ?? []) as string[]).filter(Boolean)) ids.add(id);
+      return [...ids];
     }
+
     if (!data.voterKey) return [];
 
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
-    const { createPublicSupabase } = await import("./public-supabase.server");
-    const reader = createPublicSupabase() as unknown as AnyClient;
     const { data: rows } = await reader.rpc("concours_scored_vehicles", {
       _event_id: data.eventId,
       _fingerprint: fingerprint,
     });
     return ((rows ?? []) as string[]).filter(Boolean);
   });
+
 
 export const deleteConcoursVehicle = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

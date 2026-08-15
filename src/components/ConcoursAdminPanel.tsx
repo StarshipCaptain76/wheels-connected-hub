@@ -224,6 +224,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
           winnerPhotoUrl: winnerPhotoUrl || null,
           winnerHeadlineEn: winnerHeadlineEn || null,
           winnerHeadlineAf: winnerHeadlineAf || null,
+          winnerBlurbEn: winnerBlurbEn || null,
+          winnerBlurbAf: winnerBlurbAf || null,
+
           resultsOnHome,
         },
       });

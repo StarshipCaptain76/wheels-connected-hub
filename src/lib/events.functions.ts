@@ -209,7 +209,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
       }
       const { data: updated, error } = await supabase
         .from("events")
-        .update(values)
+        .update(values as never)
         .eq("id", id)
         .select("id")
         .maybeSingle();

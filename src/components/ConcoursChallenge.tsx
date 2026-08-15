@@ -164,6 +164,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const [prepId, setPrepId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [taggingId, setTaggingId] = useState<string | null>(null);
+  const [justScored, setJustScored] = useState<string[]>([]);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   // Admin bulk add

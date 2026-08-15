@@ -139,7 +139,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   });
 
   const myScoresQ = useQuery({
-    queryKey: ["concours-my-scores", eventId, voterKey],
+    queryKey: ["concours-my-scores", eventId, myUserId ?? voterKey],
     enabled: !!concoursQ.data?.enabled && !!voterKey && identityReady,
     queryFn: () => listMyConcoursScores({ data: { eventId, voterKey: voterKey! } }),
   });

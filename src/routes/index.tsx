@@ -78,6 +78,24 @@ function formatDate(iso: string, lang: "en" | "af") {
   });
 }
 
+function formatTime(iso: string, lang: "en" | "af") {
+  return new Date(iso).toLocaleTimeString(lang === "af" ? "af-ZA" : "en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Johannesburg",
+  });
+}
+
+/** Whole-day difference between the event date and today, in South African time. */
+function sastDayDiff(iso: string): number {
+  const key = (d: Date) => {
+    const s = new Date(d.getTime() + 2 * 60 * 60 * 1000);
+    return Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), s.getUTCDate());
+  };
+  return Math.round((key(new Date(iso)) - key(new Date())) / 86_400_000);
+}
+
+
 function initials(name: string | null | undefined): string {
   if (!name?.trim()) return "?";
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -133,6 +151,47 @@ function Index() {
   const garageThumb = featured?.garage_thumb_url?.trim() || null;
   const bio = featured?.featured_bio?.trim() || null;
 
+  // Day-relative state is computed after hydration so SSR and client markup match.
+  const [dayState, setDayState] = useState<"today" | "tomorrow" | null>(null);
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const startsAt = nextEvent?.starts_at ?? null;
+
+  useEffect(() => {
+    if (!startsAt) {
+      setDayState(null);
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const diff = sastDayDiff(startsAt);
+      setDayState(diff === 0 ? "today" : diff === 1 ? "tomorrow" : null);
+      if (diff !== 0) {
+        setCountdown(null);
+        return;
+      }
+      const ms = new Date(startsAt).getTime() - Date.now();
+      if (ms <= 0) {
+        setCountdown(t("home.underWay"));
+        return;
+      }
+      const mins = Math.round(ms / 60000);
+      setCountdown(
+        mins < 60
+          ? t("home.startsInMinutes").replace("{n}", String(mins))
+          : t("home.startsInHours").replace("{n}", String(Math.round(mins / 60))),
+      );
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [startsAt, t]);
+
+  const isToday = dayState === "today";
+  const isTomorrow = dayState === "tomorrow";
+  const startTime = startsAt ? formatTime(startsAt, lang) : null;
+
+
+
   return (
     <SiteLayout>
       <section className="border-b-2 border-ink bg-paper text-ink">
@@ -185,23 +244,88 @@ function Index() {
         </div>
       </section>
 
-      <Link
-        {...(nextEvent
-          ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
-          : ({ to: "/events" } as const))}
-        className="block border-b-2 border-ink bg-primary text-white transition-colors hover:bg-primary/90"
+      <div
+        className={
+          isToday
+            ? "border-b-2 border-ink bg-ink text-white"
+            : "border-b-2 border-ink bg-primary text-white"
+        }
       >
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-6">
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-xs tracking-[0.3em] text-white/80">
-              {t("home.nextEvent").toUpperCase()}
+        <div className="mx-auto max-w-6xl px-4 py-6">
+          <Link
+            {...(nextEvent
+              ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
+              : ({ to: "/events" } as const))}
+            className="flex flex-wrap items-center justify-between gap-4"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-xs tracking-[0.3em] text-white/80">
+                  {(isToday ? t("home.happeningToday") : t("home.nextEvent")).toUpperCase()}
+                </span>
+                {isToday && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+                    {t("home.todayBadge")}
+                  </span>
+                )}
+                {isTomorrow && (
+                  <span className="rounded-full border border-white/60 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+                    {t("home.tomorrowBadge")}
+                  </span>
+                )}
+              </div>
+              <div
+                className={
+                  isToday
+                    ? "font-display text-3xl tracking-wide sm:text-5xl"
+                    : "font-display text-2xl tracking-wide sm:text-3xl"
+                }
+              >
+                {nextTitle}
+              </div>
+              {isToday && startTime && (
+                <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
+                  {startTime}
+                  {nextEvent?.location ? (
+                    <span className="ml-2 font-sans text-sm font-semibold text-white/85">
+                      · {nextEvent.location}
+                    </span>
+                  ) : null}
+                </p>
+              )}
+              {!isToday && nextMeta && (
+                <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>
+              )}
+              {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
             </div>
-            <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
-            {nextMeta && <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>}
-          </div>
-          <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
+            <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
+          </Link>
+
+          {isToday && nextEvent && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                to="/events/$id"
+                params={{ id: nextEvent.id }}
+                className="inline-flex items-center rounded-md border-2 border-white bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white"
+              >
+                {t("home.seeDetails")}
+              </Link>
+              {nextEvent.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextEvent.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-md border-2 border-white/70 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:border-white"
+                >
+                  {t("home.getDirections")}
+                </a>
+              )}
+            </div>
+          )}
         </div>
-      </Link>
+      </div>
+
 
       <SponsorCarousel />
 

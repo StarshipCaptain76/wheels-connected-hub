@@ -94,17 +94,29 @@ export const listPastEvents = createServerFn({ method: "GET" }).handler(
   },
 );
 
+/** Midnight (Africa/Johannesburg, UTC+2) at the start of today, as an ISO instant. */
+function startOfTodaySastIso(): string {
+  const nowSast = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  const midnightSast = Date.UTC(
+    nowSast.getUTCFullYear(),
+    nowSast.getUTCMonth(),
+    nowSast.getUTCDate(),
+  );
+  return new Date(midnightSast - 2 * 60 * 60 * 1000).toISOString();
+}
+
 export const getNextEvent = createServerFn({ method: "GET" }).handler(
   async (): Promise<PublicEvent | null> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
+    // Keep an event that started earlier today on the home banner all day.
     const { data, error } = await supabase
       .from("events")
       .select(
         "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
       )
       .eq("is_published", true)
-      .gte("starts_at", new Date().toISOString())
+      .gte("starts_at", startOfTodaySastIso())
       .order("starts_at", { ascending: true })
       .limit(1)
       .maybeSingle();

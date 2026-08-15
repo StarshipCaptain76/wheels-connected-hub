@@ -93,10 +93,6 @@ function isClubMemberStatus(status: string | null | undefined): boolean {
   return status === "active" || status === "member";
 }
 
-function spectatorQuestionIds(selectedIds: string[]): string[] {
-  const half = Math.ceil(selectedIds.length / 2);
-  return selectedIds.slice(0, half);
-}
 
 function orderQuestionsByIds(rows: ConcoursQuestion[], ids: string[]): ConcoursQuestion[] {
   const byId = new Map(rows.map((q) => [q.id, q]));

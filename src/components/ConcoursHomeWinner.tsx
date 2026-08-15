@@ -37,7 +37,9 @@ export function ConcoursHomeWinner() {
         <div className="overflow-hidden rounded-xl border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-primary)] sm:flex">
           <div className="relative h-48 w-full shrink-0 border-b-2 border-ink sm:h-auto sm:w-56 sm:border-b-0 sm:border-r-2">
             <img
-              src={data.winnerPhotoUrl}
+              src={
+                data.winnerVehicleId ? concoursImageUrl(data.winnerVehicleId) : data.winnerPhotoUrl
+              }
               alt=""
               className="h-full w-full object-cover"
             />

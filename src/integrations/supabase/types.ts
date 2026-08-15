@@ -50,6 +50,24 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_secrets: {
+        Row: {
+          created_at: string
+          name: string
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          secret?: string
+        }
+        Relationships: []
+      }
       event_checkins: {
         Row: {
           checked_in_at: string
@@ -537,6 +555,7 @@ export type Database = {
           invites_sent_count: number
           is_published: boolean
           location: string | null
+          reminder_sent_at: string | null
           starts_at: string
           title: string
           title_af: string | null
@@ -560,6 +579,7 @@ export type Database = {
           invites_sent_count?: number
           is_published?: boolean
           location?: string | null
+          reminder_sent_at?: string | null
           starts_at: string
           title: string
           title_af?: string | null
@@ -583,6 +603,7 @@ export type Database = {
           invites_sent_count?: number
           is_published?: boolean
           location?: string | null
+          reminder_sent_at?: string | null
           starts_at?: string
           title?: string
           title_af?: string | null
@@ -1140,6 +1161,7 @@ export type Database = {
           admin_new_sponsor: boolean
           created_at: string
           event_photo: boolean
+          event_reminder: boolean
           new_event: boolean
           new_listing: boolean
           new_newsletter: boolean
@@ -1153,6 +1175,7 @@ export type Database = {
           admin_new_sponsor?: boolean
           created_at?: string
           event_photo?: boolean
+          event_reminder?: boolean
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
@@ -1166,6 +1189,7 @@ export type Database = {
           admin_new_sponsor?: boolean
           created_at?: string
           event_photo?: boolean
+          event_reminder?: boolean
           new_event?: boolean
           new_listing?: boolean
           new_newsletter?: boolean
@@ -1440,6 +1464,7 @@ export type Database = {
       }
     }
     Functions: {
+      cron_key_ok: { Args: { _key: string; _name: string }; Returns: boolean }
       daily_featured_id: { Args: never; Returns: string }
       event_attendees: {
         Args: { _event_id: string }
@@ -1447,6 +1472,16 @@ export type Database = {
           party_size: number
           status: Database["public"]["Enums"]["rsvp_status"]
           user_id: string
+        }[]
+      }
+      event_reminders_due: {
+        Args: { _key: string }
+        Returns: {
+          event_id: string
+          location: string
+          starts_at: string
+          title: string
+          title_af: string
         }[]
       }
       fanout_notification: {
@@ -1527,6 +1562,14 @@ export type Database = {
       rsvp_via_invite: {
         Args: { _response: string; _token: string }
         Returns: string
+      }
+      send_event_reminder: {
+        Args: { _event_id: string; _key: string }
+        Returns: {
+          display_name: string
+          email: string
+          lang: string
+        }[]
       }
     }
     Enums: {

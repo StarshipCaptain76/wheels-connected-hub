@@ -1220,7 +1220,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
     const { data: ec, error } = await supabase
       .from("event_concours")
       .select(
-        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, prize_en, prize_af, results_published_at, winner_average_score, winner_submission_count",
+        "event_id, winner_vehicle_id, winner_photo_url, winner_headline_en, winner_headline_af, winner_blurb_en, winner_blurb_af, prize_en, prize_af, results_published_at, winner_average_score, winner_submission_count",
       )
       .eq("results_on_home", true)
       .not("winner_photo_url", "is", null)

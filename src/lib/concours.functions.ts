@@ -672,20 +672,13 @@ export const listMyConcoursScores = createServerFn({ method: "GET" })
     if (!data.voterKey) return [];
 
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);
-    let reader: AnyClient;
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      reader = supabaseAdmin as unknown as AnyClient;
-    } catch {
-      const { createPublicSupabase } = await import("./public-supabase.server");
-      reader = createPublicSupabase() as unknown as AnyClient;
-    }
-    const { data: rows } = await reader
-      .from("event_concours_scores")
-      .select("vehicle_id")
-      .eq("event_id", data.eventId)
-      .eq("voter_fingerprint", fingerprint);
-    return ((rows ?? []) as Array<{ vehicle_id: string }>).map((r) => r.vehicle_id);
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const reader = createPublicSupabase() as unknown as AnyClient;
+    const { data: rows } = await reader.rpc("concours_scored_vehicles", {
+      _event_id: data.eventId,
+      _fingerprint: fingerprint,
+    });
+    return ((rows ?? []) as string[]).filter(Boolean);
   });
 
 export const deleteConcoursVehicle = createServerFn({ method: "POST" })

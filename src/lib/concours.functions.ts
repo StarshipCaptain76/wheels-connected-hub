@@ -776,7 +776,11 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       });
       adminBypass = !!isAdmin;
       if (adminBypass) clubMember = true;
+      if ((veh.tagged_user_id as string | null) === authed.userId) {
+        throw new Error("You can’t score your own car — let the others judge it.");
+      }
     }
+
 
     let memberCheckedIn = adminBypass;
     if (clubMember && authed && !memberCheckedIn) {

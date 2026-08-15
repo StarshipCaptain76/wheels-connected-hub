@@ -766,6 +766,38 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
             />
           </label>
 
+          <div className="rounded-md border-2 border-ink/20 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                Winner blurb (why it won)
+              </span>
+              <button
+                type="button"
+                disabled={blurbBusy || !winnerVehicleId}
+                onClick={generateBlurb}
+                className="rounded-md border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wider disabled:opacity-50"
+              >
+                {blurbBusy ? "Writing…" : "Generate with AI"}
+              </button>
+            </div>
+            <textarea
+              value={winnerBlurbEn}
+              onChange={(e) => setWinnerBlurbEn(e.target.value)}
+              rows={3}
+              placeholder="English blurb"
+              className={`${inp} mt-2`}
+            />
+            <textarea
+              value={winnerBlurbAf}
+              onChange={(e) => setWinnerBlurbAf(e.target.value)}
+              rows={3}
+              placeholder="Afrikaanse blurb"
+              className={`${inp} mt-2`}
+            />
+          </div>
+
+
+
           <label className="flex items-center gap-2">
             <input
               type="checkbox"

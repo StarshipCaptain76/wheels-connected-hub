@@ -158,7 +158,12 @@ function AdminEvents() {
                 {e.is_published ? "Published" : "Hidden"} · {new Date(e.starts_at).toLocaleString()}
               </div>
               <p className="font-display text-lg text-ink">{e.title}</p>
-              <p className="line-clamp-1 text-sm text-ink/70">{e.location ?? ""}</p>
+              <p className="line-clamp-1 text-sm text-ink/70">{e.location ?? e.destination_address ?? ""}</p>
+              {e.destination_lat == null || e.destination_lng == null ? (
+                <p className="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-primary">
+                  No map pin — Concours Mini needs a destination
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-row gap-2 sm:flex-col">
               <Link
@@ -509,6 +514,10 @@ function EditModal({
 
         {tab === "destination" && (
           <div className="space-y-3">
+            <p className="text-xs text-ink/60">
+              Pick a suggestion or drop a pin. Concours Mini uses these coordinates for on-site
+              check-in.
+            </p>
             <Field label="Destination address">
               <PlacePicker
                 value={form.destination_address ?? ""}
@@ -528,7 +537,7 @@ function EditModal({
             {form.destination_lat != null && form.destination_lng != null ? (
               <p className="inline-flex items-center gap-1 text-xs text-ink/60">
                 <MapPin className="h-3 w-3 text-primary" />
-                {form.destination_lat.toFixed(5)}, {form.destination_lng.toFixed(5)}
+                {Number(form.destination_lat).toFixed(5)}, {Number(form.destination_lng).toFixed(5)}
               </p>
             ) : (
               <p className="text-xs text-ink/50">
@@ -762,7 +771,10 @@ function EditModal({
         )}
 
         {tab === "concours" && (
-          <ConcoursAdminPanel eventId={form.id} />
+          <ConcoursAdminPanel
+            eventId={form.id}
+            hasDestination={form.destination_lat != null && form.destination_lng != null}
+          />
         )}
 
         {/* Hide main Save when on concours — that panel has its own save */}

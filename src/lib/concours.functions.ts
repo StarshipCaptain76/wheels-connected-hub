@@ -179,11 +179,17 @@ async function assertScoringOpen(sb: AnyClient, eventId: string) {
   if (!isConcoursWindowOpen(ev.starts_at as string, ev.ends_at as string | null)) {
     throw new Error("Concours scoring is only open on the event days.");
   }
-  return ev as {
-    starts_at: string;
-    ends_at: string | null;
-    destination_lat: number | null;
-    destination_lng: number | null;
+  return {
+    starts_at: ev.starts_at as string,
+    ends_at: (ev.ends_at as string | null) ?? null,
+    destination_lat:
+      ev.destination_lat != null && Number.isFinite(Number(ev.destination_lat))
+        ? Number(ev.destination_lat)
+        : null,
+    destination_lng:
+      ev.destination_lng != null && Number.isFinite(Number(ev.destination_lng))
+        ? Number(ev.destination_lng)
+        : null,
   };
 }
 
@@ -860,8 +866,14 @@ export const getMyEventCheckIn = createServerFn({ method: "GET" })
       checkedInAt: (row?.checked_in_at as string | null) ?? null,
       distanceM: row ? Number(row.distance_m) : null,
       radiusM: CHECKIN_RADIUS_M,
-      destinationLat: (ev?.destination_lat as number | null) ?? null,
-      destinationLng: (ev?.destination_lng as number | null) ?? null,
+      destinationLat:
+        ev?.destination_lat != null && Number.isFinite(Number(ev.destination_lat))
+          ? Number(ev.destination_lat)
+          : null,
+      destinationLng:
+        ev?.destination_lng != null && Number.isFinite(Number(ev.destination_lng))
+          ? Number(ev.destination_lng)
+          : null,
     };
   });
 

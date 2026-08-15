@@ -17,8 +17,31 @@ export type PublicEvent = {
   /** Always-loadable URL for display (raw cover_url stays intact for saving). */
   cover_display_url?: string | null;
   hero_image_url?: string | null;
+  details_md?: string | null;
+  details_af_md?: string | null;
+  destination_address?: string | null;
+  destination_lat?: number | null;
+  destination_lng?: number | null;
+  destination_place_id?: string | null;
   is_published?: boolean;
 };
+
+const ADMIN_EVENT_COLS =
+  "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, hero_image_url, details_md, details_af_md, destination_address, destination_lat, destination_lng, destination_place_id, is_published";
+
+function asCoord(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function withAdminFields<T extends Record<string, unknown>>(row: T): T {
+  return {
+    ...row,
+    destination_lat: asCoord(row.destination_lat),
+    destination_lng: asCoord(row.destination_lng),
+  };
+}
 
 /**
  * Event covers live in the private `gallery` bucket. Instead of signing
@@ -99,13 +122,12 @@ export const listAllEvents = createServerFn({ method: "GET" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await supabase
       .from("events")
-      .select(
-        "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url, is_published",
-      )
+      .select(ADMIN_EVENT_COLS)
       .order("starts_at", { ascending: false });
     if (error) throw error;
-    // IMPORTANT: never drop cover_url on admin list — Edit→Save would wipe images
-    return withDisplayUrls((data ?? []) as PublicEvent[]);
+    // Include every field the editor can save. Omitting destination/hero/details
+    // made Edit→Save write nulls and wipe the map pin Concours Mini needs.
+    return withDisplayUrls((data ?? []).map((r) => withAdminFields(r as Record<string, unknown>)) as PublicEvent[]);
   });
 
 const upsertSchema = z.object({
@@ -122,8 +144,8 @@ const upsertSchema = z.object({
   details_md: z.string().trim().max(6000).nullable().optional(),
   details_af_md: z.string().trim().max(6000).nullable().optional(),
   destination_address: z.string().trim().max(300).nullable().optional(),
-  destination_lat: z.number().nullable().optional(),
-  destination_lng: z.number().nullable().optional(),
+  destination_lat: z.preprocess(asCoord, z.number().nullable().optional()),
+  destination_lng: z.preprocess(asCoord, z.number().nullable().optional()),
   destination_place_id: z.string().trim().max(200).nullable().optional(),
   is_published: z.boolean().default(true),
 });
@@ -149,7 +171,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const { id, ...rest } = data;
-    const values = {
+    const values: Record<string, unknown> = {
       ...rest,
       cover_url: stabilizeStorageUrl(rest.cover_url),
       hero_image_url: stabilizeStorageUrl(rest.hero_image_url),
@@ -157,9 +179,34 @@ export const upsertEvent = createServerFn({ method: "POST" })
     if (id) {
       const { data: prev } = await supabase
         .from("events")
-        .select("is_published")
+        .select(
+          "is_published, destination_lat, destination_lng, destination_address, destination_place_id, hero_image_url, details_md, details_af_md",
+        )
         .eq("id", id)
         .maybeSingle();
+      // Form used to omit destination fields; never wipe a saved pin unless the
+      // admin actually submitted new coordinates.
+      if (values.destination_lat == null || values.destination_lng == null) {
+        if (prev && asCoord(prev.destination_lat) != null && asCoord(prev.destination_lng) != null) {
+          values.destination_lat = asCoord(prev.destination_lat);
+          values.destination_lng = asCoord(prev.destination_lng);
+          if (!values.destination_address) {
+            values.destination_address = prev.destination_address ?? null;
+          }
+          if (!values.destination_place_id) {
+            values.destination_place_id = prev.destination_place_id ?? null;
+          }
+        }
+      }
+      if (values.hero_image_url == null && prev?.hero_image_url) {
+        values.hero_image_url = prev.hero_image_url;
+      }
+      if (values.details_md == null && prev?.details_md) {
+        values.details_md = prev.details_md;
+      }
+      if (values.details_af_md == null && prev?.details_af_md) {
+        values.details_af_md = prev.details_af_md;
+      }
       const { data: updated, error } = await supabase
         .from("events")
         .update(values)
@@ -173,7 +220,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
         );
       }
       if (values.is_published && prev && prev.is_published === false) {
-        await notifyNewEvent(id, values.title, values.title_af ?? null, supabase);
+        await notifyNewEvent(id, rest.title, rest.title_af ?? null, supabase);
       }
       return { id };
     }
@@ -184,7 +231,7 @@ export const upsertEvent = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
     if (values.is_published) {
-      await notifyNewEvent(row.id as string, values.title, values.title_af ?? null, supabase);
+      await notifyNewEvent(row.id as string, rest.title, rest.title_af ?? null, supabase);
     }
     return { id: row.id };
   });

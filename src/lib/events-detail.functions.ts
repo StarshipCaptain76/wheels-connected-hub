@@ -126,8 +126,14 @@ export const getEventDetail = createServerFn({ method: "GET" })
       hero_image_url: display((event.hero_image_url as string | null) ?? null, "hero"),
       details_md: (event.details_md as string | null) ?? null,
       details_af_md: (event.details_af_md as string | null) ?? null,
-      destination_lat: (event.destination_lat as number | null) ?? null,
-      destination_lng: (event.destination_lng as number | null) ?? null,
+      destination_lat:
+        event.destination_lat != null && Number.isFinite(Number(event.destination_lat))
+          ? Number(event.destination_lat)
+          : null,
+      destination_lng:
+        event.destination_lng != null && Number.isFinite(Number(event.destination_lng))
+          ? Number(event.destination_lng)
+          : null,
       destination_place_id: (event.destination_place_id as string | null) ?? null,
       destination_address: (event.destination_address as string | null) ?? null,
       is_published: Boolean(event.is_published),

@@ -21,9 +21,9 @@ import {
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
-type Props = { eventId: string | undefined };
+type Props = { eventId: string | undefined; hasDestination?: boolean };
 
-export function ConcoursAdminPanel({ eventId }: Props) {
+export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const qc = useQueryClient();
   const upsert = useServerFn(upsertEventConcours);
   const reveal = useServerFn(revealConcoursLeaderboard);
@@ -257,6 +257,12 @@ export function ConcoursAdminPanel({ eventId }: Props) {
 
       {adminTab === "settings" && (
         <div className="space-y-4">
+          {hasDestination === false && (
+            <p className="rounded-md border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
+              This event has no destination map pin. Concours Mini check-in and scoring need
+              coordinates. Set them on the Destination tab, then Save event.
+            </p>
+          )}
           <div className="rounded-lg border-2 border-primary/40 bg-primary/5 p-3 text-sm text-ink/80">
             <p className="font-bold text-primary">Concours Mini</p>
             <p className="mt-1">

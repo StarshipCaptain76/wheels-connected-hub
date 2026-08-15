@@ -324,6 +324,7 @@ export const dictionaries = {
     "notif.saveFailed": "Kon nie instellings stoor nie",
     "notif.type.new_listing": "Nuwe advertensies in die markplek",
     "notif.type.new_event": "Nuwe byeenkomste",
+    "notif.type.event_reminder": "Herinnering die dag voor 'n byeenkoms",
     "notif.type.event_photo": "Nuwe fotos by vorige byeenkomste",
     "notif.type.new_newsletter": "Nuwe nuusbriewe",
     "notif.type.photo_tag": "Gemerk in 'n foto",

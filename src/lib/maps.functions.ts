@@ -230,10 +230,11 @@ export const computeRoute = createServerFn({ method: "POST" })
     const cached = (await cacheGet(cacheKey)) as ComputedRoute | null;
     if (cached !== null) return cached;
 
+    const ll = (p: { lat: number; lng: number }) => ({ latitude: p.lat, longitude: p.lng });
     const body = {
-      origin: { location: { latLng: data.origin } },
-      destination: { location: { latLng: data.destination } },
-      intermediates: data.waypoints.map((w) => ({ location: { latLng: w } })),
+      origin: { location: { latLng: ll(data.origin) } },
+      destination: { location: { latLng: ll(data.destination) } },
+      intermediates: data.waypoints.map((w) => ({ location: { latLng: ll(w) } })),
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_UNAWARE",
       polylineEncoding: "ENCODED_POLYLINE",

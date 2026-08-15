@@ -298,17 +298,19 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   async function finish(all: Record<string, number | string | null>) {
     if (!selectedVehicle || busy) return;
+    const vehicleId = selectedVehicle.id;
     setBusy(true);
     try {
       const res = await submit({
         data: {
           eventId,
-          vehicleId: selectedVehicle.id,
+          vehicleId,
           answers: all,
           ...(gps ? { lat: gps.lat, lng: gps.lng } : {}),
           ...(voterKey ? { voterKey } : {}),
         },
       });
+      setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
       setMsg(
         lang === "af"
           ? `Ingedien! Jou telling: ${res.totalScore}`
@@ -319,6 +321,13 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] }),
         qc.invalidateQueries({ queryKey: ["concours-my-scores", eventId] }),
       ]);
+    } catch (err) {
+      if (err instanceof Error && /already scored/i.test(err.message)) {
+        setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
+        closeSheet();
+      }
+      setMsg(err instanceof Error ? err.message : "Failed");
+    }
     } catch (err) {
       setMsg(err instanceof Error ? err.message : "Failed");
     } finally {

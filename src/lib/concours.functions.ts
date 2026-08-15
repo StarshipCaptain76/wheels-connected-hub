@@ -751,10 +751,11 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
 
     const { data: veh } = await publicSb
       .from("event_concours_vehicles")
-      .select("id, event_id")
+      .select("id, event_id, tagged_user_id, added_by")
       .eq("id", data.vehicleId)
       .maybeSingle();
     if (!veh || veh.event_id !== data.eventId) throw new Error("Vehicle is not part of this event.");
+
 
     const selectedIds: string[] = (ec.selected_question_ids as string[]) ?? [];
     if (selectedIds.length === 0) throw new Error("No questions configured");

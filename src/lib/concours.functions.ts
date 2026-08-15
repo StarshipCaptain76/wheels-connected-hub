@@ -184,7 +184,7 @@ async function questionIdsForVehicle(
   eventId: string,
   vehicleId: string,
   selectedIds: string[],
-): Promise<{ adminIds: string[]; randomIds: string[]; allIds: string[] }> {
+): Promise<{ adminIds: string[]; randomIds: string[]; spectatorIds: string[]; allIds: string[] }> {
   const adminIds = selectedIds;
   const { data: bank } = await sb
     .from("concours_questions")
@@ -196,7 +196,8 @@ async function questionIdsForVehicle(
     .filter((id) => !chosen.has(id))
     .sort((a, b) => seedHash(`${eventId}:${vehicleId}:${a}`) - seedHash(`${eventId}:${vehicleId}:${b}`));
   const randomIds = pool.slice(0, adminIds.length);
-  return { adminIds, randomIds, allIds: [...adminIds, ...randomIds] };
+  const spectatorIds = pool.slice(0, Math.ceil(adminIds.length / 2));
+  return { adminIds, randomIds, spectatorIds, allIds: [...adminIds, ...randomIds] };
 }
 
 async function assertScoringOpen(sb: AnyClient, eventId: string) {
@@ -632,13 +633,13 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
     const selectedIds: string[] = (ec?.selected_question_ids as string[]) ?? [];
     if (!ec?.enabled || selectedIds.length === 0) return [];
 
-    const { adminIds, allIds } = await questionIdsForVehicle(
+    const { allIds, spectatorIds } = await questionIdsForVehicle(
       sb,
       data.eventId,
       data.vehicleId,
       selectedIds,
     );
-    const ids = data.full ? allIds : adminIds;
+    const ids = data.full ? allIds : spectatorIds;
 
     const { data: rows, error } = await sb
       .from("concours_questions")
@@ -804,7 +805,13 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     }
     assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
 
-    const allowedIds = selectedIds;
+    const { spectatorIds } = await questionIdsForVehicle(
+      publicSb,
+      data.eventId,
+      data.vehicleId,
+      selectedIds,
+    );
+    const allowedIds = spectatorIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);
     const { totalScore } = scoreAnswers(data.answers, allowedIds);
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);

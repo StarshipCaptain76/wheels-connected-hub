@@ -98,7 +98,10 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
       setWinnerPhotoUrl(c.winner_photo_url ?? "");
       setWinnerHeadlineEn(c.winner_headline_en ?? "");
       setWinnerHeadlineAf(c.winner_headline_af ?? "");
+      setWinnerBlurbEn(c.winner_blurb_en ?? "");
+      setWinnerBlurbAf(c.winner_blurb_af ?? "");
       setResultsOnHome(!!c.results_on_home);
+
     }
   }, [concoursQ.data]);
 

@@ -1185,6 +1185,7 @@ export type ConcoursHomeWinner = {
   eventTitle: string;
   eventTitleAf: string | null;
   eventStartsAt: string;
+  winnerVehicleId: string | null;
   winnerPhotoUrl: string;
   winnerHeadlineEn: string | null;
   winnerHeadlineAf: string | null;

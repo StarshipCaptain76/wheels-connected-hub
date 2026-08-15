@@ -213,8 +213,6 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     }
   }
 
-  async function saveResults() {
-    setBusy(true);
   async function generateBlurb() {
     if (!winnerVehicleId) {
       setMsg("Pick the winning car first");
@@ -234,9 +232,11 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     }
   }
 
+  async function saveResults() {
+    setBusy(true);
     setMsg(null);
-
     try {
+
       await publish({
         data: {
           eventId: eventId!,

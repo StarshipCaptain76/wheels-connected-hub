@@ -1020,12 +1020,10 @@ export const checkInToEvent = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
 
     const ev = await assertScoringOpen(sb, data.eventId);
-    const distanceM = assertWithinVenue(
-      data.lat,
-      data.lng,
-      ev.destination_lat,
-      ev.destination_lng,
-    );
+    const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const distanceM = isAdmin
+      ? 0
+      : assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
 
     const { error } = await sb.from("event_checkins").upsert(
       {

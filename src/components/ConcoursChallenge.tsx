@@ -164,6 +164,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const [prepId, setPrepId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [taggingId, setTaggingId] = useState<string | null>(null);
+  const [justScored, setJustScored] = useState<string[]>([]);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   // Admin bulk add
@@ -182,7 +183,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   const c = concoursQ.data;
   const vehicles = vehiclesQ.data ?? [];
-  const scoredIds = useMemo(() => new Set(myScoresQ.data ?? []), [myScoresQ.data]);
+  const scoredIds = useMemo(
+    () => new Set([...(myScoresQ.data ?? []), ...justScored]),
+    [myScoresQ.data, justScored],
+  );
 
   if (concoursQ.isLoading) return null;
   if (!c?.enabled) return null;
@@ -289,22 +293,24 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     setSelectedVehicle(null);
     setAnswers({});
     setQIdx(0);
-    requestAnimationFrame(() => gridRef.current?.scrollIntoView({ block: "start" }));
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
   }
 
   async function finish(all: Record<string, number | string | null>) {
     if (!selectedVehicle || busy) return;
+    const vehicleId = selectedVehicle.id;
     setBusy(true);
     try {
       const res = await submit({
         data: {
           eventId,
-          vehicleId: selectedVehicle.id,
+          vehicleId,
           answers: all,
           ...(gps ? { lat: gps.lat, lng: gps.lng } : {}),
           ...(voterKey ? { voterKey } : {}),
         },
       });
+      setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
       setMsg(
         lang === "af"
           ? `Ingedien! Jou telling: ${res.totalScore}`
@@ -316,6 +322,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         qc.invalidateQueries({ queryKey: ["concours-my-scores", eventId] }),
       ]);
     } catch (err) {
+      if (err instanceof Error && /already scored/i.test(err.message)) {
+        setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
+        closeSheet();
+      }
       setMsg(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(false);

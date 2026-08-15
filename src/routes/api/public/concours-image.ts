@@ -36,27 +36,12 @@ async function handle(request: Request) {
   const { createPublicSupabase } = await import("@/lib/public-supabase.server");
   const anon = createPublicSupabase();
 
-  let stored: string | null = null;
   const { data: row } = await anon
     .from("event_concours_vehicles")
     .select("photo_url")
     .eq("id", vid)
     .maybeSingle();
-  stored = (row as { photo_url?: string } | null)?.photo_url ?? null;
-
-  if (!stored && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin
-        .from("event_concours_vehicles")
-        .select("photo_url")
-        .eq("id", vid)
-        .maybeSingle();
-      stored = (data as { photo_url?: string } | null)?.photo_url ?? null;
-    } catch (e) {
-      console.error("[concours-image] admin lookup failed", e);
-    }
-  }
+  const stored = (row as { photo_url?: string } | null)?.photo_url ?? null;
 
   const ref = parsePath(stored);
   if (!ref) {
@@ -67,21 +52,12 @@ async function handle(request: Request) {
     return new Response("Not found", { status: 404 });
   }
 
-  let blob: Blob | null = null;
-  const { data: dl } = await anon.storage.from(ref.bucket).download(ref.path);
-  if (dl) {
-    blob = dl as Blob;
-  } else if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin.storage.from(ref.bucket).download(ref.path);
-      if (data) blob = data as Blob;
-    } catch (e) {
-      console.error("[concours-image] admin download failed", e);
-    }
+  const { data: dl, error } = await anon.storage.from(ref.bucket).download(ref.path);
+  const blob = (dl as Blob | null) ?? null;
+  if (!blob) {
+    console.error("[concours-image] download failed", ref.path, error?.message);
+    return new Response("Not found", { status: 404 });
   }
-
-  if (!blob) return new Response("Not found", { status: 404 });
 
   const ext = (ref.path.split(".").pop() ?? "").toLowerCase();
   const type =

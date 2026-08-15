@@ -32,6 +32,9 @@ export type EventConcours = {
   winner_photo_url?: string | null;
   winner_headline_en?: string | null;
   winner_headline_af?: string | null;
+  winner_blurb_en?: string | null;
+  winner_blurb_af?: string | null;
+
   winner_average_score?: number | null;
   winner_submission_count?: number | null;
   results_on_home?: boolean;

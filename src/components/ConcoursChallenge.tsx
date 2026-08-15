@@ -293,7 +293,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     setSelectedVehicle(null);
     setAnswers({});
     setQIdx(0);
-    requestAnimationFrame(() => gridRef.current?.scrollIntoView({ block: "start" }));
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
   }
 
   async function finish(all: Record<string, number | string | null>) {

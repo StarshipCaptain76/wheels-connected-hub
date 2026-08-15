@@ -187,6 +187,9 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     () => new Set([...(myScoresQ.data ?? []), ...justScored]),
     [myScoresQ.data, justScored],
   );
+  const scoredCount = vehicles.filter((v) => scoredIds.has(v.id)).length;
+  const allScored = vehicles.length > 0 && scoredCount === vehicles.length;
+
 
   if (concoursQ.isLoading) return null;
   if (!c?.enabled) return null;

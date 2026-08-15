@@ -372,11 +372,8 @@ function EventDetailPage() {
 
         <EventPhotosGallery eventId={data.id} lang={lang} />
 
-        <ConcoursChallenge
-          eventId={data.id}
-          eventStartsAt={data.starts_at}
-          eventEndsAt={data.ends_at}
-        />
+        {!isLive && concoursBlock}
+
       </section>
     </SiteLayout>
   );

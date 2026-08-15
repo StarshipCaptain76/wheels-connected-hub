@@ -763,6 +763,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       clubMember = isClubMemberStatus(profile?.membership_status as string | undefined);
     }
 
+    let memberCheckedIn = false;
     if (clubMember && authed) {
       const { data: cin } = await authed.supabase
         .from("event_checkins")
@@ -770,11 +771,17 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         .eq("event_id", data.eventId)
         .eq("user_id", authed.userId)
         .maybeSingle();
-      if (!cin || cin.is_spectator) {
-        throw new Error("Check in on site first (GPS) before scoring.");
-      }
+      memberCheckedIn = !!cin && !cin.is_spectator;
+    }
 
-      const allowedIds = selectedIds;
+    if (clubMember && authed && memberCheckedIn) {
+      const { allIds } = await questionIdsForVehicle(
+        publicSb,
+        data.eventId,
+        data.vehicleId,
+        selectedIds,
+      );
+      const allowedIds = allIds;
       assertAllQuestionsAnswered(data.answers, allowedIds);
       const { totalScore } = scoreAnswers(data.answers, allowedIds);
 

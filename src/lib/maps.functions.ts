@@ -230,10 +230,11 @@ export const computeRoute = createServerFn({ method: "POST" })
     const cached = (await cacheGet(cacheKey)) as ComputedRoute | null;
     if (cached !== null) return cached;
 
+    const ll = (p: { lat: number; lng: number }) => ({ latitude: p.lat, longitude: p.lng });
     const body = {
-      origin: { location: { latLng: data.origin } },
-      destination: { location: { latLng: data.destination } },
-      intermediates: data.waypoints.map((w) => ({ location: { latLng: w } })),
+      origin: { location: { latLng: ll(data.origin) } },
+      destination: { location: { latLng: ll(data.destination) } },
+      intermediates: data.waypoints.map((w) => ({ location: { latLng: ll(w) } })),
       travelMode: "DRIVE",
       routingPreference: "TRAFFIC_UNAWARE",
       polylineEncoding: "ENCODED_POLYLINE",
@@ -299,10 +300,14 @@ export const distancesFromOrigins = createServerFn({ method: "POST" })
     if (cached) return cached;
 
     const body = {
-      origins: ORIGINS.map((o) => ({ waypoint: { location: { latLng: { lat: o.lat, lng: o.lng } } } })),
+      origins: ORIGINS.map((o) => ({
+        waypoint: { location: { latLng: { latitude: o.lat, longitude: o.lng } } },
+      })),
       destinations: [
         {
-          waypoint: { location: { latLng: { lat: data.destination.lat, lng: data.destination.lng } } },
+          waypoint: {
+            location: { latLng: { latitude: data.destination.lat, longitude: data.destination.lng } },
+          },
         },
       ],
       travelMode: "DRIVE",

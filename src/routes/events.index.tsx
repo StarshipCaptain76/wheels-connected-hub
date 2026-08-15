@@ -206,6 +206,15 @@ function TodayHero({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
               {t("home.seeDetails")}
             </a>
           )}
+          {isDbId(event.id) && (
+            <a
+              href={`/events/${event.id}#concours`}
+              className="inline-flex items-center rounded-md border-2 border-white bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink"
+            >
+              {lang === "af" ? "Punte gee vir karre" : "Score the cars"}
+            </a>
+          )}
+
           {event.location && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}

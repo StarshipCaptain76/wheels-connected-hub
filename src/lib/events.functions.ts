@@ -67,7 +67,8 @@ export const listUpcomingEvents = createServerFn({ method: "GET" }).handler(
         "id, title, title_af, description, description_af, location, starts_at, ends_at, cover_url",
       )
       .eq("is_published", true)
-      .gte("starts_at", new Date().toISOString())
+      // Events that started earlier today stay in "upcoming" for the full day.
+      .gte("starts_at", startOfTodaySastIso())
       .order("starts_at", { ascending: true })
       .limit(24);
     if (error) throw new Error(error.message);

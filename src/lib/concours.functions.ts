@@ -1201,6 +1201,9 @@ export type ConcoursHomeWinner = {
   winnerPhotoUrl: string;
   winnerHeadlineEn: string | null;
   winnerHeadlineAf: string | null;
+  winnerBlurbEn: string | null;
+  winnerBlurbAf: string | null;
+
   vehicleLabel: string | null;
   taggedDisplayName: string | null;
   averageScore: number | null;

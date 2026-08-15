@@ -1449,15 +1449,6 @@ export type Database = {
           user_id: string
         }[]
       }
-      member_upcoming_events: {
-        Args: { _user_id: string }
-        Returns: {
-          event_id: string
-          starts_at: string
-          status: Database["public"]["Enums"]["rsvp_status"]
-          title: string
-        }[]
-      }
       fanout_notification: {
         Args: {
           _body_af?: string
@@ -1498,6 +1489,15 @@ export type Database = {
       }
       hidden_directory_ids: { Args: never; Returns: string[] }
       is_featured_user: { Args: { _id: string }; Returns: boolean }
+      member_upcoming_events: {
+        Args: { _user_id: string }
+        Returns: {
+          event_id: string
+          starts_at: string
+          status: Database["public"]["Enums"]["rsvp_status"]
+          title: string
+        }[]
+      }
       newsletter_subscribe: {
         Args: { _email: string; _lang?: string; _source?: string }
         Returns: string

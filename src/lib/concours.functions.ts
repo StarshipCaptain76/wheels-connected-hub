@@ -815,7 +815,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
     }
     assertWithinVenue(data.lat, data.lng, ev.destination_lat, ev.destination_lng);
 
-    const allowedIds = spectatorQuestionIds(selectedIds);
+    const allowedIds = selectedIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);
     const { totalScore } = scoreAnswers(data.answers, allowedIds);
     const fingerprint = await sha256Hex(`${data.eventId}:${data.voterKey}`);

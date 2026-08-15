@@ -327,9 +327,6 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         closeSheet();
       }
       setMsg(err instanceof Error ? err.message : "Failed");
-    }
-    } catch (err) {
-      setMsg(err instanceof Error ? err.message : "Failed");
     } finally {
       setBusy(false);
     }

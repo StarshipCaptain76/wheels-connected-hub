@@ -1424,3 +1424,48 @@ export const deleteConcoursScoreAdmin = createServerFn({ method: "POST" })
   });
 
 export const getLatestConcoursWinner = getLatestConcoursHomeWinner;
+
+/** Admin: generate a light-hearted EN/AF blurb about why the winning car won. */
+export const generateConcoursWinnerBlurb = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) =>
+    z
+      .object({ eventId: z.string().uuid(), vehicleId: z.string().uuid() })
+      .parse(i),
+  )
+  .handler(async ({ context, data }): Promise<{ en: string; af: string }> => {
+    const { supabase, userId } = context;
+    const sb = supabase as unknown as AnyClient;
+    await assertAdmin(sb, userId);
+
+    const { data: ev } = await sb
+      .from("events")
+      .select("title")
+      .eq("id", data.eventId)
+      .maybeSingle();
+
+    const { data: v } = await sb
+      .from("event_concours_vehicles")
+      .select("label, tagged_display_name")
+      .eq("id", data.vehicleId)
+      .maybeSingle();
+
+    const { data: scores } = await sb
+      .from("event_concours_scores")
+      .select("total_score, weight")
+      .eq("vehicle_id", data.vehicleId);
+    const stats = weightedAverage(scores ?? []);
+
+    const { buildWinnerBlurb } = await import("./concours-blurb.server");
+    return buildWinnerBlurb(sb, {
+      eventId: data.eventId,
+      vehicleId: data.vehicleId,
+      eventTitle: (ev?.title as string | null) ?? "Club event",
+      vehicleName:
+        (v?.tagged_display_name as string | null) ||
+        (v?.label as string | null) ||
+        "The winning car",
+      averageScore: stats.average,
+      submissionCount: stats.count,
+    });
+  });

@@ -187,8 +187,11 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     () => new Set([...(myScoresQ.data ?? []), ...justScored]),
     [myScoresQ.data, justScored],
   );
-  const scoredCount = vehicles.filter((v) => scoredIds.has(v.id)).length;
-  const allScored = vehicles.length > 0 && scoredCount === vehicles.length;
+  const isOwnVehicle = (v: ConcoursVehicle) =>
+    !!myUserId && v.tagged_user_id === myUserId;
+  const scorableVehicles = vehicles.filter((v) => !isOwnVehicle(v));
+  const scoredCount = scorableVehicles.filter((v) => scoredIds.has(v.id)).length;
+  const allScored = scorableVehicles.length > 0 && scoredCount === scorableVehicles.length;
 
 
   if (concoursQ.isLoading) return null;
@@ -263,6 +266,14 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   async function openVehicle(v: ConcoursVehicle) {
     if (!scoringOpen || !identityReady || busy || prepId) return;
+    if (isOwnVehicle(v)) {
+      setMsg(
+        lang === "af"
+          ? "Jy kan nie jou eie kar punte gee nie."
+          : "You can’t score your own car.",
+      );
+      return;
+    }
     if (scoredIds.has(v.id)) {
       setMsg(lang === "af" ? "Jy het hierdie kar reeds gestem." : "You’ve already scored this car.");
       return;
@@ -571,7 +582,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                 : "Score the cars"}
           </p>
           <p className="mt-1 text-sm text-paper/85">
-            {scoredCount} / {vehicles.length}{" "}
+            {scoredCount} / {scorableVehicles.length}{" "}
             {lang === "af" ? "karre gepunt" : "cars scored"}
             {!isMember && (
               <>
@@ -587,7 +598,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
               type="button"
               disabled={!!prepId}
               onClick={() => {
-                const next = vehicles.find((v) => !scoredIds.has(v.id));
+                const next = scorableVehicles.find((v) => !scoredIds.has(v.id));
                 if (next) void openVehicle(next);
               }}
               className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-5 py-4 font-display text-xl uppercase tracking-wide text-ink transition hover:bg-ink hover:text-paper disabled:opacity-60 sm:w-auto"
@@ -645,15 +656,16 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {vehicles.map((v) => {
+          const own = isOwnVehicle(v);
           const scored = scoredIds.has(v.id);
           return (
             <li
               key={v.id}
-              className={`rounded-lg border-2 border-ink bg-paper p-2 ${scored ? "opacity-70" : ""}`}
+              className={`rounded-lg border-2 border-ink bg-paper p-2 ${scored || own ? "opacity-70" : ""}`}
             >
               <button
                 type="button"
-                disabled={!scoringOpen || scored || prepId === v.id}
+                disabled={!scoringOpen || scored || own || prepId === v.id}
                 onClick={() => void openVehicle(v)}
                 className="flex w-full gap-3 text-left disabled:cursor-default"
               >
@@ -683,7 +695,11 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                     <p className="text-xs text-ink/50">#{v.tagged_member_number}</p>
                   )}
                   <p className="text-xs text-ink/60">
-                    {scored
+                    {own
+                      ? lang === "af"
+                        ? "Jou kar — ander stem"
+                        : "Your car — others score it"
+                      : scored
                       ? lang === "af"
                         ? "Gestem ✓"
                         : "Scored ✓"

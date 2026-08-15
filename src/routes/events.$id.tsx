@@ -252,6 +252,9 @@ function EventDetailPage() {
 
         {description && <p className="mt-4 text-lg text-ink/80">{description}</p>}
 
+        {isLive && concoursBlock}
+
+
         {destination && (
           <section className="mt-8">
             <h2 className="font-display text-2xl text-ink">

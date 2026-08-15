@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type NotificationType =
   | "new_listing"
   | "new_event"
+  | "event_reminder"
   | "event_photo"
   | "new_newsletter"
   | "photo_tag"
@@ -13,6 +14,7 @@ export type NotificationType =
 export const MEMBER_TYPES: NotificationType[] = [
   "new_listing",
   "new_event",
+  "event_reminder",
   "event_photo",
   "new_newsletter",
   "photo_tag",
@@ -40,6 +42,7 @@ export type NotificationPrefs = Record<NotificationType, boolean>;
 export const DEFAULT_PREFS: NotificationPrefs = {
   new_listing: true,
   new_event: true,
+  event_reminder: true,
   event_photo: true,
   new_newsletter: true,
   photo_tag: true,
@@ -47,6 +50,7 @@ export const DEFAULT_PREFS: NotificationPrefs = {
   admin_new_member: true,
   admin_listing_review: true,
 };
+
 
 const SELECT = "id, type, title_en, title_af, body_en, body_af, link, read_at, created_at";
 

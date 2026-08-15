@@ -1464,6 +1464,10 @@ export type Database = {
       }
     }
     Functions: {
+      concours_scored_vehicles: {
+        Args: { _event_id: string; _fingerprint?: string }
+        Returns: string[]
+      }
       cron_key_ok: { Args: { _key: string; _name: string }; Returns: boolean }
       daily_featured_id: { Args: never; Returns: string }
       event_attendees: {
@@ -1570,6 +1574,16 @@ export type Database = {
           email: string
           lang: string
         }[]
+      }
+      submit_concours_spectator_score: {
+        Args: {
+          _answers: Json
+          _event_id: string
+          _fingerprint: string
+          _total: number
+          _vehicle_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

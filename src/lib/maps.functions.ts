@@ -300,10 +300,14 @@ export const distancesFromOrigins = createServerFn({ method: "POST" })
     if (cached) return cached;
 
     const body = {
-      origins: ORIGINS.map((o) => ({ waypoint: { location: { latLng: { lat: o.lat, lng: o.lng } } } })),
+      origins: ORIGINS.map((o) => ({
+        waypoint: { location: { latLng: { latitude: o.lat, longitude: o.lng } } },
+      })),
       destinations: [
         {
-          waypoint: { location: { latLng: { lat: data.destination.lat, lng: data.destination.lng } } },
+          waypoint: {
+            location: { latLng: { latitude: data.destination.lat, longitude: data.destination.lng } },
+          },
         },
       ],
       travelMode: "DRIVE",

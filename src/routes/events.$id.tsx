@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
@@ -6,6 +6,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { EventMap } from "@/components/EventMap";
 import { EventPhotosGallery } from "@/components/EventPhotosGallery";
 import { ConcoursChallenge } from "@/components/ConcoursChallenge";
+import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   getEventDetail,
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/events/$id")({
   loader: async ({ context, params }) => {
     const data = await context.queryClient.ensureQueryData(eventQuery(params.id));
     if (!data) throw notFound();
+    await context.queryClient.ensureQueryData(openConcoursIdsQuery);
     return data;
   },
   head: ({ loaderData, params }) => {
@@ -137,6 +139,27 @@ function EventDetailPage() {
   const { id } = Route.useParams();
   const { lang } = useI18n();
   const { data } = useSuspenseQuery(eventQuery(id));
+  const openConcours = useOpenConcoursIds();
+  const voteOpen = openConcours.has(id);
+  const hash = useRouterState({ select: (s) => s.location.hash });
+
+  useEffect(() => {
+    const target = hash.replace(/^#/, "");
+    if (target !== "concours") return;
+    let cancelled = false;
+    const jump = () => {
+      if (cancelled) return;
+      document.getElementById("concours")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    jump();
+    const t1 = window.setTimeout(jump, 150);
+    const t2 = window.setTimeout(jump, 450);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [id, voteOpen, hash]);
 
   if (!data) {
     return (
@@ -220,7 +243,7 @@ function EventDetailPage() {
           {lang === "af" ? "Terug na byeenkomste" : "Back to events"}
         </Link>
 
-        <div className="flex flex-wrap items-start gap-4">
+        <div className="relative flex flex-wrap items-start gap-4">
           {iconUrl && (
             <img
               src={iconUrl}
@@ -228,7 +251,7 @@ function EventDetailPage() {
               className="h-16 w-16 shrink-0 rounded-lg border-2 border-ink object-cover shadow-[3px_3px_0_0_var(--color-ink)] sm:h-20 sm:w-20"
             />
           )}
-          <div className="min-w-0 flex-1">
+          <div className={`min-w-0 flex-1 ${voteOpen ? "pr-24 sm:pr-32" : ""}`}>
             {isPast && (
               <span className="mb-2 inline-block rounded-full border border-ink/30 bg-ink/5 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink/60">
                 {lang === "af" ? "Vorige byeenkoms" : "Past event"}
@@ -248,6 +271,14 @@ function EventDetailPage() {
               )}
             </div>
           </div>
+          {voteOpen && (
+            <VoteNowPulse
+              eventId={data.id}
+              size="md"
+              tone="onLight"
+              className="absolute right-0 top-0 z-10"
+            />
+          )}
         </div>
 
         {description && <p className="mt-4 text-lg text-ink/80">{description}</p>}

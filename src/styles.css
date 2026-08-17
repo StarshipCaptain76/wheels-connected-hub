@@ -145,6 +145,52 @@
   --sidebar-ring: oklch(0.62 0.22 27);
 }
 
+@keyframes vote-radiate {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.85);
+    opacity: 0;
+  }
+}
+
+@keyframes vote-throb {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+.vote-now-ring {
+  position: absolute;
+  inset: 6%;
+  border-radius: 9999px;
+  border-width: 2px;
+  pointer-events: none;
+  animation: vote-radiate 1.7s ease-out infinite;
+}
+
+.vote-now-ring-delay {
+  animation-delay: 0.85s;
+}
+
+.vote-now-core {
+  animation: vote-throb 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vote-now-ring,
+  .vote-now-ring-delay,
+  .vote-now-core {
+    animation: none;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

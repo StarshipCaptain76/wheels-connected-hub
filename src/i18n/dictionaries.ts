@@ -72,6 +72,7 @@ export const dictionaries = {
     "home.startsInHours": "Starts in about {n} hours",
     "home.seeDetails": "See details",
     "home.getDirections": "Get directions",
+    "home.voteNow": "Vote now",
     "home.tbaTitle": "Breakfast Run — date to be confirmed",
     "home.tbaBody":
       "We meet every month for a run, a braai, or a show-and-shine. Members get the full calendar in the members area.",
@@ -369,6 +370,7 @@ export const dictionaries = {
     "home.startsInHours": "Begin oor ongeveer {n} uur",
     "home.seeDetails": "Sien besonderhede",
     "home.getDirections": "Kry aanwysings",
+    "home.voteNow": "Stem nou",
     "home.tbaTitle": "Ontbytrit — datum word bevestig",
     "home.tbaBody":
       "Ons kom elke maand bymekaar vir 'n rit, 'n braai of 'n show-and-shine. Lede kry die volle kalender in die ledeblad.",

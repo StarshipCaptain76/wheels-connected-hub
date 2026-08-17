@@ -10,6 +10,7 @@ import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
 import { NewsletterHomeSection } from "@/components/NewsletterHomeSection";
+import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { supabase } from "@/integrations/supabase/client";
 
 const nextEventQuery = queryOptions({
@@ -65,6 +66,7 @@ export const Route = createFileRoute("/")({
     await Promise.all([
       context.queryClient.ensureQueryData(nextEventQuery),
       context.queryClient.ensureQueryData(featuredQuery),
+      context.queryClient.ensureQueryData(openConcoursIdsQuery),
     ]);
   },
   component: Index,
@@ -107,6 +109,8 @@ function Index() {
   const { t, lang } = useI18n();
   const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
   const { data: featured } = useQuery(featuredQuery);
+  const openConcours = useOpenConcoursIds();
+  const voteEventId = nextEvent && openConcours.has(nextEvent.id) ? nextEvent.id : null;
 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   useEffect(() => {
@@ -251,12 +255,12 @@ function Index() {
             : "border-b-2 border-ink bg-primary text-white"
         }
       >
-        <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="relative mx-auto max-w-6xl px-4 py-6">
           <Link
             {...(nextEvent
               ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
               : ({ to: "/events" } as const))}
-            className="flex flex-wrap items-center justify-between gap-4"
+            className={`flex flex-wrap items-center justify-between gap-4 ${voteEventId ? "pr-24 sm:pr-36" : ""}`}
           >
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -302,8 +306,17 @@ function Index() {
             <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
           </Link>
 
+          {voteEventId && (
+            <VoteNowPulse
+              eventId={voteEventId}
+              size="lg"
+              tone="onDark"
+              className="absolute right-2 top-2 z-10 origin-top-right max-sm:scale-[0.78] sm:right-4 sm:top-1/2 sm:-translate-y-1/2"
+            />
+          )}
+
           {isToday && nextEvent && (
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className={`mt-4 flex flex-wrap gap-3 ${voteEventId ? "pr-24 sm:pr-36" : ""}`}>
               <Link
                 to="/events/$id"
                 params={{ id: nextEvent.id }}

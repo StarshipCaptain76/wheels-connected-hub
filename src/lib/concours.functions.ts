@@ -1293,6 +1293,31 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
   },
 );
 
+/** Enabled, unpublished Mini events whose SAST voting window is open today. */
+export const listOpenConcoursEventIds = createServerFn({ method: "GET" }).handler(
+  async (): Promise<string[]> => {
+    const { createPublicSupabase } = await import("./public-supabase.server");
+    const supabase = createPublicSupabase() as unknown as AnyClient;
+    const { data: rows, error } = await supabase
+      .from("event_concours")
+      .select("event_id, results_published_at")
+      .eq("enabled", true);
+    if (error) throw new Error(error.message);
+    const candidates = (rows ?? []).filter((r: { results_published_at?: string | null }) => !r.results_published_at);
+    if (candidates.length === 0) return [];
+    const ids = candidates.map((r: { event_id: string }) => r.event_id);
+    const { data: events, error: evErr } = await supabase
+      .from("events")
+      .select("id, starts_at, ends_at")
+      .in("id", ids)
+      .eq("is_published", true);
+    if (evErr) throw new Error(evErr.message);
+    return ((events ?? []) as Array<{ id: string; starts_at: string; ends_at: string | null }>)
+      .filter((e) => isConcoursWindowOpen(e.starts_at, e.ends_at))
+      .map((e) => e.id);
+  },
+);
+
 /** Alias used by Lovable fix — same as getLatestConcoursHomeWinner */
 
 

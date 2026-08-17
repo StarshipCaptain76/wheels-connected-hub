@@ -9,6 +9,7 @@ import {
   type PublicEvent,
 } from "@/lib/events.functions";
 import { listGoogleCalendarEvents } from "@/lib/gcal.functions";
+import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { Calendar, MapPin } from "lucide-react";
 
 const upcomingQuery = queryOptions({
@@ -98,6 +99,7 @@ export const Route = createFileRoute("/events/")({
     const [upcoming, past] = await Promise.all([
       context.queryClient.ensureQueryData(upcomingQuery),
       context.queryClient.ensureQueryData(pastQuery),
+      context.queryClient.ensureQueryData(openConcoursIdsQuery),
     ]);
     return { upcoming, past };
   },
@@ -144,7 +146,15 @@ function sastDayDiff(iso: string): number {
 const isDbId = (id: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-function TodayHero({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
+function TodayHero({
+  event,
+  lang,
+  voteOpen,
+}: {
+  event: PublicEvent;
+  lang: "en" | "af";
+  voteOpen: boolean;
+}) {
   const { t } = useI18n();
   const [countdown, setCountdown] = useState<string | null>(null);
   const startsAt = event.starts_at;
@@ -174,30 +184,40 @@ function TodayHero({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
 
   return (
     <div className="border-b-2 border-ink bg-ink text-white">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-display text-xs tracking-[0.3em] text-white/80">
-            {t("home.happeningToday").toUpperCase()}
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-            {t("home.todayBadge")}
-          </span>
-        </div>
-        <h2 className="mt-2 font-display text-4xl tracking-wide sm:text-6xl">{title}</h2>
-        <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
-          {formatTime(event.starts_at, lang)}
-          {event.location ? (
-            <span className="ml-2 font-sans text-sm font-semibold text-white/85">
-              · {event.location}
+      <div className="relative mx-auto max-w-6xl px-4 py-8">
+        <div className={voteOpen ? "pr-24 sm:pr-36" : undefined}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-xs tracking-[0.3em] text-white/80">
+              {t("home.happeningToday").toUpperCase()}
             </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+              {t("home.todayBadge")}
+            </span>
+          </div>
+          <h2 className="mt-2 font-display text-4xl tracking-wide sm:text-6xl">{title}</h2>
+          <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
+            {formatTime(event.starts_at, lang)}
+            {event.location ? (
+              <span className="ml-2 font-sans text-sm font-semibold text-white/85">
+                · {event.location}
+              </span>
+            ) : null}
+          </p>
+          {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
+          {description ? (
+            <p className="mt-3 max-w-2xl text-sm text-white/85 line-clamp-3">{description}</p>
           ) : null}
-        </p>
-        {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
-        {description ? (
-          <p className="mt-3 max-w-2xl text-sm text-white/85 line-clamp-3">{description}</p>
-        ) : null}
-        <div className="mt-5 flex flex-wrap gap-3">
+        </div>
+        {voteOpen && (
+          <VoteNowPulse
+            eventId={event.id}
+            size="lg"
+            tone="onDark"
+            className="absolute right-2 top-2 z-10 origin-top-right max-sm:scale-[0.78] sm:right-4 sm:top-1/2 sm:-translate-y-1/2"
+          />
+        )}
+        <div className={`mt-5 flex flex-wrap gap-3 ${voteOpen ? "pr-24 sm:pr-36" : ""}`}>
           {isDbId(event.id) && (
             <a
               href={`/events/${event.id}`}
@@ -206,15 +226,6 @@ function TodayHero({ event, lang }: { event: PublicEvent; lang: "en" | "af" }) {
               {t("home.seeDetails")}
             </a>
           )}
-          {isDbId(event.id) && (
-            <a
-              href={`/events/${event.id}#concours`}
-              className="inline-flex items-center rounded-md border-2 border-white bg-white px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink"
-            >
-              {lang === "af" ? "Punte gee vir karre" : "Score the cars"}
-            </a>
-          )}
-
           {event.location && (
             <a
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
@@ -235,6 +246,7 @@ function EventsPage() {
   const { t, lang } = useI18n();
   const { data: upcoming } = useSuspenseQuery(upcomingQuery);
   const { data: past } = useSuspenseQuery(pastQuery);
+  const openConcours = useOpenConcoursIds();
 
   // Computed after hydration so SSR and client markup match.
   const [todayIds, setTodayIds] = useState<string[]>([]);
@@ -253,7 +265,7 @@ function EventsPage() {
   return (
     <SiteLayout>
       {todayEvents.map((ev) => (
-        <TodayHero key={ev.id} event={ev} lang={lang} />
+        <TodayHero key={ev.id} event={ev} lang={lang} voteOpen={openConcours.has(ev.id)} />
       ))}
 
       <section className="border-b-2 border-ink bg-ink text-paper">
@@ -290,7 +302,12 @@ function EventsPage() {
         ) : (
           <ul className="mt-6 grid gap-6 md:grid-cols-2">
             {restUpcoming.map((ev) => (
-              <EventCard key={ev.id} event={ev} lang={lang} />
+              <EventCard
+                key={ev.id}
+                event={ev}
+                lang={lang}
+                voteOpen={openConcours.has(ev.id)}
+              />
             ))}
           </ul>
         )}
@@ -310,7 +327,13 @@ function EventsPage() {
             </p>
             <ul className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {past.map((ev) => (
-                <EventCard key={ev.id} event={ev} lang={lang} past />
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  lang={lang}
+                  past
+                  voteOpen={openConcours.has(ev.id)}
+                />
               ))}
             </ul>
           </div>
@@ -324,10 +347,12 @@ function EventCard({
   event,
   lang,
   past = false,
+  voteOpen = false,
 }: {
   event: PublicEvent;
   lang: "en" | "af";
   past?: boolean;
+  voteOpen?: boolean;
 }) {
   const title = lang === "af" && event.title_af ? event.title_af : event.title;
   const description =
@@ -399,10 +424,18 @@ function EventCard({
   // Plain <a> guarantees navigation even if client router hiccups
   if (isDbEvent) {
     return (
-      <li>
+      <li className="relative">
         <a href={`/events/${event.id}`} className={cls}>
           {body}
         </a>
+        {voteOpen && (
+          <VoteNowPulse
+            eventId={event.id}
+            size="sm"
+            tone="onLight"
+            className="absolute right-2 top-2 z-10"
+          />
+        )}
       </li>
     );
   }

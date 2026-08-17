@@ -82,7 +82,7 @@ BEGIN
   SELECT p.id,
          'event_reminder',
          'Tomorrow: ' || ev.title,
-         'More: ' || COALESCE(ev.title_af, ev.title),
+         'Môre: ' || COALESCE(ev.title_af, ev.title),
          to_char(ev.starts_at AT TIME ZONE 'Africa/Johannesburg', 'HH24:MI')
            || COALESCE(' - ' || ev.location, ''),
          to_char(ev.starts_at AT TIME ZONE 'Africa/Johannesburg', 'HH24:MI')

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { getLatestConcoursHomeWinner } from "@/lib/concours.functions";
@@ -7,13 +8,19 @@ import { Trophy } from "lucide-react";
 
 export function ConcoursHomeWinner() {
   const { lang } = useI18n();
+  // Render only after hydration: the query result differs between the SSR pass
+  // and the first client render, which caused a hydration mismatch.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const { data } = useQuery({
     queryKey: ["concours-home-winner"],
     queryFn: () => getLatestConcoursHomeWinner(),
     staleTime: 60_000,
+    enabled: hydrated,
   });
 
-  if (!data?.winnerPhotoUrl) return null;
+  if (!hydrated || !data?.winnerPhotoUrl) return null;
+
 
   const headline =
     lang === "af" && data.winnerHeadlineAf

@@ -372,6 +372,7 @@ function Index() {
                         src={faceSrc}
                         alt={featured.display_name ?? "Featured member"}
                         className="h-full w-full object-cover"
+                        onError={() => setFaceIdx((i) => i + 1)}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">

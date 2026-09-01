@@ -147,10 +147,17 @@ function Index() {
     ? [nextMeta, nextDesc].filter(Boolean).join(" — ")
     : t("home.tbaBody");
 
-  const faceSrc =
-    featured?.avatar_url?.trim() ||
-    featured?.featured_photo_url?.trim() ||
-    null;
+  // Some phone uploads are HEIC, which browsers cannot decode — fall back to
+  // the other photo, then to initials, instead of showing a broken image.
+  const faceCandidates = [
+    featured?.avatar_url?.trim() || null,
+    featured?.featured_photo_url?.trim() || null,
+  ].filter(Boolean) as string[];
+  const [faceIdx, setFaceIdx] = useState(0);
+  useEffect(() => {
+    setFaceIdx(0);
+  }, [featured?.avatar_url, featured?.featured_photo_url]);
+  const faceSrc = faceCandidates[faceIdx] ?? null;
 
   const garageThumb = featured?.garage_thumb_url?.trim() || null;
   const bio = featured?.featured_bio?.trim() || null;
@@ -365,6 +372,7 @@ function Index() {
                         src={faceSrc}
                         alt={featured.display_name ?? "Featured member"}
                         className="h-full w-full object-cover"
+                        onError={() => setFaceIdx((i) => i + 1)}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center font-display text-xl tracking-wide text-paper sm:text-2xl">

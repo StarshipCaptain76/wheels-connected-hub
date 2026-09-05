@@ -744,7 +744,7 @@ export const adminCreateListing = createServerFn({ method: "POST" })
         description_af: listing.description_af ?? null,
         price_zar: listing.price_zar ?? null,
         location: listing.location ?? null,
-        user_id: owner_user_id,
+        user_id: owner_user_id ?? userId,
         status,
       })
       .select("id")

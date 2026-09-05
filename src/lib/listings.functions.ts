@@ -699,7 +699,8 @@ export const updateMyListing = createServerFn({ method: "POST" })
 // ── Admin: create a listing on behalf of a member ────────────────────
 
 const adminCreateSchema = z.object({
-  owner_user_id: z.string().uuid(),
+  /** Member who owns the listing. Omit/null for a non-member seller (admin keeps ownership). */
+  owner_user_id: z.string().uuid().nullable().optional(),
   title: z.string().trim().min(3).max(120),
   title_af: z.string().trim().max(120).nullable().optional(),
   description: z.string().trim().min(10).max(4000),
@@ -743,7 +744,7 @@ export const adminCreateListing = createServerFn({ method: "POST" })
         description_af: listing.description_af ?? null,
         price_zar: listing.price_zar ?? null,
         location: listing.location ?? null,
-        user_id: owner_user_id,
+        user_id: owner_user_id ?? userId,
         status,
       })
       .select("id")

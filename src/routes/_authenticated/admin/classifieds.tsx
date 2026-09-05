@@ -364,6 +364,9 @@ function EditListing({
   );
 }
 
+/** Sentinel owner value for a listing sold by someone who is not a club member. */
+const NON_MEMBER = "non-member";
+
 function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => void }) {
   const qc = useQueryClient();
   const create = useServerFn(adminCreateListing);
@@ -424,6 +427,10 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
   }
 
   function pickMember(id: string) {
+    if (id === NON_MEMBER) {
+      setForm((f) => ({ ...f, owner_user_id: NON_MEMBER }));
+      return;
+    }
     const m = members.find((x) => x.user_id === id);
     setForm((f) => ({
       ...f,
@@ -438,14 +445,22 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.owner_user_id) {
-      toast.error(lang === "af" ? "Kies 'n lid" : "Choose a member");
+      toast.error(lang === "af" ? "Kies 'n verkoper" : "Choose a seller");
+      return;
+    }
+    if (form.owner_user_id === NON_MEMBER && (!form.contact_name.trim() || !form.contact_email.trim())) {
+      toast.error(
+        lang === "af"
+          ? "Kontaknaam en e-pos is nodig vir 'n nie-lid"
+          : "Contact name and email are required for a non-member",
+      );
       return;
     }
     setSaving(true);
     try {
       await create({
         data: {
-          owner_user_id: form.owner_user_id,
+          owner_user_id: form.owner_user_id === NON_MEMBER ? null : form.owner_user_id,
           title: form.title.trim(),
           title_af: form.title_af.trim() || null,
           description: form.description.trim(),
@@ -477,11 +492,14 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
       className="mt-4 space-y-2 rounded-lg border-2 border-ink bg-card p-4 shadow-[3px_3px_0_0_var(--color-ink)]"
     >
       <p className="font-display text-lg text-ink">
-        {lang === "af" ? "Nuwe advertensie vir 'n lid" : "New listing for a member"}
+        {lang === "af" ? "Nuwe advertensie vir 'n verkoper" : "New listing for a seller"}
       </p>
       <select className={field} value={form.owner_user_id} onChange={(e) => pickMember(e.target.value)}>
         <option value="">
-          {lang === "af" ? "Kies lid (eienaar)…" : "Choose member (owner)…"}
+          {lang === "af" ? "Kies verkoper (eienaar)…" : "Choose seller (owner)…"}
+        </option>
+        <option value={NON_MEMBER}>
+          {lang === "af" ? "Nie-lid (eksterne verkoper)" : "Non-member (external seller)"}
         </option>
         {members.map((m) => (
           <option key={m.user_id} value={m.user_id}>

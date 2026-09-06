@@ -582,7 +582,24 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
           </button>
         )}
       </div>
-      {current === "going" && (
+      {current === "going" && !detailsOpen && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-md border-2 border-ink bg-paper p-3">
+          <p className="text-sm text-ink">
+            {lang === "af"
+              ? `Jy is ingeskryf vir ${party} ${party === 1 ? "persoon" : "mense"}.`
+              : `You're down for ${party} ${party === 1 ? "person" : "people"}.`}
+            {note.trim() && <span className="text-ink/60"> “{note.trim()}”</span>}
+          </p>
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="rounded-md border-2 border-ink bg-card px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-ink"
+          >
+            {lang === "af" ? "Verander" : "Change"}
+          </button>
+        </div>
+      )}
+      {current === "going" && detailsOpen && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
@@ -647,8 +664,21 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
             />
           </label>
 
+          <div className="sm:col-span-2">
+            <button
+              type="button"
+              onClick={async () => {
+                await submit("going");
+                setDetailsOpen(false);
+              }}
+              className="w-full rounded-md border-2 border-ink bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper sm:w-auto"
+            >
+              {lang === "af" ? "Klaar - stoor" : "Done - save"}
+            </button>
+          </div>
         </div>
       )}
+
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         <AttendeeList title={lang === "af" ? "Bevestig" : "Going"} rows={going} lang={lang} />

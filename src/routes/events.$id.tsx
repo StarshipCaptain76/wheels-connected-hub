@@ -531,32 +531,69 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
       </div>
       {current === "going" && (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="block">
+          <div className="block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
               {lang === "af" ? "Hoeveel mense" : "How many people"}
             </span>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={party}
-              onChange={(e) => setParty(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
-              onBlur={() => submit("going")}
-              className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2"
-            />
-          </label>
+            <div className="mt-1 flex items-stretch gap-2">
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Minder mense" : "Fewer people"}
+                onClick={() => {
+                  const next = Math.max(1, party - 1);
+                  setParty(next);
+                  void submit("going", { partySize: next });
+                }}
+                disabled={party <= 1}
+                className="w-12 rounded-md border-2 border-ink bg-paper text-xl font-bold text-ink disabled:opacity-40"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={10}
+                value={party}
+                onChange={(e) => {
+                  setDirty(true);
+                  const raw = Number(e.target.value);
+                  setParty(Number.isFinite(raw) ? Math.max(1, Math.min(10, Math.trunc(raw) || 1)) : 1);
+                }}
+                onBlur={() => submit("going")}
+                className="w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-center"
+              />
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Meer mense" : "More people"}
+                onClick={() => {
+                  const next = Math.min(10, party + 1);
+                  setParty(next);
+                  void submit("going", { partySize: next });
+                }}
+                disabled={party >= 10}
+                className="w-12 rounded-md border-2 border-ink bg-paper text-xl font-bold text-ink disabled:opacity-40"
+              >
+                +
+              </button>
+            </div>
+          </div>
           <label className="block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
               {lang === "af" ? "Nota (opsioneel)" : "Note (optional)"}
             </span>
             <input
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => {
+                setDirty(true);
+                setNote(e.target.value);
+              }}
               onBlur={() => submit("going")}
               maxLength={280}
               className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2"
             />
           </label>
+
         </div>
       )}
 

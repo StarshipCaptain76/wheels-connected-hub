@@ -512,6 +512,8 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
   const [party, setParty] = useState(1);
   const [note, setNote] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
 
   useEffect(() => {
     if (my.data && !dirty) {

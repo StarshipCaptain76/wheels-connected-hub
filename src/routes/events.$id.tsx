@@ -112,16 +112,8 @@ export const Route = createFileRoute("/events/$id")({
       </div>
     </SiteLayout>
   ),
-  errorComponent: ({ error }) => (
-    <SiteLayout>
-      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
-        <p className="text-ink/70">Could not load event: {error.message}</p>
-        <Link to="/events" className="mt-4 inline-block text-primary underline">
-          Back to events
-        </Link>
-      </div>
-    </SiteLayout>
-  ),
+  errorComponent: EventDetailError,
+
 });
 
 function fmtDate(iso: string, lang: "en" | "af") {

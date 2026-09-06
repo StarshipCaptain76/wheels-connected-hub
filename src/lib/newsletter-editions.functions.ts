@@ -212,8 +212,16 @@ export const draftEdition = createServerFn({ method: "POST" })
       }
       const b64 = btoa(bin);
 
-      const key = process.env["LOVABLE_API_KEY"];
-      if (!key) throw new Error("AI is not configured.");
+      const key =
+        process.env["LOVABLE_API_KEY"] ??
+        process.env["VITE_LOVABLE_API_KEY"] ??
+        process.env["LOVABLE_AI_KEY"];
+      if (!key) {
+        throw new Error(
+          "The AI service isn't reachable from this version of the site. Publish the site again and retry.",
+        );
+      }
+
 
       const monthLabel = `${MONTHS[edition.month - 1]} ${edition.year}`;
       const system = [

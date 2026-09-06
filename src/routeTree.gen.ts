@@ -34,7 +34,6 @@ import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authentic
 import { Route as ApiPublicNewsletterPdfRouteImport } from './routes/api/public/newsletter-pdf'
 import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
 import { Route as ApiPublicEventImageRouteImport } from './routes/api/public/event-image'
-import { Route as ApiPublicEnvprobeRouteImport } from './routes/api/public/envprobe'
 import { Route as ApiPublicConcoursImageRouteImport } from './routes/api/public/concours-image'
 import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
 import { Route as AuthenticatedMembersNotificationsRouteImport } from './routes/_authenticated/members.notifications'
@@ -177,11 +176,6 @@ const ApiPublicEventRsvpRoute = ApiPublicEventRsvpRouteImport.update({
 const ApiPublicEventImageRoute = ApiPublicEventImageRouteImport.update({
   id: '/api/public/event-image',
   path: '/api/public/event-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEnvprobeRoute = ApiPublicEnvprobeRouteImport.update({
-  id: '/api/public/envprobe',
-  path: '/api/public/envprobe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicConcoursImageRoute = ApiPublicConcoursImageRouteImport.update({
@@ -327,7 +321,6 @@ export interface FileRoutesByFullPath {
   '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/concours-image': typeof ApiPublicConcoursImageRoute
-  '/api/public/envprobe': typeof ApiPublicEnvprobeRoute
   '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
@@ -368,7 +361,6 @@ export interface FileRoutesByTo {
   '/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/concours-image': typeof ApiPublicConcoursImageRoute
-  '/api/public/envprobe': typeof ApiPublicEnvprobeRoute
   '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
@@ -415,7 +407,6 @@ export interface FileRoutesById {
   '/_authenticated/members/notifications': typeof AuthenticatedMembersNotificationsRoute
   '/_authenticated/members/sponsor': typeof AuthenticatedMembersSponsorRoute
   '/api/public/concours-image': typeof ApiPublicConcoursImageRoute
-  '/api/public/envprobe': typeof ApiPublicEnvprobeRoute
   '/api/public/event-image': typeof ApiPublicEventImageRoute
   '/api/public/event-rsvp': typeof ApiPublicEventRsvpRoute
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
@@ -462,7 +453,6 @@ export interface FileRouteTypes {
     | '/members/notifications'
     | '/members/sponsor'
     | '/api/public/concours-image'
-    | '/api/public/envprobe'
     | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/api/public/newsletter-pdf'
@@ -503,7 +493,6 @@ export interface FileRouteTypes {
     | '/members/notifications'
     | '/members/sponsor'
     | '/api/public/concours-image'
-    | '/api/public/envprobe'
     | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/api/public/newsletter-pdf'
@@ -549,7 +538,6 @@ export interface FileRouteTypes {
     | '/_authenticated/members/notifications'
     | '/_authenticated/members/sponsor'
     | '/api/public/concours-image'
-    | '/api/public/envprobe'
     | '/api/public/event-image'
     | '/api/public/event-rsvp'
     | '/api/public/newsletter-pdf'
@@ -575,7 +563,6 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
   ApiPublicConcoursImageRoute: typeof ApiPublicConcoursImageRoute
-  ApiPublicEnvprobeRoute: typeof ApiPublicEnvprobeRoute
   ApiPublicEventImageRoute: typeof ApiPublicEventImageRoute
   ApiPublicEventRsvpRoute: typeof ApiPublicEventRsvpRoute
   ApiPublicNewsletterPdfRoute: typeof ApiPublicNewsletterPdfRoute
@@ -758,13 +745,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/event-image'
       fullPath: '/api/public/event-image'
       preLoaderRoute: typeof ApiPublicEventImageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/envprobe': {
-      id: '/api/public/envprobe'
-      path: '/api/public/envprobe'
-      fullPath: '/api/public/envprobe'
-      preLoaderRoute: typeof ApiPublicEnvprobeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/concours-image': {
@@ -1008,7 +988,6 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,
   ApiPublicConcoursImageRoute: ApiPublicConcoursImageRoute,
-  ApiPublicEnvprobeRoute: ApiPublicEnvprobeRoute,
   ApiPublicEventImageRoute: ApiPublicEventImageRoute,
   ApiPublicEventRsvpRoute: ApiPublicEventRsvpRoute,
   ApiPublicNewsletterPdfRoute: ApiPublicNewsletterPdfRoute,

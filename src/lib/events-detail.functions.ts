@@ -180,7 +180,7 @@ export const listEventAttendees = createServerFn({ method: "GET" })
           user_id: r.user_id,
           status: r.status as AttendeeRow["status"],
           party_size: r.party_size,
-          note: null as string | null,
+          note: (r as { note?: string | null }).note ?? null,
           display_name: p.display_name,
           member_number: p.member_number,
           town: p.town,

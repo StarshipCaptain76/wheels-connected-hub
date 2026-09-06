@@ -554,7 +554,11 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
           <button
             key={s}
             type="button"
-            onClick={() => submit(s)}
+            onClick={() => {
+              setDetailsOpen(s === "going");
+              void submit(s);
+            }}
+
             className={`rounded-md border-2 border-ink px-4 py-2 text-sm font-bold uppercase tracking-wider ${
               current === s
                 ? "bg-primary text-paper"

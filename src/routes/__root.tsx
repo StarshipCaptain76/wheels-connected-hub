@@ -174,13 +174,33 @@ function RootComponent() {
 
   useEffect(() => {
     registerPwa();
+    // A stale cached app version can fail to load a page's code chunk.
+    // Reload once so the visitor gets the current version instead of an error.
+    const RELOAD_KEY = "jw:chunk-reload";
+    const isChunkError = (msg: string) =>
+      /Importing a module script failed|Failed to fetch dynamically imported module|error loading dynamically imported module/i.test(
+        msg,
+      );
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const msg = String((e.reason as { message?: string } | undefined)?.message ?? e.reason ?? "");
+      if (!isChunkError(msg)) return;
+      if (sessionStorage.getItem(RELOAD_KEY)) return;
+      sessionStorage.setItem(RELOAD_KEY, "1");
+      window.location.reload();
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      sub.subscription.unsubscribe();
+    };
   }, [router, queryClient]);
+
 
   return (
     <QueryClientProvider client={queryClient}>

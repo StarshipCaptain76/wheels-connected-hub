@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useRouter, useRouterState } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
@@ -112,17 +112,48 @@ export const Route = createFileRoute("/events/$id")({
       </div>
     </SiteLayout>
   ),
-  errorComponent: ({ error }) => (
+  errorComponent: EventDetailError,
+});
+
+function EventDetailError({ error, reset }: { error: Error; reset: () => void }) {
+  const router = useRouter();
+  return (
     <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
-        <p className="text-ink/70">Could not load event: {error.message}</p>
-        <Link to="/events" className="mt-4 inline-block text-primary underline">
-          Back to events
-        </Link>
+        <h1 className="font-display text-2xl text-ink">We couldn't open this event</h1>
+        <p className="mt-2 text-sm text-ink/60">
+          Check your signal and try again. {error.message}
+        </p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              void router.invalidate();
+              reset();
+            }}
+            className="rounded-md border-2 border-ink bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper"
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink"
+          >
+            Reload page
+          </button>
+          <Link
+            to="/events"
+            className="rounded-md border-2 border-ink bg-paper px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-ink"
+          >
+            Back to events
+          </Link>
+        </div>
       </div>
     </SiteLayout>
-  ),
-});
+  );
+}
+
 
 function fmtDate(iso: string, lang: "en" | "af") {
   return new Date(iso).toLocaleString(lang === "af" ? "af-ZA" : "en-ZA", {

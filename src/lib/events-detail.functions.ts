@@ -92,22 +92,20 @@ export const getEventDetail = createServerFn({ method: "GET" })
 
     let counts = { going: 0, going_party_total: 0, maybe: 0, not_going: 0 };
     try {
-      const { data: c } = await supabase
-        .from("event_rsvp_counts")
-        .select("going_count, going_party_total, maybe_count, not_going_count")
-        .eq("event_id", data.id)
-        .maybeSingle();
-      if (c) {
+      const { data: c } = await supabase.rpc("event_rsvp_totals", { _event_id: data.id });
+      const row = Array.isArray(c) ? c[0] : c;
+      if (row) {
         counts = {
-          going: Number(c.going_count ?? 0),
-          going_party_total: Number(c.going_party_total ?? 0),
-          maybe: Number(c.maybe_count ?? 0),
-          not_going: Number(c.not_going_count ?? 0),
+          going: Number(row.going ?? 0),
+          going_party_total: Number(row.going_party_total ?? 0),
+          maybe: Number(row.maybe ?? 0),
+          not_going: Number(row.not_going ?? 0),
         };
       }
     } catch (e) {
       console.warn("[getEventDetail] counts skipped", e);
     }
+
 
     const { eventImageUrl, isPrivateStorageUrl } = await import("./event-image-url");
     const display = (u: string | null, kind: "cover" | "hero") =>

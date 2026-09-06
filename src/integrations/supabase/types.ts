@@ -1479,6 +1479,7 @@ export type Database = {
       event_attendees: {
         Args: { _event_id: string }
         Returns: {
+          note: string
           party_size: number
           status: Database["public"]["Enums"]["rsvp_status"]
           user_id: string

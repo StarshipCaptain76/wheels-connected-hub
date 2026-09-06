@@ -428,9 +428,19 @@ function NewListingForMember({ lang, onClose }: { lang: string; onClose: () => v
 
   function pickMember(id: string) {
     if (id === NON_MEMBER) {
-      setForm((f) => ({ ...f, owner_user_id: NON_MEMBER }));
+      setForm((f) => {
+        const prev = members.find((x) => x.user_id === f.owner_user_id);
+        return {
+          ...f,
+          owner_user_id: NON_MEMBER,
+          contact_name: prev && f.contact_name === (prev.display_name ?? "") ? "" : f.contact_name,
+          contact_email: prev && f.contact_email === (prev.email ?? "") ? "" : f.contact_email,
+          contact_phone: prev && f.contact_phone === (prev.phone ?? "") ? "" : f.contact_phone,
+        };
+      });
       return;
     }
+
     const m = members.find((x) => x.user_id === id);
     setForm((f) => ({
       ...f,

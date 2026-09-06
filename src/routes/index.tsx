@@ -309,6 +309,14 @@ function Index() {
                 <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>
               )}
               {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
+              {nextEvent && (nextEvent.going_count ?? 0) > 0 && (
+                <p className="mt-1 text-sm font-bold text-white/90">
+                  {lang === "af"
+                    ? `${nextEvent.going_count} lede gaan · ${nextEvent.going_party_total} mense verwag`
+                    : `${nextEvent.going_count} going · ${nextEvent.going_party_total} people expected`}
+                </p>
+              )}
+
             </div>
             <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
           </Link>

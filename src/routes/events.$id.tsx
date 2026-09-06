@@ -606,7 +606,24 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
         </div>
       )}
       {current === "going" && detailsOpen && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-ink/70">
+            {lang === "af" ? "Jou besonderhede" : "Your details"}
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await submit("going");
+              setDetailsOpen(false);
+            }}
+            className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-paper"
+          >
+            {lang === "af" ? "Klaar - stoor" : "Done - save"}
+          </button>
+        </div>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+
           <div className="block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">
               {lang === "af" ? "Hoeveel mense" : "How many people"}
@@ -683,7 +700,9 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
             </button>
           </div>
         </div>
+        </>
       )}
+
 
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">

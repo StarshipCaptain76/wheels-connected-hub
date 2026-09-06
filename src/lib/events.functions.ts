@@ -107,7 +107,7 @@ function startOfTodaySastIso(): string {
 }
 
 export const getNextEvent = createServerFn({ method: "GET" }).handler(
-  async (): Promise<PublicEvent | null> => {
+  async (): Promise<(PublicEvent & { going_count?: number; going_party_total?: number }) | null> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
     const supabase = createPublicSupabase();
     // Keep an event that started earlier today on the home banner all day.
@@ -123,9 +123,24 @@ export const getNextEvent = createServerFn({ method: "GET" }).handler(
       .maybeSingle();
     if (error) throw new Error(error.message);
     const row = (data as PublicEvent | null) ?? null;
-    return row ? withDisplayUrls([row])[0] : null;
+    if (!row) return null;
+    const withUrls = withDisplayUrls([row])[0];
+    let going_count = 0;
+    let going_party_total = 0;
+    try {
+      const { data: c } = await supabase.rpc("event_rsvp_totals", { _event_id: row.id });
+      const t = Array.isArray(c) ? c[0] : c;
+      if (t) {
+        going_count = Number(t.going ?? 0);
+        going_party_total = Number(t.going_party_total ?? 0);
+      }
+    } catch (e) {
+      console.warn("[getNextEvent] counts skipped", e);
+    }
+    return { ...withUrls, going_count, going_party_total };
   },
 );
+
 
 export const listAllEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -670,6 +670,7 @@ function AttendeeList({
     member_number: number;
     town: string | null;
     party_size: number;
+    note?: string | null;
   }>;
   lang: "en" | "af";
 }) {
@@ -693,10 +694,16 @@ function AttendeeList({
               </Link>
               {r.town && <span className="text-ink/50"> · {r.town}</span>}
               {r.party_size > 1 && <span className="text-ink/50"> · +{r.party_size - 1}</span>}
+              {r.note?.trim() && (
+                <p className="mt-0.5 border-l-2 border-primary/40 pl-2 text-xs italic text-ink/60">
+                  “{r.note.trim()}”
+                </p>
+              )}
             </li>
           ))}
         </ul>
       )}
     </div>
   );
+
 }

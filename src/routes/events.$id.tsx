@@ -417,18 +417,40 @@ function EventDetailPage() {
             <p className="text-xs font-bold uppercase tracking-wider text-primary">
               {lang === "af" ? "Wie kom" : "Who's coming"}
             </p>
-            <p className="mt-1 text-ink/80">
-              <span className="font-bold">{data.counts.going}</span>{" "}
-              {lang === "af" ? "gaan" : "going"}
-              {" · "}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                {
+                  n: data.counts.going,
+                  label: lang === "af" ? "Gaan" : "Going",
+                  cls: "bg-primary text-paper",
+                },
+                {
+                  n: data.counts.maybe,
+                  label: lang === "af" ? "Dalk" : "Maybe",
+                  cls: "bg-card text-ink",
+                },
+                {
+                  n: data.counts.not_going,
+                  label: lang === "af" ? "Nie" : "No",
+                  cls: "bg-card text-ink",
+                },
+              ].map((c) => (
+                <div
+                  key={c.label}
+                  className={`rounded-md border-2 border-ink p-3 text-center ${c.cls}`}
+                >
+                  <p className="font-display text-2xl leading-none">{c.n}</p>
+                  <p className="mt-1 text-[11px] font-bold uppercase tracking-wider">{c.label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-ink/80">
               <span className="font-bold">{data.counts.going_party_total}</span>{" "}
-              {lang === "af" ? "mense in totaal" : "people total"}
-              {" · "}
-              <span className="font-bold">{data.counts.maybe}</span>{" "}
-              {lang === "af" ? "dalk" : "maybe"}
+              {lang === "af" ? "mense in totaal verwag" : "people expected in total"}
             </p>
           </section>
         )}
+
 
         {!isPast && <RsvpSection eventId={data.id} />}
 

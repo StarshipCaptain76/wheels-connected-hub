@@ -458,19 +458,27 @@ function MemberRsvpBlock({ eventId }: { eventId: string }) {
   const del = useServerFn(deleteMyRsvp);
   const [party, setParty] = useState(1);
   const [note, setNote] = useState("");
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    if (my.data) {
+    if (my.data && !dirty) {
       setParty(my.data.party_size ?? 1);
       setNote(my.data.note ?? "");
     }
-  }, [my.data]);
+  }, [my.data, dirty]);
 
-  async function submit(status: "going" | "maybe" | "not_going") {
-    await upsert({ data: { eventId, status, partySize: party, note: note || null } });
+  async function submit(
+    status: "going" | "maybe" | "not_going",
+    override?: { partySize?: number; note?: string },
+  ) {
+    const partySize = override?.partySize ?? party;
+    const theNote = override?.note ?? note;
+    setDirty(false);
+    await upsert({ data: { eventId, status, partySize, note: theNote || null } });
     await qc.invalidateQueries({ queryKey: ["rsvp", eventId] });
     await qc.invalidateQueries({ queryKey: ["event", eventId] });
   }
+
   async function clear() {
     await del({ data: { eventId } });
     await qc.invalidateQueries({ queryKey: ["rsvp", eventId] });

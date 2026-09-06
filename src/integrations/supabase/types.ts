@@ -1495,6 +1495,15 @@ export type Database = {
           title_af: string
         }[]
       }
+      event_rsvp_totals: {
+        Args: { _event_id: string }
+        Returns: {
+          going: number
+          going_party_total: number
+          maybe: number
+          not_going: number
+        }[]
+      }
       fanout_notification: {
         Args: {
           _body_af?: string

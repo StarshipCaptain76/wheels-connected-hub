@@ -37,9 +37,10 @@ export async function fanOut(
 ): Promise<{ sent: number; reason?: string }> {
   try {
     let sb = client;
+    const isPublicAdminAlert =
+      payload.type === "admin_new_member" || payload.type === "admin_new_sponsor";
+
     if (!sb) {
-      const isPublicAdminAlert =
-        payload.type === "admin_new_member" || payload.type === "admin_new_sponsor";
       if (!isPublicAdminAlert) {
         const reason = "authenticated notification client required";
         console.error("[notify] fan-out blocked", payload.type, reason);
@@ -47,7 +48,23 @@ export async function fanOut(
       }
       const { createPublicSupabase } = await import("./public-supabase.server");
       sb = createPublicSupabase();
+
+      // anon cannot execute fanout_notification; use the narrow admin-alert wrapper.
+      const { data: alertCount, error: alertErr } = await sb.rpc("fanout_admin_alert", {
+        _type: payload.type,
+        _title_en: payload.title_en,
+        _title_af: payload.title_af,
+        _body_en: payload.body_en ?? null,
+        _body_af: payload.body_af ?? null,
+        _link: payload.link ?? null,
+        _related_id: payload.related_id ?? null,
+      });
+      if (alertErr) throw alertErr;
+      const n = Number(alertCount ?? 0);
+      console.log("[notify] sent", payload.type, "to", n, "admin(s)");
+      return n > 0 ? { sent: n } : { sent: 0, reason: "no eligible recipients" };
     }
+
 
     const { data, error } = await sb.rpc("fanout_notification", {
       _type: payload.type,

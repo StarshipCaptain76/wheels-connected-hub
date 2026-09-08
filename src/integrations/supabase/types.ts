@@ -1504,6 +1504,18 @@ export type Database = {
           not_going: number
         }[]
       }
+      fanout_admin_alert: {
+        Args: {
+          _body_af?: string
+          _body_en?: string
+          _link?: string
+          _related_id?: string
+          _title_af: string
+          _title_en: string
+          _type: string
+        }
+        Returns: number
+      }
       fanout_notification: {
         Args: {
           _body_af?: string

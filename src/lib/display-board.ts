@@ -246,13 +246,20 @@ export async function downloadDisplayBoard(opts: {
     doc.text(lines, rightX, y, { lineHeightFactor: 1.45 });
   } else {
     const cols = rows.length > 8 ? 2 : 1;
-    const colGap = 14;
+    const colGap = 16;
     const colW = cols === 2 ? (rightW - colGap) / 2 : rightW;
     const perCol = Math.ceil(rows.length / cols);
     const available = panelBottom - y;
-    const rowH = Math.min(26, Math.max(12, available / perCol));
-    const labelSize = Math.min(9, Math.max(6.5, rowH * 0.34));
-    const valueSize = Math.min(13, Math.max(8, rowH * 0.45));
+    const rowH = Math.min(20, Math.max(9, available / perCol));
+    const labelSize = Math.min(9, Math.max(6, rowH * 0.42));
+    const valueSize = Math.min(11, Math.max(7, rowH * 0.5));
+
+    // Tab stop: labels left-aligned in a fixed-width column, values start at
+    // the same x on every row so the whole table lines up.
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(labelSize);
+    const widest = rows.reduce((m, r) => Math.max(m, doc.getTextWidth(r.label.toUpperCase())), 0);
+    const tabX = Math.min(widest + 6, colW * 0.55);
 
     rows.forEach((row, i) => {
       const col = Math.floor(i / perCol);
@@ -268,14 +275,15 @@ export async function downloadDisplayBoard(opts: {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(valueSize);
       doc.setTextColor(INK);
-      const value = doc.splitTextToSize(row.value, colW)[0] as string;
-      doc.text(value, x, ry + valueSize * 0.42 + 2);
+      const value = doc.splitTextToSize(row.value, colW - tabX)[0] as string;
+      doc.text(value, x + tabX, ry);
 
-      doc.setDrawColor(220, 214, 208);
-      doc.setLineWidth(0.3);
-      doc.line(x, ry + rowH - 5, x + colW, ry + rowH - 5);
+      doc.setDrawColor(228, 223, 217);
+      doc.setLineWidth(0.25);
+      doc.line(x, ry + rowH * 0.3, x + colW, ry + rowH * 0.3);
     });
   }
+
 
   // ---- Footer (white, thin rule) -----------------------------------------
   doc.setDrawColor(220, 214, 208);

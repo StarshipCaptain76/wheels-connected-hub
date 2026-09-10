@@ -314,10 +314,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3">
-                <AuthAffordance onNavigate={closeMenu} />
-                <InstallAppMenuItem onNavigate={closeMenu} />
-              </div>
             </nav>
           </div>
         )}

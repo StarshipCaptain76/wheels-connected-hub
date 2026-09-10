@@ -61,6 +61,10 @@ export type ConcoursVehicle = {
   garage_label?: string | null;
   average_score?: number | null;
   submission_count?: number;
+  vehicle_year?: number | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  powertrain?: string | null;
 };
 
 // New tables are not yet in generated Database types — cast through any.

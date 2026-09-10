@@ -223,7 +223,7 @@ export async function downloadDisplayBoard(opts: {
   doc.line(rightX, y, W - M, y);
 
   // ---- Spec table --------------------------------------------------------
-  const rows = specRows(v, af);
+  const rows = content === "story" ? [] : specRows(v, af);
   y += 16;
   const panelBottom = bodyTop + bodyH;
 

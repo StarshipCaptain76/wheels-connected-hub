@@ -6,6 +6,7 @@ import { SiteLayout } from "@/components/SiteLayout";
 import { EventMap } from "@/components/EventMap";
 import { EventPhotosGallery } from "@/components/EventPhotosGallery";
 import { ConcoursChallenge } from "@/components/ConcoursChallenge";
+import { IdleTestChallenge } from "@/components/IdleTestChallenge";
 import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
@@ -228,6 +229,11 @@ function EventDetailPage() {
   const concoursBlock = (
     <div id="concours" className="scroll-mt-24">
       <ConcoursChallenge
+        eventId={data.id}
+        eventStartsAt={data.starts_at}
+        eventEndsAt={data.ends_at}
+      />
+      <IdleTestChallenge
         eventId={data.id}
         eventStartsAt={data.starts_at}
         eventEndsAt={data.ends_at}

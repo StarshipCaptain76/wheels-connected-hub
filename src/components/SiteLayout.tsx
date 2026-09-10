@@ -273,8 +273,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="border-t-2 border-ink bg-paper lg:hidden">
+          <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-t-2 border-ink bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
             <nav aria-label="Primary" className="mx-auto max-w-6xl px-4 py-3">
+              <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-ink/10 pb-3">
+                <AuthAffordance onNavigate={closeMenu} />
+                <InstallAppMenuItem onNavigate={closeMenu} />
+              </div>
               <p className="mb-1 px-3 text-xs font-bold uppercase tracking-wider text-ink/50">
                 {t("nav.main")}
               </p>
@@ -310,10 +314,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-ink/10 pt-3">
-                <AuthAffordance onNavigate={closeMenu} />
-                <InstallAppMenuItem onNavigate={closeMenu} />
-              </div>
             </nav>
           </div>
         )}

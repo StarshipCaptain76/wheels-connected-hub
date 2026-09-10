@@ -106,6 +106,9 @@ WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
 GRANT SELECT, INSERT, UPDATE ON public.event_idle_tests TO authenticated;
 GRANT SELECT ON public.event_idle_tests TO anon;
 
+-- Recompute the Rolls-Royce standard (smoothest official run) and rewrite
+-- every official display_score. SECURITY DEFINER so a member submit can
+-- rescale other cars without UPDATE rights on those rows.
 CREATE OR REPLACE FUNCTION public.recompute_idle_rr_standard(_event_id uuid)
 RETURNS void
 LANGUAGE plpgsql

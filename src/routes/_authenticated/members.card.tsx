@@ -291,7 +291,7 @@ async function downloadLandscapeCard(
 
   // Name largest on print card
   ctx.fillStyle = "#f5f0e8";
-  let nameSize = 180;
+  let nameSize = 280;
   ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
   const nameText = name.toUpperCase();
   const maxNameW = PRINT_W - 48;

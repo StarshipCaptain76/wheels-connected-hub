@@ -113,7 +113,7 @@ export function MemberCard({
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-3">
           <p
             className={`w-full break-words text-center font-display uppercase leading-[0.9] tracking-wide text-paper ${
-              compact ? "text-[2.4rem]" : "text-[3rem] sm:text-7xl md:text-8xl"
+              compact ? "text-[3.2rem]" : "text-[4.2rem] sm:text-8xl md:text-9xl"
             }`}
             style={{ textShadow: "0 3px 12px rgba(0,0,0,0.7)" }}
           >

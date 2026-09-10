@@ -469,6 +469,9 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
         sponsorName: z.string().nullable().optional(),
         sponsorLogoUrl: z.string().nullable().optional(),
         reRollQuestions: z.boolean().optional(),
+        idleTestEnabled: z.boolean().optional(),
+        idlePrizeEn: z.string().nullable().optional(),
+        idlePrizeAf: z.string().nullable().optional(),
       })
       .parse(i),
   )
@@ -510,7 +513,7 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
       }
     }
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       event_id: data.eventId,
       enabled: data.enabled,
       question_count: data.questionCount,
@@ -521,6 +524,9 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
       sponsor_logo_url: data.sponsorLogoUrl ?? null,
       updated_at: new Date().toISOString(),
     };
+    if (data.idleTestEnabled !== undefined) payload.idle_test_enabled = data.idleTestEnabled;
+    if (data.idlePrizeEn !== undefined) payload.idle_prize_en = data.idlePrizeEn;
+    if (data.idlePrizeAf !== undefined) payload.idle_prize_af = data.idlePrizeAf;
 
     const { error } = await sb.from("event_concours").upsert(payload, { onConflict: "event_id" });
     if (error) throw new Error(error.message);
@@ -926,6 +932,17 @@ export const linkConcoursToGarage = createServerFn({ method: "POST" })
       .maybeSingle();
 
     let garageLabel: string | null = null;
+    const garagePatch: Record<string, unknown> = {
+      garage_vehicle_id: data.garageVehicleId,
+      tagged_user_id: data.garageVehicleId ? userId : null,
+      tagged_display_name: data.garageVehicleId
+        ? ((profile?.display_name as string | null) ?? null)
+        : null,
+      tagged_member_number: data.garageVehicleId
+        ? ((profile?.member_number as number | null) ?? null)
+        : null,
+      label: garageLabel,
+    };
     if (data.garageVehicleId) {
       const { data: gv } = await sb
         .from("garage_vehicles")
@@ -942,21 +959,26 @@ export const linkConcoursToGarage = createServerFn({ method: "POST" })
         (gv.nickname as string) ||
         [gv.year, gv.make, gv.model].filter(Boolean).join(" ") ||
         null;
+      garagePatch.label = garageLabel;
+      const { data: current } = await sb
+        .from("event_concours_vehicles")
+        .select("vehicle_year, vehicle_make, vehicle_model")
+        .eq("id", data.concoursVehicleId)
+        .maybeSingle();
+      if (current?.vehicle_year == null) {
+        garagePatch.vehicle_year = (gv.year as number | null) ?? null;
+      }
+      if (current?.vehicle_make == null) {
+        garagePatch.vehicle_make = (gv.make as string | null) ?? null;
+      }
+      if (current?.vehicle_model == null) {
+        garagePatch.vehicle_model = (gv.model as string | null) ?? null;
+      }
     }
 
     const { error } = await sb
       .from("event_concours_vehicles")
-      .update({
-        garage_vehicle_id: data.garageVehicleId,
-        tagged_user_id: data.garageVehicleId ? userId : null,
-        tagged_display_name: data.garageVehicleId
-          ? ((profile?.display_name as string | null) ?? null)
-          : null,
-        tagged_member_number: data.garageVehicleId
-          ? ((profile?.member_number as number | null) ?? null)
-          : null,
-        label: garageLabel,
-      })
+      .update(garagePatch)
       .eq("id", data.concoursVehicleId);
     if (error) throw new Error(error.message);
     return { ok: true as const, garageLabel };

@@ -19,6 +19,12 @@ import {
   type ConcoursQuestion,
   type ConcoursScoreRow,
 } from "@/lib/concours.functions";
+import {
+  listIdleLeaderboard,
+  revealIdleLeaderboard,
+  adminResetIdleTest,
+  adminSetVehicleYearMeta,
+} from "@/lib/idle-test.functions";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
@@ -34,6 +40,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
   const delVehicle = useServerFn(deleteConcoursVehicle);
+  const revealIdle = useServerFn(revealIdleLeaderboard);
+  const resetIdle = useServerFn(adminResetIdleTest);
+  const setVehicleMeta = useServerFn(adminSetVehicleYearMeta);
   const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
 
 
@@ -63,6 +72,11 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     enabled: !!eventId && adminTab === "scores",
     queryFn: () => listConcoursScoresAdmin({ data: { eventId: eventId! } }),
   });
+  const idleRunsQ = useQuery({
+    queryKey: ["idle-tests", eventId],
+    enabled: !!eventId,
+    queryFn: () => listIdleLeaderboard({ data: { eventId: eventId! } }),
+  });
 
   const [enabled, setEnabled] = useState(false);
   const [questionCount, setQuestionCount] = useState(10);
@@ -84,6 +98,14 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
 
   const [resultsOnHome, setResultsOnHome] = useState(false);
 
+  const [idleTestEnabled, setIdleTestEnabled] = useState(false);
+  const [idlePrizeEn, setIdlePrizeEn] = useState("");
+  const [idlePrizeAf, setIdlePrizeAf] = useState("");
+  const [idleMsg, setIdleMsg] = useState<string | null>(null);
+  const [metaDraft, setMetaDraft] = useState<
+    Record<string, { year: string; make: string; model: string; powertrain: string }>
+  >({});
+
   // Question editor
   const [editingQ, setEditingQ] = useState<Partial<ConcoursQuestion> & { scoring_type?: string } | null>(null);
 
@@ -103,7 +125,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
       setWinnerBlurbEn(c.winner_blurb_en ?? "");
       setWinnerBlurbAf(c.winner_blurb_af ?? "");
       setResultsOnHome(!!c.results_on_home);
-
+      setIdleTestEnabled(!!c.idle_test_enabled);
+      setIdlePrizeEn(c.idle_prize_en ?? "");
+      setIdlePrizeAf(c.idle_prize_af ?? "");
     }
   }, [concoursQ.data]);
 
@@ -481,6 +505,268 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               </div>
             </>
           )}
+
+          <div className="rounded-lg border-2 border-ink/30 bg-paper p-3 space-y-3">
+            <p className="font-bold text-primary">Rolls-Royce Start & Idle</p>
+            <p className="text-sm text-ink/80">
+              Concours Mini add-on. Enable here the same way as Mini. Members submit a start-and-idle
+              run on the day; scoring is era-adjusted and scaled against the smoothest official run
+              (the Rolls-Royce standard). Phone capture lands in a later phase.
+            </p>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={idleTestEnabled}
+                onChange={(e) => setIdleTestEnabled(e.target.checked)}
+                className="h-4 w-4"
+              />
+              <span className="text-sm font-bold">Enable Rolls-Royce Start & Idle for this event</span>
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Prize (EN)</span>
+              <input value={idlePrizeEn} onChange={(e) => setIdlePrizeEn(e.target.value)} className={inp} />
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink/70">Prize (AF)</span>
+              <input value={idlePrizeAf} onChange={(e) => setIdlePrizeAf(e.target.value)} className={inp} />
+            </label>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setIdleMsg(null);
+                  try {
+                    await upsert({
+                      data: {
+                        eventId: eventId!,
+                        enabled: c?.enabled ?? enabled,
+                        questionCount: c?.question_count ?? questionCount,
+                        prizeEn: (c?.prize_en ?? prizeEn) || null,
+                        prizeAf: (c?.prize_af ?? prizeAf) || null,
+                        sponsorName: (c?.sponsor_name ?? sponsorName) || null,
+                        sponsorLogoUrl: (c?.sponsor_logo_url ?? sponsorLogoUrl) || null,
+                        reRollQuestions: false,
+                        idleTestEnabled,
+                        idlePrizeEn: idlePrizeEn || null,
+                        idlePrizeAf: idlePrizeAf || null,
+                      },
+                    });
+                    setIdleMsg("Idle test settings saved");
+                    await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+                  } catch (err) {
+                    setIdleMsg(err instanceof Error ? err.message : "Save failed");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
+              >
+                {busy ? "Saving…" : "Save idle settings"}
+              </button>
+              {c && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      await revealIdle({
+                        data: {
+                          eventId: eventId!,
+                          revealed: !c.idle_test_revealed,
+                        },
+                      });
+                      await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+                      await qc.invalidateQueries({ queryKey: ["idle-tests", eventId] });
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : "Failed");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase disabled:opacity-50"
+                >
+                  {c.idle_test_revealed ? (
+                    <>
+                      <EyeOff className="h-4 w-4" /> Hide idle leaderboard
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4" /> Reveal idle leaderboard
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            {idleMsg && <p className="text-sm font-bold text-primary">{idleMsg}</p>}
+            {c?.idle_rr_standard_smooth01 != null && (
+              <p className="text-xs text-ink/60">
+                RR standard smoothness: {Number(c.idle_rr_standard_smooth01).toFixed(4)}
+              </p>
+            )}
+
+            <div className="rounded-lg border-2 border-ink/20 bg-paper p-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">Official runs</p>
+              {(idleRunsQ.data ?? []).length === 0 ? (
+                <p className="mt-2 text-sm text-ink/50">No official idle tests yet.</p>
+              ) : (
+                <ul className="mt-2 space-y-1">
+                  {(idleRunsQ.data ?? []).map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-2 rounded border border-ink/20 px-2 py-1 text-xs"
+                    >
+                      <span className="min-w-0 truncate">
+                        {r.tagged_display_name || r.vehicle_label || "Vehicle"}
+                        {r.vehicle_year != null ? ` · ${r.vehicle_year}` : ""}
+                        {r.display_score != null ? ` · ${r.display_score}` : ""}
+                        {r.smooth01 != null ? ` · smooth ${Number(r.smooth01).toFixed(3)}` : ""}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={async () => {
+                          if (!confirm("Reset this vehicle's official idle test?")) return;
+                          setBusy(true);
+                          try {
+                            await resetIdle({
+                              data: { eventId: eventId!, vehicleId: r.vehicle_id },
+                            });
+                            await qc.invalidateQueries({ queryKey: ["idle-tests", eventId] });
+                            await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Reset failed");
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                        className="shrink-0 text-[10px] font-bold uppercase text-primary"
+                      >
+                        Reset
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {vehicles.some(
+              (v) => !v.vehicle_year || !v.vehicle_make || !v.vehicle_model || !v.powertrain,
+            ) && (
+              <div className="rounded-lg border-2 border-dashed border-ink/30 p-3 space-y-2">
+                <p className="text-xs font-bold uppercase tracking-wider text-ink/70">
+                  Vehicle year / make / model / powertrain (required for scoring)
+                </p>
+                {vehicles
+                  .filter((v) => !v.vehicle_year || !v.vehicle_make || !v.vehicle_model || !v.powertrain)
+                  .map((v) => {
+                    const draft = metaDraft[v.id] ?? {
+                      year: v.vehicle_year != null ? String(v.vehicle_year) : "",
+                      make: v.vehicle_make ?? "",
+                      model: v.vehicle_model ?? "",
+                      powertrain: v.powertrain ?? "ice",
+                    };
+                    return (
+                      <div key={v.id} className="grid gap-2 sm:grid-cols-5 items-end">
+                        <p className="sm:col-span-5 text-xs font-bold text-ink truncate">
+                          {v.tagged_display_name || v.label || "Vehicle"}
+                        </p>
+                        <label className="block text-[10px] font-bold uppercase">
+                          Year
+                          <input
+                            value={draft.year}
+                            onChange={(e) =>
+                              setMetaDraft((d) => ({ ...d, [v.id]: { ...draft, year: e.target.value } }))
+                            }
+                            className={inp}
+                          />
+                        </label>
+                        <label className="block text-[10px] font-bold uppercase">
+                          Make
+                          <input
+                            value={draft.make}
+                            onChange={(e) =>
+                              setMetaDraft((d) => ({ ...d, [v.id]: { ...draft, make: e.target.value } }))
+                            }
+                            className={inp}
+                          />
+                        </label>
+                        <label className="block text-[10px] font-bold uppercase">
+                          Model
+                          <input
+                            value={draft.model}
+                            onChange={(e) =>
+                              setMetaDraft((d) => ({ ...d, [v.id]: { ...draft, model: e.target.value } }))
+                            }
+                            className={inp}
+                          />
+                        </label>
+                        <label className="block text-[10px] font-bold uppercase">
+                          Powertrain
+                          <select
+                            value={draft.powertrain}
+                            onChange={(e) =>
+                              setMetaDraft((d) => ({
+                                ...d,
+                                [v.id]: { ...draft, powertrain: e.target.value },
+                              }))
+                            }
+                            className={inp}
+                          >
+                            <option value="ice">ICE / petrol</option>
+                            <option value="diesel">Diesel</option>
+                            <option value="hybrid">Hybrid</option>
+                            <option value="ev">EV</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={async () => {
+                            const yearNum = draft.year === "" ? null : Number(draft.year);
+                            if (yearNum != null && !Number.isInteger(yearNum)) {
+                              alert("Year must be a whole number");
+                              return;
+                            }
+                            setBusy(true);
+                            try {
+                              await setVehicleMeta({
+                                data: {
+                                  vehicleId: v.id,
+                                  year: yearNum,
+                                  make: draft.make || null,
+                                  model: draft.model || null,
+                                  powertrain: (draft.powertrain || "ice") as
+                                    | "ice"
+                                    | "diesel"
+                                    | "hybrid"
+                                    | "ev"
+                                    | "other",
+                                },
+                              });
+                              await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
+                            } catch (err) {
+                              alert(err instanceof Error ? err.message : "Save failed");
+                            } finally {
+                              setBusy(false);
+                            }
+                          }}
+                          className="rounded-md border-2 border-ink bg-paper px-3 py-2 text-[10px] font-bold uppercase disabled:opacity-50"
+                        >
+                          Save meta
+                        </button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

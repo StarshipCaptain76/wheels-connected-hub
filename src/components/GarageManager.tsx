@@ -218,7 +218,7 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
     }
   }
 
-  async function downloadBoard(v: GarageVehicle) {
+  async function downloadBoard(v: GarageVehicle, content: "specs" | "story" = "specs") {
     setBusy(true);
     setError(null);
     setOkMsg(null);
@@ -226,6 +226,7 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
     try {
       const res = await downloadDisplayBoard({
         vehicle: v,
+        content,
         owner: {
           display_name: profile?.display_name ?? null,
           member_number: profile?.member_number ?? null,
@@ -471,7 +472,7 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
               onUpload={() => void uploadPhotos(v.id)}
               onRemovePhoto={(id) => void removePhoto(id)}
               onSetCardPhoto={(url) => void setAsCardPhoto(url)}
-              onDownloadBoard={() => void downloadBoard(v)}
+              onDownloadBoard={(mode) => void downloadBoard(v, mode)}
             />
           ))}
         </ul>
@@ -513,8 +514,9 @@ function VehicleCard({
   onUpload: () => void;
   onRemovePhoto: (id: string) => void;
   onSetCardPhoto: (url: string) => void;
-  onDownloadBoard: () => void;
+  onDownloadBoard: (mode: "specs" | "story") => void;
 }) {
+  const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
   const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   const story = lang === "af" ? v.story_af || v.story : v.story;
   const hero = v.photos.find((p) => p.url) ?? v.photos[0];
@@ -598,16 +600,39 @@ function VehicleCard({
                     : "Use on member card"}
               </button>
             )}
-            <button
-              type="button"
-              disabled={busy || !hero?.url}
-              title={hero?.url ? undefined : lang === "af" ? "Laai eers ’n foto op" : "Upload a photo first"}
-              onClick={onDownloadBoard}
-              className="inline-flex items-center gap-2 self-start rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink/5 disabled:opacity-50"
-            >
-              <FileDown className="h-3.5 w-3.5" />
-              {lang === "af" ? "Vertoonbord PDF" : "Display board PDF"}
-            </button>
+            <div className="flex flex-col gap-1.5 self-start">
+              <div className="inline-flex overflow-hidden rounded-md border-2 border-ink">
+                {(["specs", "story"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setBoardMode(m)}
+                    aria-pressed={boardMode === m}
+                    className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
+                      boardMode === m ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-ink/5"
+                    }`}
+                  >
+                    {m === "specs"
+                      ? lang === "af"
+                        ? "Spesifikasies"
+                        : "Tech specs"
+                      : lang === "af"
+                        ? "Storie"
+                        : "Story"}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={busy || !hero?.url}
+                title={hero?.url ? undefined : lang === "af" ? "Laai eers ’n foto op" : "Upload a photo first"}
+                onClick={() => onDownloadBoard(boardMode)}
+                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink hover:bg-ink/5 disabled:opacity-50"
+              >
+                <FileDown className="h-3.5 w-3.5" />
+                {lang === "af" ? "Vertoonbord PDF" : "Display board PDF"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

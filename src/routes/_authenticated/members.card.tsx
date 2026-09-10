@@ -42,6 +42,7 @@ function MemberCardPage() {
   const [downloading, setDownloading] = useState(false);
   const [boardBusy, setBoardBusy] = useState(false);
   const [boardMsg, setBoardMsg] = useState<string | null>(null);
+  const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -105,13 +106,14 @@ function MemberCardPage() {
     vehicles.find((v) => v.photos.some((p) => p.url)) ??
     null;
 
-  async function downloadBoard() {
+  async function downloadBoard(content: "specs" | "story" = "specs") {
     if (!profile || !boardVehicle || boardBusy) return;
     setBoardBusy(true);
     setBoardMsg(null);
     try {
       const res = await downloadDisplayBoard({
         vehicle: boardVehicle,
+        content,
         owner: {
           display_name: profile.display_name,
           member_number: profile.member_number,
@@ -166,9 +168,32 @@ function MemberCardPage() {
               </button>
             )}
             {profile && boardVehicle && (
+              <div className="inline-flex overflow-hidden rounded-md border-2 border-ink">
+                {(["specs", "story"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setBoardMode(m)}
+                    aria-pressed={boardMode === m}
+                    className={`px-3 py-2 text-[11px] font-bold uppercase tracking-wider ${
+                      boardMode === m ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-ink/5"
+                    }`}
+                  >
+                    {m === "specs"
+                      ? lang === "af"
+                        ? "Spesifikasies"
+                        : "Tech specs"
+                      : lang === "af"
+                        ? "Storie"
+                        : "Story"}
+                  </button>
+                ))}
+              </div>
+            )}
+            {profile && boardVehicle && (
               <button
                 type="button"
-                onClick={() => void downloadBoard()}
+                onClick={() => void downloadBoard(boardMode)}
                 disabled={boardBusy}
                 className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-ink)] hover:bg-ink/5 disabled:opacity-60"
               >

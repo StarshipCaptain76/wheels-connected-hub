@@ -42,6 +42,7 @@ function MemberCardPage() {
   const [downloading, setDownloading] = useState(false);
   const [boardBusy, setBoardBusy] = useState(false);
   const [boardMsg, setBoardMsg] = useState<string | null>(null);
+  const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
   const cardRef = useRef<HTMLElement>(null);
 
   useEffect(() => {

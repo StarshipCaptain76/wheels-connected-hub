@@ -110,16 +110,18 @@ export function MemberCard({
           </span>
         </header>
 
-        <div className="mt-auto">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-3">
           <p
-            className={`w-full break-words font-display uppercase leading-[0.95] tracking-wide text-paper ${
-              compact ? "text-[2rem]" : "text-[2.5rem] sm:text-6xl md:text-7xl"
+            className={`w-full break-words text-center font-display uppercase leading-[0.9] tracking-wide text-paper ${
+              compact ? "text-[2.4rem]" : "text-[3rem] sm:text-7xl md:text-8xl"
             }`}
-            style={{ textShadow: "0 3px 10px rgba(0,0,0,0.6)" }}
+            style={{ textShadow: "0 3px 12px rgba(0,0,0,0.7)" }}
           >
             {profile.display_name ?? "—"}
           </p>
+        </div>
 
+        <div className="mt-auto">
           <div className="max-w-[68%]">
           <p
             className={`mt-2 font-display leading-none tracking-wider text-paper/95 ${

@@ -109,12 +109,15 @@ async function circlePng(src: string, size = 600): Promise<string> {
 
 export type BoardResult = { lowRes: boolean };
 
+export type BoardContent = "specs" | "story";
+
 export async function downloadDisplayBoard(opts: {
   vehicle: GarageVehicle;
   owner: BoardOwner;
   lang: "en" | "af";
+  content?: BoardContent;
 }): Promise<BoardResult> {
-  const { vehicle: v, owner, lang } = opts;
+  const { vehicle: v, owner, lang, content = "specs" } = opts;
   const af = lang === "af";
   let lowRes = false;
 

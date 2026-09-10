@@ -153,7 +153,9 @@ export function MemberCard({
             <span className="font-semibold text-primary">{profile.membership_status}</span>
             {profile.town && <span>{profile.town}</span>}
           </div>
+          </div>
         </div>
+
 
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className={`relative ${compact ? "h-12 w-12" : "h-16 w-16 sm:h-20 sm:w-20"}`}>

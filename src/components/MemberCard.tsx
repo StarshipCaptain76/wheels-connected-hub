@@ -110,16 +110,17 @@ export function MemberCard({
           </span>
         </header>
 
-        <div className="mt-auto max-w-[68%]">
+        <div className="mt-auto">
           <p
-            className={`font-display leading-[1.05] tracking-wide text-paper ${
-              compact ? "text-2xl" : "text-[1.75rem] sm:text-4xl md:text-5xl"
+            className={`w-full break-words font-display uppercase leading-[0.95] tracking-wide text-paper ${
+              compact ? "text-[2rem]" : "text-[2.5rem] sm:text-6xl md:text-7xl"
             }`}
-            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
+            style={{ textShadow: "0 3px 10px rgba(0,0,0,0.6)" }}
           >
             {profile.display_name ?? "—"}
           </p>
 
+          <div className="max-w-[68%]">
           <p
             className={`mt-2 font-display leading-none tracking-wider text-paper/95 ${
               compact ? "text-base" : "text-lg sm:text-2xl"
@@ -152,7 +153,9 @@ export function MemberCard({
             <span className="font-semibold text-primary">{profile.membership_status}</span>
             {profile.town && <span>{profile.town}</span>}
           </div>
+          </div>
         </div>
+
 
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className={`relative ${compact ? "h-12 w-12" : "h-16 w-16 sm:h-20 sm:w-20"}`}>

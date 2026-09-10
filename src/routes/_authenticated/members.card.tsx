@@ -291,8 +291,15 @@ async function downloadLandscapeCard(
 
   // Name largest on print card
   ctx.fillStyle = "#f5f0e8";
-  ctx.font = "700 56px Bebas Neue, Barlow, sans-serif";
-  ctx.fillText(name.slice(0, 26), 48, PRINT_H - 130);
+  let nameSize = 96;
+  ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
+  const nameText = name.toUpperCase();
+  const maxNameW = PRINT_W - 96;
+  while (ctx.measureText(nameText).width > maxNameW && nameSize > 44) {
+    nameSize -= 4;
+    ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
+  }
+  ctx.fillText(nameText, 48, PRINT_H - 140);
 
   ctx.fillStyle = "#cc2222";
   ctx.font = "600 16px Barlow, sans-serif";

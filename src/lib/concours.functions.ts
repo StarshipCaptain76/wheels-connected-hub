@@ -39,6 +39,12 @@ export type EventConcours = {
   winner_submission_count?: number | null;
   results_on_home?: boolean;
   results_published_at?: string | null;
+  idle_test_enabled?: boolean;
+  idle_test_revealed?: boolean;
+  idle_prize_en?: string | null;
+  idle_prize_af?: string | null;
+  idle_rr_standard_smooth01?: number | null;
+  idle_rr_standard_vehicle_id?: string | null;
 };
 
 export type ConcoursVehicle = {
@@ -55,6 +61,10 @@ export type ConcoursVehicle = {
   garage_label?: string | null;
   average_score?: number | null;
   submission_count?: number;
+  vehicle_year?: number | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  powertrain?: string | null;
 };
 
 // New tables are not yet in generated Database types — cast through any.

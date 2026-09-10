@@ -121,6 +121,12 @@ export type Database = {
           created_at: string
           enabled: boolean
           event_id: string
+          idle_prize_af: string | null
+          idle_prize_en: string | null
+          idle_rr_standard_smooth01: number | null
+          idle_rr_standard_vehicle_id: string | null
+          idle_test_enabled: boolean
+          idle_test_revealed: boolean
           leaderboard_revealed: boolean
           prize_af: string | null
           prize_en: string | null
@@ -144,6 +150,12 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           event_id: string
+          idle_prize_af?: string | null
+          idle_prize_en?: string | null
+          idle_rr_standard_smooth01?: number | null
+          idle_rr_standard_vehicle_id?: string | null
+          idle_test_enabled?: boolean
+          idle_test_revealed?: boolean
           leaderboard_revealed?: boolean
           prize_af?: string | null
           prize_en?: string | null
@@ -167,6 +179,12 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           event_id?: string
+          idle_prize_af?: string | null
+          idle_prize_en?: string | null
+          idle_rr_standard_smooth01?: number | null
+          idle_rr_standard_vehicle_id?: string | null
+          idle_test_enabled?: boolean
+          idle_test_revealed?: boolean
           leaderboard_revealed?: boolean
           prize_af?: string | null
           prize_en?: string | null
@@ -199,6 +217,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: true
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_concours_idle_rr_standard_vehicle_id_fkey"
+            columns: ["idle_rr_standard_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "event_concours_vehicles"
             referencedColumns: ["id"]
           },
           {
@@ -281,10 +306,14 @@ export type Database = {
           label: string | null
           label_af: string | null
           photo_url: string
+          powertrain: string | null
           sort_order: number
           tagged_display_name: string | null
           tagged_member_number: number | null
           tagged_user_id: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_year: number | null
         }
         Insert: {
           added_by?: string | null
@@ -295,10 +324,14 @@ export type Database = {
           label?: string | null
           label_af?: string | null
           photo_url: string
+          powertrain?: string | null
           sort_order?: number
           tagged_display_name?: string | null
           tagged_member_number?: number | null
           tagged_user_id?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
         }
         Update: {
           added_by?: string | null
@@ -309,10 +342,14 @@ export type Database = {
           label?: string | null
           label_af?: string | null
           photo_url?: string
+          powertrain?: string | null
           sort_order?: number
           tagged_display_name?: string | null
           tagged_member_number?: number | null
           tagged_user_id?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_year?: number | null
         }
         Relationships: [
           {
@@ -334,6 +371,94 @@ export type Database = {
             columns: ["garage_vehicle_id"]
             isOneToOne: false
             referencedRelation: "garage_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_idle_tests: {
+        Row: {
+          adjusted_harsh: number | null
+          created_at: string
+          display_score: number | null
+          era_slack: number | null
+          event_id: string
+          id: string
+          metrics: Json
+          powertrain: string | null
+          powertrain_slack: number | null
+          raw_harsh: number | null
+          samples: Json | null
+          slack: number | null
+          smooth01: number | null
+          start_detected: boolean | null
+          superseded: boolean
+          user_id: string
+          valid: boolean
+          vehicle_id: string
+          vehicle_year: number | null
+        }
+        Insert: {
+          adjusted_harsh?: number | null
+          created_at?: string
+          display_score?: number | null
+          era_slack?: number | null
+          event_id: string
+          id?: string
+          metrics?: Json
+          powertrain?: string | null
+          powertrain_slack?: number | null
+          raw_harsh?: number | null
+          samples?: Json | null
+          slack?: number | null
+          smooth01?: number | null
+          start_detected?: boolean | null
+          superseded?: boolean
+          user_id: string
+          valid?: boolean
+          vehicle_id: string
+          vehicle_year?: number | null
+        }
+        Update: {
+          adjusted_harsh?: number | null
+          created_at?: string
+          display_score?: number | null
+          era_slack?: number | null
+          event_id?: string
+          id?: string
+          metrics?: Json
+          powertrain?: string | null
+          powertrain_slack?: number | null
+          raw_harsh?: number | null
+          samples?: Json | null
+          slack?: number | null
+          smooth01?: number | null
+          start_detected?: boolean | null
+          superseded?: boolean
+          user_id?: string
+          valid?: boolean
+          vehicle_id?: string
+          vehicle_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_idle_tests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_idle_tests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_idle_tests_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "event_concours_vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1586,6 +1711,10 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      recompute_idle_rr_standard: {
+        Args: { _event_id: string }
+        Returns: undefined
       }
       route_cache_put: {
         Args: { _key: string; _payload: Json }

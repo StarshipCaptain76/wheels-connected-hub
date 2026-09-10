@@ -66,16 +66,3 @@ export type ConcoursVehicle = {
   vehicle_model?: string | null;
   powertrain?: string | null;
 };
-
-// New tables are not yet in generated Database types — cast through any.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyClient = { from: (t: string) => any; rpc: (fn: string, args: Record<string, unknown>) => any; auth?: any };
-
-async function assertAdmin(supabase: AnyClient, userId: string) {
-  const { data: isAdmin, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(`Role check failed: ${error.message}`);
-  if (!isAdmin) throw new Error("Forbidden");
-}

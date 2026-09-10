@@ -11,6 +11,7 @@ import {
   type AdminMember,
 } from "@/lib/admin-members.functions";
 import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { MemberFeatureAdminPanel } from "@/components/MemberFeatureAdminPanel";
 
 const inputCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink";
 
@@ -166,6 +167,7 @@ function AdminMembersPage() {
   const [adminsOpen, setAdminsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"club" | "features">("club");
 
   const pendingCount = useMemo(
     () => members.filter((m: AdminMember) => m.membership_status === "pending").length,
@@ -279,6 +281,7 @@ function AdminMembersPage() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="font-display text-4xl tracking-wide text-ink">Members</h1>
+        {tab === "club" && (
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -301,6 +304,7 @@ function AdminMembersPage() {
             />
           </div>
         </div>
+        )}
       </div>
 
       {error && (
@@ -309,6 +313,32 @@ function AdminMembersPage() {
         </p>
       )}
 
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setTab("club")}
+          className={`rounded-md border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${
+            tab === "club" ? "bg-ink text-paper" : "bg-paper text-ink"
+          }`}
+        >
+          Club list
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("features")}
+          className={`rounded-md border-2 border-ink px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${
+            tab === "features" ? "bg-ink text-paper" : "bg-paper text-ink"
+          }`}
+        >
+          Member features
+        </button>
+      </div>
+
+      {tab === "features" ? (
+        <div className="mt-6">
+          <MemberFeatureAdminPanel />
+        </div>
+      ) : (
       <div className="mt-4 overflow-x-auto rounded-lg border-2 border-ink">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-black text-white">
@@ -372,6 +402,7 @@ function AdminMembersPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

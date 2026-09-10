@@ -17,6 +17,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as EventsRouteImport } from './routes/events'
+import { Route as FeaturesSlugRouteImport } from './routes/features.$slug'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ClassifiedsRouteImport } from './routes/classifieds'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -91,6 +92,11 @@ const GalleryRoute = GalleryRouteImport.update({
 const EventsRoute = EventsRouteImport.update({
   id: '/events',
   path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesSlugRoute = FeaturesSlugRouteImport.update({
+  id: '/features/$slug',
+  path: '/features/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/events/$id': typeof EventsIdRoute
+  '/features/$slug': typeof FeaturesSlugRoute
   '/classifieds/': typeof ClassifiedsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/sponsors': typeof SponsorsRoute
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/events/$id': typeof EventsIdRoute
+  '/features/$slug': typeof FeaturesSlugRoute
   '/classifieds': typeof ClassifiedsIndexRoute
   '/events': typeof EventsIndexRoute
   '/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
@@ -378,6 +386,7 @@ export interface FileRoutesById {
   '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
   '/events': typeof EventsRouteWithChildren
+  '/features/$slug': typeof FeaturesSlugRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -424,6 +433,7 @@ export interface FileRouteTypes {
     | '/classifieds'
     | '/contact'
     | '/events'
+    | '/features/$slug'
     | '/gallery'
     | '/join'
     | '/reset-password'
@@ -475,6 +485,7 @@ export interface FileRouteTypes {
     | '/sponsors'
     | '/classifieds/$id'
     | '/events/$id'
+    | '/features/$slug'
     | '/classifieds'
     | '/events'
     | '/admin/classifieds'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '/classifieds'
     | '/contact'
     | '/events'
+    | '/features/$slug'
     | '/gallery'
     | '/join'
     | '/reset-password'
@@ -555,6 +567,7 @@ export interface RootRouteChildren {
   ClassifiedsRoute: typeof ClassifiedsRouteWithChildren
   ContactRoute: typeof ContactRoute
   EventsRoute: typeof EventsRouteWithChildren
+  FeaturesSlugRoute: typeof FeaturesSlugRoute
   GalleryRoute: typeof GalleryRoute
   JoinRoute: typeof JoinRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -690,6 +703,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/events/$id'
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof EventsRoute
+    }
+    '/features/$slug': {
+      id: '/features/$slug'
+      path: '/features/$slug'
+      fullPath: '/features/$slug'
+      preLoaderRoute: typeof FeaturesSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/classifieds/$id': {
       id: '/classifieds/$id'
@@ -980,6 +1000,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClassifiedsRoute: ClassifiedsRouteWithChildren,
   ContactRoute: ContactRoute,
   EventsRoute: EventsRouteWithChildren,
+  FeaturesSlugRoute: FeaturesSlugRoute,
   GalleryRoute: GalleryRoute,
   JoinRoute: JoinRoute,
   ResetPasswordRoute: ResetPasswordRoute,

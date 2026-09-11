@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Archive, Bell } from "lucide-react";
-import { SiteLayout } from "@/components/SiteLayout";
+
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   fetchArchivedNotifications,
@@ -55,8 +55,7 @@ function NotificationsPage() {
 
 
   return (
-    <SiteLayout>
-      <section className="mx-auto max-w-3xl px-4 py-10">
+    <section className="mx-auto max-w-3xl px-3 py-4 sm:px-4 sm:py-8">
         <div className="flex items-center justify-between gap-3">
           <h1 className="font-display text-3xl tracking-wide text-ink">
             <Bell className="mr-2 inline h-6 w-6 text-primary" />
@@ -161,6 +160,5 @@ function NotificationsPage() {
           )}
         </div>
       </section>
-    </SiteLayout>
   );
 }

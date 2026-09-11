@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
+
 import { MemberCard, pickFacePhoto } from "@/components/MemberCard";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
@@ -68,8 +68,7 @@ function DirectoryPage() {
   });
 
   return (
-    <SiteLayout>
-      <section className="mx-auto max-w-6xl px-4 py-10">
+    <section className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-8">
         <Link
           to="/members"
           className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary"
@@ -203,6 +202,5 @@ function DirectoryPage() {
           </ul>
         )}
       </section>
-    </SiteLayout>
   );
 }

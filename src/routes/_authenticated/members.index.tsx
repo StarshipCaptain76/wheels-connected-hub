@@ -2,7 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
 import { GarageManager } from "@/components/GarageManager";
 import { TaggedPhotos } from "@/components/TaggedPhotos";
 import { ChangePassword } from "@/components/ChangePassword";
@@ -65,6 +64,9 @@ function MembersPage() {
 
   const missingFields = missingProfileFields(profile);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // Auto-open the wizard once per browser session while the profile is incomplete.
   useEffect(() => {
@@ -79,6 +81,27 @@ function MembersPage() {
     }
     setWizardOpen(true);
   }, [profile, missingFields.length]);
+
+  useEffect(() => {
+    function applyHash() {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash === "#profile") {
+        setProfileOpen(true);
+        requestAnimationFrame(() =>
+          document.getElementById("profile")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
+      }
+      if (hash === "#photos") {
+        setPhotosOpen(true);
+        requestAnimationFrame(() =>
+          document.getElementById("photos")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
+      }
+    }
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
 
 
@@ -153,49 +176,57 @@ function MembersPage() {
     navigate({ to: "/auth", replace: true });
   }
 
+  const chip =
+    "inline-flex shrink-0 items-center rounded-full border-2 border-ink bg-paper px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-ink";
+
   return (
-    <SiteLayout>
-      <section className="mx-auto max-w-4xl px-4 py-10">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-8">
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
-            <p className="font-display text-xs tracking-[0.3em] text-primary">
+            <p className="font-display text-[10px] tracking-[0.3em] text-primary">
               {t("members.kicker")}
             </p>
-            <h1 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">
-              {t("members.title")}
+            <h1 className="font-display text-2xl tracking-wide text-ink sm:text-4xl">
+              {profile?.display_name || t("members.title")}
             </h1>
+            {profile && (
+              <p className="text-xs text-ink/55">
+                #{String(profile.member_number).padStart(4, "0")} · {profile.membership_status}
+              </p>
+            )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/members/directory"
-              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-            >
-              <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
+          <div className="hidden flex-wrap gap-2 sm:flex">
+            <Link to="/members/directory" className={chip}>
+              <Users className="mr-1 h-3.5 w-3.5 text-primary" /> {t("directory.browse")}
             </Link>
-            <Link
-              to="/members/card"
-              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper shadow-[3px_3px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-            >
-              <IdCard className="h-4 w-4" /> {t("members.viewCard")}
+            <Link to="/members/card" className={`${chip} bg-primary text-paper`}>
+              <IdCard className="mr-1 h-3.5 w-3.5" /> {t("members.viewCard")}
             </Link>
             {mySponsor && (
-              <Link
-                to="/members/sponsor"
-                className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-sm font-bold uppercase tracking-wider text-ink shadow-[3px_3px_0_0_var(--color-primary)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
-              >
-                <Handshake className="h-4 w-4 text-primary" /> My sponsor card
+              <Link to="/members/sponsor" className={chip}>
+                <Handshake className="mr-1 h-3.5 w-3.5 text-primary" /> Sponsor
               </Link>
             )}
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="inline-flex items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
-            >
-              <LogOut className="h-4 w-4" /> {t("auth.signOut")}
+            <button type="button" onClick={handleSignOut} className={chip}>
+              <LogOut className="mr-1 h-3.5 w-3.5" /> {t("auth.signOut")}
             </button>
           </div>
         </div>
+
+        <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 sm:hidden" aria-label="Members shortcuts">
+          <a href="#garage" className={`${chip} bg-primary text-paper`}>
+            {t("portal.garage")}
+          </a>
+          <Link to="/members/card" className={chip}>
+            {t("portal.card")}
+          </Link>
+          <a href="#profile" className={chip} onClick={() => setProfileOpen(true)}>
+            {t("portal.profile")}
+          </a>
+          <Link to="/members/directory" className={chip}>
+            {t("portal.directory")}
+          </Link>
+        </nav>
 
         {profile && (
           <ProfileCompletionBanner
@@ -208,46 +239,51 @@ function MembersPage() {
           <ProfileWizard profile={profile} onClose={() => setWizardOpen(false)} />
         )}
 
-        {/* Admin portal — top of page, above profile / garage */}
         {isAdmin && (
-          <div className="mt-6 rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)] sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" />
-                  <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
-                </div>
-                <h2 className="mt-1 font-display text-2xl tracking-wide">Club admin portal</h2>
-                <p className="mt-1 text-sm text-paper/70">
-                  Manage events, gallery, members, featured member, classifieds, shop, sponsors and
-                  newsletter.
-                </p>
-              </div>
-              <Link
-                to="/admin"
-                className="inline-flex shrink-0 items-center gap-2 rounded-md border-2 border-primary bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper hover:bg-paper hover:text-primary"
-              >
-                Open admin portal
-              </Link>
-            </div>
-          </div>
+          <Link
+            to="/admin"
+            className="mt-3 flex items-center justify-between gap-3 rounded-lg border-2 border-ink bg-ink px-3 py-2 text-paper"
+          >
+            <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+              <Shield className="h-3.5 w-3.5 text-primary" /> {t("portal.admin")}
+            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Open →</span>
+          </Link>
         )}
 
         {isLoading || !profile ? (
-          <p className="mt-8 text-ink/60">{t("members.loading")}</p>
+          <p className="mt-6 text-ink/60">{t("members.loading")}</p>
         ) : (
           <>
-            <div className="mt-8 grid gap-6 md:grid-cols-[1fr_320px]">
+            <div className="mt-4 hidden md:block">
+              <MemberCard
+                profile={profile}
+                carPhoto={carPhoto}
+                facePhoto={facePhoto}
+                compact
+              />
+            </div>
+
+            <div className="mt-4">
+              <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
+            </div>
+
+            <details
+              id="profile"
+              open={profileOpen}
+              onToggle={(e) => setProfileOpen((e.target as HTMLDetailsElement).open)}
+              className="mt-4 scroll-mt-20 rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_var(--color-ink)] sm:p-4"
+            >
+              <summary className="cursor-pointer list-none font-display text-xl tracking-wide text-ink">
+                {t("members.profile")}
+              </summary>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   mutation.mutate(form);
                 }}
-                className="space-y-4 rounded-2xl border-2 border-ink bg-paper p-6 shadow-[4px_4px_0_0_var(--color-ink)]"
+                className="mt-3 space-y-3"
               >
-                <h2 className="font-display text-2xl tracking-wide text-ink">
-                  {t("members.profile")}
-                </h2>
 
                 <ProfileField
                   label={t("members.displayName")}
@@ -375,35 +411,38 @@ function MembersPage() {
                   <p className="text-sm text-primary">{t("members.saveError")}</p>
                 )}
               </form>
+            </details>
 
-              <aside className="space-y-4">
-                <MemberCard
-                  profile={profile}
-                  carPhoto={carPhoto}
-                  facePhoto={facePhoto}
-                  compact
-                />
-                <Link
-                  to="/members/card"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
-                >
-                  <IdCard className="h-4 w-4" /> {t("members.viewCard")}
-                </Link>
-                <Link
-                  to="/members/directory"
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border-2 border-ink bg-paper px-4 py-2 text-xs font-bold uppercase tracking-wider text-ink hover:bg-ink/5"
-                >
-                  <Users className="h-4 w-4 text-primary" /> {t("directory.browse")}
-                </Link>
+            <details
+              id="photos"
+              open={photosOpen}
+              onToggle={(e) => setPhotosOpen((e.target as HTMLDetailsElement).open)}
+              className="mt-3 scroll-mt-20 rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_var(--color-ink)] sm:p-4"
+            >
+              <summary className="cursor-pointer list-none font-display text-xl tracking-wide text-ink">
+                {t("portal.photos")}
+              </summary>
+              <div className="mt-3">
+                <TaggedPhotos userId={profile.id} canUntag />
+              </div>
+            </details>
+
+            <details
+              open={accountOpen}
+              onToggle={(e) => setAccountOpen((e.target as HTMLDetailsElement).open)}
+              className="mt-3 rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_var(--color-ink)] sm:p-4"
+            >
+              <summary className="cursor-pointer list-none font-display text-xl tracking-wide text-ink">
+                {t("portal.settings")}
+              </summary>
+              <div className="mt-3 space-y-3">
                 <ChangePassword lang={lang === "af" ? "af" : "en"} />
                 <NotificationSettings isAdmin={Boolean(roles?.isAdmin)} />
-
-                <div className="rounded-2xl border-2 border-ink bg-ink p-5 text-paper shadow-[4px_4px_0_0_var(--color-primary)]">
-
+                <div className="rounded-xl border-2 border-ink bg-ink p-4 text-paper">
                   <p className="font-display text-xs tracking-[0.3em] text-primary">
                     {t("members.summary")}
                   </p>
-                  <dl className="mt-3 space-y-2 text-sm">
+                  <dl className="mt-2 space-y-1 text-sm">
                     <SummaryRow label={t("members.status")} value={profile.membership_status} />
                     <SummaryRow label={t("members.email")} value={profile.email ?? "—"} />
                     <SummaryRow
@@ -412,17 +451,11 @@ function MembersPage() {
                     />
                   </dl>
                 </div>
-              </aside>
-            </div>
-
-            <GarageManager avatarUrl={profile.avatar_url} lang={lang} />
-
-            <TaggedPhotos userId={profile.id} canUntag />
-
+              </div>
+            </details>
           </>
         )}
-      </section>
-    </SiteLayout>
+    </section>
   );
 }
 

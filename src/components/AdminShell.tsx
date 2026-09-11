@@ -1,7 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useI18n } from "@/i18n/I18nProvider";
-import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import {
   LayoutGrid,
   Calendar,
@@ -11,11 +14,12 @@ import {
   ShoppingBag,
   Handshake,
   Mail,
-  Menu,
-  X,
   Shield,
   Trophy,
   BarChart3,
+  Home,
+  LogOut,
+  UserRound,
 } from "lucide-react";
 
 const NAV: Array<{
@@ -102,7 +106,7 @@ function NavList({
                   <Link
                     to={item.to}
                     onClick={onNavigate}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                       active
                         ? "bg-ink text-paper shadow-[2px_2px_0_0_var(--color-primary)]"
                         : "text-ink/80 hover:bg-ink/5 hover:text-ink"
@@ -123,69 +127,68 @@ function NavList({
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { lang } = useI18n();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { lang, t } = useI18n();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
 
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    function onResize() {
-      if (window.innerWidth >= 768) setMenuOpen(false);
+  async function signOut() {
+    await qc.cancelQueries();
+    qc.clear();
+    try {
+      window.localStorage.removeItem(CACHED_PROFILE_KEY);
+    } catch {
+      /* ignore */
     }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-
-  useEffect(() => {
-    if (menuOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [menuOpen]);
-
-  const currentLabel =
-    NAV.flatMap((s) => s.items).find((i) => isActive(pathname, i.to, i.exact))?.[lang === "af" ? "labelAf" : "label"] ?? "Admin";
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   return (
-    <SiteLayout>
-      {/* Mobile admin bar — sits in document flow under site header, not a second sticky stack */}
-      <div className="border-b-2 border-ink bg-paper md:hidden">
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{lang === "af" ? "Admin" : "Admin"}</p>
-            <p className="truncate font-display text-lg leading-tight text-ink">{currentLabel}</p>
+    <SiteLayout
+      portal="admin"
+      portalMenu={(close) => (
+        <div>
+          <div className="mb-3 flex items-center gap-2 px-2">
+            <Shield className="h-4 w-4 text-primary" />
+            <span className="font-display text-sm tracking-wide text-ink">
+              {lang === "af" ? "Admin-portaal" : "Admin portal"}
+            </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper"
-            aria-label={menuOpen ? (lang === "af" ? "Sluit admin kieslys" : "Close admin menu") : lang === "af" ? "Open admin kieslys" : "Open admin menu"}
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <NavList pathname={pathname} onNavigate={close} />
+          <div className="mt-3 border-t border-ink/10 pt-3">
+            <Link
+              to="/members"
+              onClick={close}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-ink/80 hover:bg-ink/5"
+            >
+              <UserRound className="h-4 w-4" /> {t("portal.members")}
+            </Link>
+            <Link
+              to="/"
+              onClick={close}
+              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-ink/80 hover:bg-ink/5"
+            >
+              <Home className="h-4 w-4" /> {t("portal.clubSite")}
+            </Link>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-ink/80 hover:bg-ink/5"
+            >
+              <LogOut className="h-4 w-4" /> {t("auth.signOut")}
+            </button>
+          </div>
         </div>
-
-        {menuOpen && (
-          <div className="border-t-2 border-ink/10 bg-paper px-3 py-4">
-            <div className="mb-3 flex items-center gap-2 px-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <span className="font-display text-sm tracking-wide text-ink">{lang === "af" ? "Admin portaal" : "Admin portal"}</span>
-            </div>
-            <NavList pathname={pathname} onNavigate={() => setMenuOpen(false)} />
-          </div>
-        )}
-      </div>
-
-      <div className="mx-auto flex max-w-6xl gap-6 px-3 py-4 sm:px-4 sm:py-8">
-        <aside className="hidden w-56 flex-none md:block">
-          <div className="sticky top-24 space-y-1 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
-            <div className="mb-4">
+      )}
+    >
+      <div className="mx-auto flex max-w-6xl gap-6 px-3 py-3 sm:px-4 sm:py-6">
+        <aside className="hidden w-52 flex-none md:block">
+          <div className="sticky top-20 space-y-1 rounded-xl border-2 border-ink bg-paper p-3 shadow-[4px_4px_0_0_var(--color-ink)]">
+            <div className="mb-3 px-2">
               <p className="font-display text-xs tracking-[0.3em] text-primary">ADMIN</p>
-              <p className="font-display text-lg leading-tight text-ink">{lang === "af" ? "Portaal" : "Portal"}</p>
+              <p className="font-display text-base leading-tight text-ink">
+                {lang === "af" ? "Portaal" : "Portal"}
+              </p>
             </div>
             <NavList pathname={pathname} />
           </div>

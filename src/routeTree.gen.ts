@@ -9,110 +9,60 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SponsorsRouteImport } from './routes/sponsors'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ShopRouteImport } from './routes/shop'
-import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as JoinRouteImport } from './routes/join'
-import { Route as GalleryRouteImport } from './routes/gallery'
-import { Route as EventsRouteImport } from './routes/events'
-import { Route as FeaturesSlugRouteImport } from './routes/features.$slug'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as ClassifiedsRouteImport } from './routes/classifieds'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EventsIndexRouteImport } from './routes/events.index'
-import { Route as ClassifiedsIndexRouteImport } from './routes/classifieds.index'
-import { Route as EventsIdRouteImport } from './routes/events.$id'
-import { Route as ClassifiedsIdRouteImport } from './routes/classifieds.$id'
-import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ClassifiedsRouteImport } from './routes/classifieds'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as EventsRouteImport } from './routes/events'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as JoinRouteImport } from './routes/join'
+import { Route as PollsRouteImport } from './routes/polls'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as ShopRouteImport } from './routes/shop'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SponsorsRouteImport } from './routes/sponsors'
 import { Route as AuthenticatedAdminRouteRouteImport } from './routes/_authenticated/admin/route'
-import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
+import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as ClassifiedsIndexRouteImport } from './routes/classifieds.index'
+import { Route as ClassifiedsIdRouteImport } from './routes/classifieds.$id'
+import { Route as EventsIndexRouteImport } from './routes/events.index'
+import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as FeaturesSlugRouteImport } from './routes/features.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
-import { Route as ApiPublicNewsletterPdfRouteImport } from './routes/api/public/newsletter-pdf'
-import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
-import { Route as ApiPublicEventImageRouteImport } from './routes/api/public/event-image'
-import { Route as ApiPublicConcoursImageRouteImport } from './routes/api/public/concours-image'
-import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
-import { Route as AuthenticatedMembersNotificationsRouteImport } from './routes/_authenticated/members.notifications'
-import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
-import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
-import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
-import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
-import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
-import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin/sponsors'
-import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin/shop'
-import { Route as AuthenticatedAdminPollsRouteImport } from './routes/_authenticated/admin/polls'
-import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin/newsletter'
-import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
-import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
-import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
-import { Route as AuthenticatedAdminConcoursRouteImport } from './routes/_authenticated/admin/concours'
 import { Route as AuthenticatedAdminClassifiedsRouteImport } from './routes/_authenticated/admin/classifieds'
-import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
+import { Route as AuthenticatedAdminConcoursRouteImport } from './routes/_authenticated/admin/concours'
+import { Route as AuthenticatedAdminEventsRouteImport } from './routes/_authenticated/admin/events'
+import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
+import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
+import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin/newsletter'
+import { Route as AuthenticatedAdminPollsRouteImport } from './routes/_authenticated/admin/polls'
+import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin/shop'
+import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin/sponsors'
+import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
+import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authenticated/classifieds.new'
+import { Route as AuthenticatedMembersIndexRouteImport } from './routes/_authenticated/members.index'
+import { Route as AuthenticatedMembersNumberRouteImport } from './routes/_authenticated/members.$number'
+import { Route as AuthenticatedMembersCardRouteImport } from './routes/_authenticated/members.card'
+import { Route as AuthenticatedMembersDirectoryRouteImport } from './routes/_authenticated/members.directory'
+import { Route as AuthenticatedMembersNotificationsRouteImport } from './routes/_authenticated/members.notifications'
+import { Route as AuthenticatedMembersSponsorRouteImport } from './routes/_authenticated/members.sponsor'
+import { Route as ApiPublicConcoursImageRouteImport } from './routes/api/public/concours-image'
+import { Route as ApiPublicEventImageRouteImport } from './routes/api/public/event-image'
+import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
+import { Route as ApiPublicNewsletterPdfRouteImport } from './routes/api/public/newsletter-pdf'
 import { Route as ApiPublicHooksEventRemindersRouteImport } from './routes/api/public/hooks/event-reminders'
+import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
-const SponsorsRoute = SponsorsRouteImport.update({
-  id: '/sponsors',
-  path: '/sponsors',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShopRoute = ShopRouteImport.update({
-  id: '/shop',
-  path: '/shop',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
-  id: '/robots.txt',
-  path: '/robots.txt',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JoinRoute = JoinRouteImport.update({
-  id: '/join',
-  path: '/join',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GalleryRoute = GalleryRouteImport.update({
-  id: '/gallery',
-  path: '/gallery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EventsRoute = EventsRouteImport.update({
-  id: '/events',
-  path: '/events',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeaturesSlugRoute = FeaturesSlugRouteImport.update({
-  id: '/features/$slug',
-  path: '/features/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClassifiedsRoute = ClassifiedsRouteImport.update({
-  id: '/classifieds',
-  path: '/classifieds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -120,129 +70,136 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const ClassifiedsRoute = ClassifiedsRouteImport.update({
+  id: '/classifieds',
+  path: '/classifieds',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventsIndexRoute = EventsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => EventsRoute,
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ClassifiedsIndexRoute = ClassifiedsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ClassifiedsRoute,
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const EventsIdRoute = EventsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => EventsRoute,
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ClassifiedsIdRoute = ClassifiedsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ClassifiedsRoute,
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const PollsRoute = PollsRouteImport.update({
+  id: '/polls',
+  path: '/polls',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SponsorsRoute = SponsorsRouteImport.update({
+  id: '/sponsors',
+  path: '/sponsors',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminRouteRoute = AuthenticatedAdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedMembersIndexRoute =
-  AuthenticatedMembersIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
+const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ClassifiedsIndexRoute = ClassifiedsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClassifiedsRoute,
+} as any)
+const ClassifiedsIdRoute = ClassifiedsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ClassifiedsRoute,
+} as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsIdRoute = EventsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EventsRoute,
+} as any)
+const FeaturesSlugRoute = FeaturesSlugRouteImport.update({
+  id: '/features/$slug',
+  path: '/features/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
-const ApiPublicNewsletterPdfRoute = ApiPublicNewsletterPdfRouteImport.update({
-  id: '/api/public/newsletter-pdf',
-  path: '/api/public/newsletter-pdf',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEventRsvpRoute = ApiPublicEventRsvpRouteImport.update({
-  id: '/api/public/event-rsvp',
-  path: '/api/public/event-rsvp',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicEventImageRoute = ApiPublicEventImageRouteImport.update({
-  id: '/api/public/event-image',
-  path: '/api/public/event-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicConcoursImageRoute = ApiPublicConcoursImageRouteImport.update({
-  id: '/api/public/concours-image',
-  path: '/api/public/concours-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedMembersSponsorRoute =
-  AuthenticatedMembersSponsorRouteImport.update({
-    id: '/sponsor',
-    path: '/sponsor',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
-const AuthenticatedMembersNotificationsRoute =
-  AuthenticatedMembersNotificationsRouteImport.update({
-    id: '/notifications',
-    path: '/notifications',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
-const AuthenticatedMembersDirectoryRoute =
-  AuthenticatedMembersDirectoryRouteImport.update({
-    id: '/directory',
-    path: '/directory',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
-const AuthenticatedMembersCardRoute =
-  AuthenticatedMembersCardRouteImport.update({
-    id: '/card',
-    path: '/card',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
-const AuthenticatedMembersNumberRoute =
-  AuthenticatedMembersNumberRouteImport.update({
-    id: '/$number',
-    path: '/$number',
-    getParentRoute: () => AuthenticatedMembersRoute,
-  } as any)
-const AuthenticatedClassifiedsNewRoute =
-  AuthenticatedClassifiedsNewRouteImport.update({
-    id: '/classifieds/new',
-    path: '/classifieds/new',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedClassifiedsMineRoute =
-  AuthenticatedClassifiedsMineRouteImport.update({
-    id: '/classifieds/mine',
-    path: '/classifieds/mine',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedAdminSponsorsRoute =
-  AuthenticatedAdminSponsorsRouteImport.update({
-    id: '/sponsors',
-    path: '/sponsors',
+const AuthenticatedAdminClassifiedsRoute =
+  AuthenticatedAdminClassifiedsRouteImport.update({
+    id: '/classifieds',
+    path: '/classifieds',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminShopRoute = AuthenticatedAdminShopRouteImport.update({
-  id: '/shop',
-  path: '/shop',
-  getParentRoute: () => AuthenticatedAdminRouteRoute,
-} as any)
+const AuthenticatedAdminConcoursRoute =
+  AuthenticatedAdminConcoursRouteImport.update({
+    id: '/concours',
+    path: '/concours',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminEventsRoute =
+  AuthenticatedAdminEventsRouteImport.update({
+    id: '/events',
+    path: '/events',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminGalleryRoute =
+  AuthenticatedAdminGalleryRouteImport.update({
+    id: '/gallery',
+    path: '/gallery',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
+const AuthenticatedAdminMembersRoute =
+  AuthenticatedAdminMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AuthenticatedAdminRouteRoute,
+  } as any)
 const AuthenticatedAdminNewsletterRoute =
   AuthenticatedAdminNewsletterRouteImport.update({
     id: '/newsletter',
@@ -254,46 +211,95 @@ const AuthenticatedAdminPollsRoute = AuthenticatedAdminPollsRouteImport.update({
   path: '/polls',
   getParentRoute: () => AuthenticatedAdminRouteRoute,
 } as any)
-const AuthenticatedAdminMembersRoute =
-  AuthenticatedAdminMembersRouteImport.update({
-    id: '/members',
-    path: '/members',
+const AuthenticatedAdminShopRoute = AuthenticatedAdminShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
+const AuthenticatedAdminSponsorsRoute =
+  AuthenticatedAdminSponsorsRouteImport.update({
+    id: '/sponsors',
+    path: '/sponsors',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
-const AuthenticatedAdminGalleryRoute =
-  AuthenticatedAdminGalleryRouteImport.update({
-    id: '/gallery',
-    path: '/gallery',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedClassifiedsMineRoute =
+  AuthenticatedClassifiedsMineRouteImport.update({
+    id: '/classifieds/mine',
+    path: '/classifieds/mine',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminEventsRoute =
-  AuthenticatedAdminEventsRouteImport.update({
-    id: '/events',
-    path: '/events',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedClassifiedsNewRoute =
+  AuthenticatedClassifiedsNewRouteImport.update({
+    id: '/classifieds/new',
+    path: '/classifieds/new',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminConcoursRoute =
-  AuthenticatedAdminConcoursRouteImport.update({
-    id: '/concours',
-    path: '/concours',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedMembersIndexRoute =
+  AuthenticatedMembersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMembersRoute,
   } as any)
-const AuthenticatedAdminClassifiedsRoute =
-  AuthenticatedAdminClassifiedsRouteImport.update({
-    id: '/classifieds',
-    path: '/classifieds',
-    getParentRoute: () => AuthenticatedAdminRouteRoute,
+const AuthenticatedMembersNumberRoute =
+  AuthenticatedMembersNumberRouteImport.update({
+    id: '/$number',
+    path: '/$number',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const AuthenticatedMembersCardRoute =
+  AuthenticatedMembersCardRouteImport.update({
+    id: '/card',
+    path: '/card',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const AuthenticatedMembersDirectoryRoute =
+  AuthenticatedMembersDirectoryRouteImport.update({
+    id: '/directory',
+    path: '/directory',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const AuthenticatedMembersNotificationsRoute =
+  AuthenticatedMembersNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const AuthenticatedMembersSponsorRoute =
+  AuthenticatedMembersSponsorRouteImport.update({
+    id: '/sponsor',
+    path: '/sponsor',
+    getParentRoute: () => AuthenticatedMembersRoute,
+  } as any)
+const ApiPublicConcoursImageRoute = ApiPublicConcoursImageRouteImport.update({
+  id: '/api/public/concours-image',
+  path: '/api/public/concours-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEventImageRoute = ApiPublicEventImageRouteImport.update({
+  id: '/api/public/event-image',
+  path: '/api/public/event-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEventRsvpRoute = ApiPublicEventRsvpRouteImport.update({
+  id: '/api/public/event-rsvp',
+  path: '/api/public/event-rsvp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicNewsletterPdfRoute = ApiPublicNewsletterPdfRouteImport.update({
+  id: '/api/public/newsletter-pdf',
+  path: '/api/public/newsletter-pdf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicHooksEventRemindersRoute =
+  ApiPublicHooksEventRemindersRouteImport.update({
+    id: '/api/public/hooks/event-reminders',
+    path: '/api/public/hooks/event-reminders',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicNewsletterUnsubscribeRoute =
   ApiPublicNewsletterUnsubscribeRouteImport.update({
     id: '/api/public/newsletter/unsubscribe',
     path: '/api/public/newsletter/unsubscribe',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksEventRemindersRoute =
-  ApiPublicHooksEventRemindersRouteImport.update({
-    id: '/api/public/hooks/event-reminders',
-    path: '/api/public/hooks/event-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -306,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/events': typeof EventsRouteWithChildren
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/polls': typeof PollsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
@@ -350,6 +357,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/polls': typeof PollsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
@@ -394,9 +402,9 @@ export interface FileRoutesById {
   '/classifieds': typeof ClassifiedsRouteWithChildren
   '/contact': typeof ContactRoute
   '/events': typeof EventsRouteWithChildren
-  '/features/$slug': typeof FeaturesSlugRoute
   '/gallery': typeof GalleryRoute
   '/join': typeof JoinRoute
+  '/polls': typeof PollsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/shop': typeof ShopRoute
@@ -406,6 +414,7 @@ export interface FileRoutesById {
   '/_authenticated/members': typeof AuthenticatedMembersRouteWithChildren
   '/classifieds/$id': typeof ClassifiedsIdRoute
   '/events/$id': typeof EventsIdRoute
+  '/features/$slug': typeof FeaturesSlugRoute
   '/classifieds/': typeof ClassifiedsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/_authenticated/admin/classifieds': typeof AuthenticatedAdminClassifiedsRoute
@@ -442,9 +451,9 @@ export interface FileRouteTypes {
     | '/classifieds'
     | '/contact'
     | '/events'
-    | '/features/$slug'
     | '/gallery'
     | '/join'
+    | '/polls'
     | '/reset-password'
     | '/robots.txt'
     | '/shop'
@@ -454,6 +463,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/classifieds/$id'
     | '/events/$id'
+    | '/features/$slug'
     | '/classifieds/'
     | '/events/'
     | '/admin/classifieds'
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/gallery'
     | '/join'
+    | '/polls'
     | '/reset-password'
     | '/robots.txt'
     | '/shop'
@@ -531,9 +542,9 @@ export interface FileRouteTypes {
     | '/classifieds'
     | '/contact'
     | '/events'
-    | '/features/$slug'
     | '/gallery'
     | '/join'
+    | '/polls'
     | '/reset-password'
     | '/robots.txt'
     | '/shop'
@@ -543,6 +554,7 @@ export interface FileRouteTypes {
     | '/_authenticated/members'
     | '/classifieds/$id'
     | '/events/$id'
+    | '/features/$slug'
     | '/classifieds/'
     | '/events/'
     | '/_authenticated/admin/classifieds'
@@ -579,14 +591,15 @@ export interface RootRouteChildren {
   ClassifiedsRoute: typeof ClassifiedsRouteWithChildren
   ContactRoute: typeof ContactRoute
   EventsRoute: typeof EventsRouteWithChildren
-  FeaturesSlugRoute: typeof FeaturesSlugRoute
   GalleryRoute: typeof GalleryRoute
   JoinRoute: typeof JoinRoute
+  PollsRoute: typeof PollsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   ShopRoute: typeof ShopRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SponsorsRoute: typeof SponsorsRoute
+  FeaturesSlugRoute: typeof FeaturesSlugRoute
   ApiPublicConcoursImageRoute: typeof ApiPublicConcoursImageRoute
   ApiPublicEventImageRoute: typeof ApiPublicEventImageRoute
   ApiPublicEventRsvpRoute: typeof ApiPublicEventRsvpRoute
@@ -597,88 +610,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sponsors': {
-      id: '/sponsors'
-      path: '/sponsors'
-      fullPath: '/sponsors'
-      preLoaderRoute: typeof SponsorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shop': {
-      id: '/shop'
-      path: '/shop'
-      fullPath: '/shop'
-      preLoaderRoute: typeof ShopRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/robots.txt': {
-      id: '/robots.txt'
-      path: '/robots.txt'
-      fullPath: '/robots.txt'
-      preLoaderRoute: typeof RobotsDottxtRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/join': {
-      id: '/join'
-      path: '/join'
-      fullPath: '/join'
-      preLoaderRoute: typeof JoinRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/gallery': {
-      id: '/gallery'
-      path: '/gallery'
-      fullPath: '/gallery'
-      preLoaderRoute: typeof GalleryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/events': {
-      id: '/events'
-      path: '/events'
-      fullPath: '/events'
-      preLoaderRoute: typeof EventsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/classifieds': {
-      id: '/classifieds'
-      path: '/classifieds'
-      fullPath: '/classifieds'
-      preLoaderRoute: typeof ClassifiedsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -688,19 +624,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/events/': {
-      id: '/events/'
-      path: '/'
-      fullPath: '/events/'
-      preLoaderRoute: typeof EventsIndexRouteImport
-      parentRoute: typeof EventsRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/classifieds': {
+      id: '/classifieds'
+      path: '/classifieds'
+      fullPath: '/classifieds'
+      preLoaderRoute: typeof ClassifiedsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/polls': {
+      id: '/polls'
+      path: '/polls'
+      fullPath: '/polls'
+      preLoaderRoute: typeof PollsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sponsors': {
+      id: '/sponsors'
+      path: '/sponsors'
+      fullPath: '/sponsors'
+      preLoaderRoute: typeof SponsorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/members': {
+      id: '/_authenticated/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AuthenticatedMembersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/classifieds/': {
       id: '/classifieds/'
@@ -708,6 +735,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/classifieds/'
       preLoaderRoute: typeof ClassifiedsIndexRouteImport
       parentRoute: typeof ClassifiedsRoute
+    }
+    '/classifieds/$id': {
+      id: '/classifieds/$id'
+      path: '/$id'
+      fullPath: '/classifieds/$id'
+      preLoaderRoute: typeof ClassifiedsIdRouteImport
+      parentRoute: typeof ClassifiedsRoute
+    }
+    '/events/': {
+      id: '/events/'
+      path: '/'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof EventsRoute
     }
     '/events/$id': {
       id: '/events/$id'
@@ -723,34 +764,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FeaturesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/classifieds/$id': {
-      id: '/classifieds/$id'
-      path: '/$id'
-      fullPath: '/classifieds/$id'
-      preLoaderRoute: typeof ClassifiedsIdRouteImport
-      parentRoute: typeof ClassifiedsRoute
-    }
-    '/_authenticated/members': {
-      id: '/_authenticated/members'
-      path: '/members'
-      fullPath: '/members'
-      preLoaderRoute: typeof AuthenticatedMembersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/members/': {
-      id: '/_authenticated/members/'
-      path: '/'
-      fullPath: '/members/'
-      preLoaderRoute: typeof AuthenticatedMembersIndexRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
     '/_authenticated/admin/': {
       id: '/_authenticated/admin/'
       path: '/'
@@ -758,95 +771,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/api/public/newsletter-pdf': {
-      id: '/api/public/newsletter-pdf'
-      path: '/api/public/newsletter-pdf'
-      fullPath: '/api/public/newsletter-pdf'
-      preLoaderRoute: typeof ApiPublicNewsletterPdfRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/event-rsvp': {
-      id: '/api/public/event-rsvp'
-      path: '/api/public/event-rsvp'
-      fullPath: '/api/public/event-rsvp'
-      preLoaderRoute: typeof ApiPublicEventRsvpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/event-image': {
-      id: '/api/public/event-image'
-      path: '/api/public/event-image'
-      fullPath: '/api/public/event-image'
-      preLoaderRoute: typeof ApiPublicEventImageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/concours-image': {
-      id: '/api/public/concours-image'
-      path: '/api/public/concours-image'
-      fullPath: '/api/public/concours-image'
-      preLoaderRoute: typeof ApiPublicConcoursImageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/members/sponsor': {
-      id: '/_authenticated/members/sponsor'
-      path: '/sponsor'
-      fullPath: '/members/sponsor'
-      preLoaderRoute: typeof AuthenticatedMembersSponsorRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
-    '/_authenticated/members/notifications': {
-      id: '/_authenticated/members/notifications'
-      path: '/notifications'
-      fullPath: '/members/notifications'
-      preLoaderRoute: typeof AuthenticatedMembersNotificationsRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
-    '/_authenticated/members/directory': {
-      id: '/_authenticated/members/directory'
-      path: '/directory'
-      fullPath: '/members/directory'
-      preLoaderRoute: typeof AuthenticatedMembersDirectoryRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
-    '/_authenticated/members/card': {
-      id: '/_authenticated/members/card'
-      path: '/card'
-      fullPath: '/members/card'
-      preLoaderRoute: typeof AuthenticatedMembersCardRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
-    '/_authenticated/members/$number': {
-      id: '/_authenticated/members/$number'
-      path: '/$number'
-      fullPath: '/members/$number'
-      preLoaderRoute: typeof AuthenticatedMembersNumberRouteImport
-      parentRoute: typeof AuthenticatedMembersRoute
-    }
-    '/_authenticated/classifieds/new': {
-      id: '/_authenticated/classifieds/new'
-      path: '/classifieds/new'
-      fullPath: '/classifieds/new'
-      preLoaderRoute: typeof AuthenticatedClassifiedsNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/classifieds/mine': {
-      id: '/_authenticated/classifieds/mine'
-      path: '/classifieds/mine'
-      fullPath: '/classifieds/mine'
-      preLoaderRoute: typeof AuthenticatedClassifiedsMineRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/admin/sponsors': {
-      id: '/_authenticated/admin/sponsors'
-      path: '/sponsors'
-      fullPath: '/admin/sponsors'
-      preLoaderRoute: typeof AuthenticatedAdminSponsorsRouteImport
+    '/_authenticated/admin/classifieds': {
+      id: '/_authenticated/admin/classifieds'
+      path: '/classifieds'
+      fullPath: '/admin/classifieds'
+      preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/shop': {
-      id: '/_authenticated/admin/shop'
-      path: '/shop'
-      fullPath: '/admin/shop'
-      preLoaderRoute: typeof AuthenticatedAdminShopRouteImport
+    '/_authenticated/admin/concours': {
+      id: '/_authenticated/admin/concours'
+      path: '/concours'
+      fullPath: '/admin/concours'
+      preLoaderRoute: typeof AuthenticatedAdminConcoursRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/events': {
+      id: '/_authenticated/admin/events'
+      path: '/events'
+      fullPath: '/admin/events'
+      preLoaderRoute: typeof AuthenticatedAdminEventsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/gallery': {
+      id: '/_authenticated/admin/gallery'
+      path: '/gallery'
+      fullPath: '/admin/gallery'
+      preLoaderRoute: typeof AuthenticatedAdminGalleryRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
+    '/_authenticated/admin/members': {
+      id: '/_authenticated/admin/members'
+      path: '/members'
+      fullPath: '/admin/members'
+      preLoaderRoute: typeof AuthenticatedAdminMembersRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
     '/_authenticated/admin/newsletter': {
@@ -863,46 +820,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPollsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/members': {
-      id: '/_authenticated/admin/members'
-      path: '/members'
-      fullPath: '/admin/members'
-      preLoaderRoute: typeof AuthenticatedAdminMembersRouteImport
+    '/_authenticated/admin/shop': {
+      id: '/_authenticated/admin/shop'
+      path: '/shop'
+      fullPath: '/admin/shop'
+      preLoaderRoute: typeof AuthenticatedAdminShopRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/gallery': {
-      id: '/_authenticated/admin/gallery'
-      path: '/gallery'
-      fullPath: '/admin/gallery'
-      preLoaderRoute: typeof AuthenticatedAdminGalleryRouteImport
+    '/_authenticated/admin/sponsors': {
+      id: '/_authenticated/admin/sponsors'
+      path: '/sponsors'
+      fullPath: '/admin/sponsors'
+      preLoaderRoute: typeof AuthenticatedAdminSponsorsRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
-    '/_authenticated/admin/events': {
-      id: '/_authenticated/admin/events'
-      path: '/events'
-      fullPath: '/admin/events'
-      preLoaderRoute: typeof AuthenticatedAdminEventsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/classifieds/mine': {
+      id: '/_authenticated/classifieds/mine'
+      path: '/classifieds/mine'
+      fullPath: '/classifieds/mine'
+      preLoaderRoute: typeof AuthenticatedClassifiedsMineRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/concours': {
-      id: '/_authenticated/admin/concours'
-      path: '/concours'
-      fullPath: '/admin/concours'
-      preLoaderRoute: typeof AuthenticatedAdminConcoursRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/classifieds/new': {
+      id: '/_authenticated/classifieds/new'
+      path: '/classifieds/new'
+      fullPath: '/classifieds/new'
+      preLoaderRoute: typeof AuthenticatedClassifiedsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/classifieds': {
-      id: '/_authenticated/admin/classifieds'
-      path: '/classifieds'
-      fullPath: '/admin/classifieds'
-      preLoaderRoute: typeof AuthenticatedAdminClassifiedsRouteImport
-      parentRoute: typeof AuthenticatedAdminRouteRoute
+    '/_authenticated/members/': {
+      id: '/_authenticated/members/'
+      path: '/'
+      fullPath: '/members/'
+      preLoaderRoute: typeof AuthenticatedMembersIndexRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
     }
-    '/api/public/newsletter/unsubscribe': {
-      id: '/api/public/newsletter/unsubscribe'
-      path: '/api/public/newsletter/unsubscribe'
-      fullPath: '/api/public/newsletter/unsubscribe'
-      preLoaderRoute: typeof ApiPublicNewsletterUnsubscribeRouteImport
+    '/_authenticated/members/$number': {
+      id: '/_authenticated/members/$number'
+      path: '/$number'
+      fullPath: '/members/$number'
+      preLoaderRoute: typeof AuthenticatedMembersNumberRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/members/card': {
+      id: '/_authenticated/members/card'
+      path: '/card'
+      fullPath: '/members/card'
+      preLoaderRoute: typeof AuthenticatedMembersCardRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/members/directory': {
+      id: '/_authenticated/members/directory'
+      path: '/directory'
+      fullPath: '/members/directory'
+      preLoaderRoute: typeof AuthenticatedMembersDirectoryRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/members/notifications': {
+      id: '/_authenticated/members/notifications'
+      path: '/notifications'
+      fullPath: '/members/notifications'
+      preLoaderRoute: typeof AuthenticatedMembersNotificationsRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/_authenticated/members/sponsor': {
+      id: '/_authenticated/members/sponsor'
+      path: '/sponsor'
+      fullPath: '/members/sponsor'
+      preLoaderRoute: typeof AuthenticatedMembersSponsorRouteImport
+      parentRoute: typeof AuthenticatedMembersRoute
+    }
+    '/api/public/concours-image': {
+      id: '/api/public/concours-image'
+      path: '/api/public/concours-image'
+      fullPath: '/api/public/concours-image'
+      preLoaderRoute: typeof ApiPublicConcoursImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/event-image': {
+      id: '/api/public/event-image'
+      path: '/api/public/event-image'
+      fullPath: '/api/public/event-image'
+      preLoaderRoute: typeof ApiPublicEventImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/event-rsvp': {
+      id: '/api/public/event-rsvp'
+      path: '/api/public/event-rsvp'
+      fullPath: '/api/public/event-rsvp'
+      preLoaderRoute: typeof ApiPublicEventRsvpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/newsletter-pdf': {
+      id: '/api/public/newsletter-pdf'
+      path: '/api/public/newsletter-pdf'
+      fullPath: '/api/public/newsletter-pdf'
+      preLoaderRoute: typeof ApiPublicNewsletterPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/event-reminders': {
@@ -910,6 +923,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/hooks/event-reminders'
       fullPath: '/api/public/hooks/event-reminders'
       preLoaderRoute: typeof ApiPublicHooksEventRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/newsletter/unsubscribe': {
+      id: '/api/public/newsletter/unsubscribe'
+      path: '/api/public/newsletter/unsubscribe'
+      fullPath: '/api/public/newsletter/unsubscribe'
+      preLoaderRoute: typeof ApiPublicNewsletterUnsubscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1021,14 +1041,15 @@ const rootRouteChildren: RootRouteChildren = {
   ClassifiedsRoute: ClassifiedsRouteWithChildren,
   ContactRoute: ContactRoute,
   EventsRoute: EventsRouteWithChildren,
-  FeaturesSlugRoute: FeaturesSlugRoute,
   GalleryRoute: GalleryRoute,
   JoinRoute: JoinRoute,
+  PollsRoute: PollsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   ShopRoute: ShopRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SponsorsRoute: SponsorsRoute,
+  FeaturesSlugRoute: FeaturesSlugRoute,
   ApiPublicConcoursImageRoute: ApiPublicConcoursImageRoute,
   ApiPublicEventImageRoute: ApiPublicEventImageRoute,
   ApiPublicEventRsvpRoute: ApiPublicEventRsvpRoute,

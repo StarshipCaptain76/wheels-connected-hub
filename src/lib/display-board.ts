@@ -25,7 +25,7 @@ export type BoardOwner = {
 
 type SpecRow = { label: string; value: string };
 
-function specRows(v: GarageVehicle, af: boolean): SpecRow[] {
+export function specRows(v: GarageVehicle, af: boolean): SpecRow[] {
   const L = (en: string, a: string) => (af ? a : en);
   const raw: Array<[string, string | null]> = [
     [L("Built by", "Gebou deur"), v.built_by],
@@ -253,22 +253,47 @@ export async function downloadDisplayBoard(opts: {
     const colW = cols === 2 ? (rightW - colGap) / 2 : rightW;
     const perCol = Math.ceil(rows.length / cols);
     const available = panelBottom - y;
-    const rowH = Math.min(20, Math.max(9, available / perCol));
-    const labelSize = Math.min(9, Math.max(6, rowH * 0.42));
-    const valueSize = Math.min(11, Math.max(7, rowH * 0.5));
+    const lineFactor = 1.28;
 
-    // Tab stop: labels left-aligned in a fixed-width column, values start at
-    // the same x on every row so the whole table lines up.
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(labelSize);
-    const widest = rows.reduce((m, r) => Math.max(m, doc.getTextWidth(r.label.toUpperCase())), 0);
-    const tabX = Math.min(widest + 6, colW * 0.55);
+    let labelSize = 9;
+    let valueSize = 11;
+    let tabX = colW * 0.45;
+    let wrapped: string[][] = [];
+    let lineStep = valueSize * 0.3528 * lineFactor;
 
+    const measure = (ls: number, vs: number) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(ls);
+      const widest = rows.reduce((m, r) => Math.max(m, doc.getTextWidth(r.label.toUpperCase())), 0);
+      const tab = Math.min(widest + 5, colW * 0.48);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(vs);
+      const step = vs * 0.3528 * lineFactor;
+      const lines = rows.map((r) => doc.splitTextToSize(r.value, Math.max(12, colW - tab)) as string[]);
+      const colH = [0, 0];
+      lines.forEach((ln, i) => {
+        colH[Math.floor(i / perCol)] += Math.max(1, ln.length) * step + 1.2;
+      });
+      return { tab, lines, step, tallest: Math.max(...colH) };
+    };
+
+    for (;;) {
+      const m = measure(labelSize, valueSize);
+      tabX = m.tab;
+      wrapped = m.lines;
+      lineStep = m.step;
+      if (m.tallest <= available || valueSize <= 6.5) break;
+      labelSize -= 0.25;
+      valueSize -= 0.3;
+    }
+
+    const colY = [y, y];
     rows.forEach((row, i) => {
       const col = Math.floor(i / perCol);
-      const idx = i % perCol;
       const x = rightX + col * (colW + colGap);
-      const ry = y + idx * rowH;
+      const ry = colY[col];
+      const lines = wrapped[i] ?? [row.value];
+      const blockH = Math.max(1, lines.length) * lineStep + 1.2;
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(labelSize);
@@ -278,12 +303,13 @@ export async function downloadDisplayBoard(opts: {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(valueSize);
       doc.setTextColor(INK);
-      const value = doc.splitTextToSize(row.value, colW - tabX)[0] as string;
-      doc.text(value, x + tabX, ry);
+      doc.text(lines, x + tabX, ry, { lineHeightFactor: lineFactor });
 
       doc.setDrawColor(228, 223, 217);
       doc.setLineWidth(0.25);
-      doc.line(x, ry + rowH * 0.3, x + colW, ry + rowH * 0.3);
+      doc.line(x, ry + blockH - 1.4, x + colW, ry + blockH - 1.4);
+
+      colY[col] += blockH;
     });
   }
 

@@ -2,12 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
+
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMyProfile, type MemberProfile } from "@/lib/profile.functions";
 import { listMyGarage } from "@/lib/garage.functions";
 import { CACHED_PROFILE_KEY } from "@/lib/members-cache";
 import { MemberCard, pickCarPhoto, pickFacePhoto, initials } from "@/components/MemberCard";
+import { DisplayBoardPreview } from "@/components/DisplayBoardPreview";
 import { LOGO_URL } from "@/lib/brand";
 import { downloadDisplayBoard } from "@/lib/display-board";
 import { Download, WifiOff, FileDown } from "lucide-react";
@@ -22,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/members/card")({
 /** CR80 credit-card size at ~300 DPI for laminate print */
 const PRINT_W = 1013;
 const PRINT_H = 638;
-const INK = "#140e0c";
+const INK = "#000000";
 const PAPER = "#ffffff";
 
 function readCache(): MemberProfile | null {
@@ -140,8 +141,7 @@ function MemberCardPage() {
   }
 
   return (
-    <SiteLayout>
-      <section className="mx-auto max-w-3xl px-4 py-10">
+    <section className="mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link to="/members" className="text-xs font-bold uppercase tracking-widest text-ink/60 hover:text-ink">
             ← {t("members.back")}
@@ -223,26 +223,82 @@ function MemberCardPage() {
         {!profile ? (
           <p className="text-ink/60">{t("card.needSync")}</p>
         ) : (
-          <div className="mx-auto w-full max-w-2xl">
-            <MemberCard ref={cardRef} profile={profile} carPhoto={carPhoto} facePhoto={facePhoto} />
-            {!carPhoto && (
-              <p className="mt-3 text-center text-xs text-ink/50">
-                {lang === "af"
-                  ? "Geen garage-foto nie — laai 'n motorfoto in My Garage op."
-                  : "No garage photo yet — upload a car photo in My Garage."}
+          <div className="mx-auto w-full space-y-10">
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                {lang === "af" ? "Lidkaart" : "Member card"}
               </p>
-            )}
-            {!facePhoto && (
-              <p className="mt-2 text-center text-xs text-ink/50">
-                {lang === "af"
-                  ? "Geen gesigfoto nie — gaan na My Garage → Lidkaart-foto en laai jou portret op."
-                  : "No face photo — go to My Garage → Member card photo and upload your portrait."}
-              </p>
-            )}
+              <div className="mx-auto w-full max-w-2xl">
+                <MemberCard ref={cardRef} profile={profile} carPhoto={carPhoto} facePhoto={facePhoto} />
+              </div>
+              {!carPhoto && (
+                <p className="mt-3 text-center text-xs text-ink/50">
+                  {lang === "af"
+                    ? "Geen garage-foto nie — laai 'n motorfoto in My Garage op."
+                    : "No garage photo yet — upload a car photo in My Garage."}
+                </p>
+              )}
+              {!facePhoto && (
+                <p className="mt-2 text-center text-xs text-ink/50">
+                  {lang === "af"
+                    ? "Geen gesigfoto nie — gaan na My Garage → Lidkaart-foto en laai jou portret op."
+                    : "No face photo — go to My Garage → Member card photo and upload your portrait."}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                  {lang === "af" ? "Vertoonbord (A4 landskap)" : "Display board (A4 landscape)"}
+                </p>
+                {boardVehicle && (
+                  <div className="inline-flex overflow-hidden rounded-md border-2 border-ink">
+                    {(["specs", "story"] as const).map((m) => (
+                      <button
+                        key={`board-preview-${m}`}
+                        type="button"
+                        onClick={() => setBoardMode(m)}
+                        aria-pressed={boardMode === m}
+                        className={`px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider ${
+                          boardMode === m ? "bg-ink text-paper" : "bg-paper text-ink hover:bg-ink/5"
+                        }`}
+                      >
+                        {m === "specs"
+                          ? lang === "af"
+                            ? "Spesifikasies"
+                            : "Tech specs"
+                          : lang === "af"
+                            ? "Storie"
+                            : "Story"}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {boardVehicle ? (
+                <DisplayBoardPreview
+                  vehicle={boardVehicle}
+                  owner={{
+                    display_name: profile.display_name,
+                    member_number: profile.member_number,
+                    town: profile.town,
+                    avatar_url: profile.avatar_url,
+                  }}
+                  lang={lang === "af" ? "af" : "en"}
+                  content={boardMode}
+                />
+              ) : (
+                <div className="rounded-xl border-2 border-dashed border-ink/30 bg-ink/5 px-4 py-10 text-center text-sm text-ink/50">
+                  {lang === "af"
+                    ? "Voeg ’n voertuig met ’n foto by in My Garage om die vertoonbord te sien."
+                    : "Add a vehicle with a photo in My Garage to preview the display board."}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </section>
-    </SiteLayout>
   );
 }
 
@@ -319,29 +375,53 @@ async function downloadLandscapeCard(
   ctx.fillText(af ? "LIDKAART" : "MEMBER", PRINT_W - 85, 47);
   ctx.textAlign = "left";
 
-  ctx.fillStyle = INK;
-  let nameSize = 280;
+  const nameParts = name.trim().split(/\s+/).filter(Boolean);
+  const nameLine1 = (nameParts[0] ?? "—").toUpperCase();
+  const nameLine2 = nameParts.length > 1 ? nameParts.slice(1).join(" ").toUpperCase() : null;
+  const longest = nameLine2 && nameLine2.length > nameLine1.length ? nameLine2 : nameLine1;
+  const maxNameW = PRINT_W - 120;
+  let nameSize = 168;
   ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
-  const nameText = name.toUpperCase();
-  const maxNameW = PRINT_W - 48;
-  while (ctx.measureText(nameText).width > maxNameW && nameSize > 44) {
-    nameSize -= 4;
+  while (ctx.measureText(longest).width > maxNameW && nameSize > 64) {
+    nameSize -= 2;
     ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
   }
+  ctx.fillStyle = INK;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(nameText, PRINT_W / 2, PRINT_H / 2);
+  if (nameLine2) {
+    const gap = nameSize * 0.92;
+    ctx.fillText(nameLine1, PRINT_W / 2, PRINT_H / 2 - gap / 2);
+    ctx.fillText(nameLine2, PRINT_W / 2, PRINT_H / 2 + gap / 2);
+  } else {
+    ctx.fillText(nameLine1, PRINT_W / 2, PRINT_H / 2);
+  }
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = INK;
-  ctx.font = "500 18px Barlow, sans-serif";
-  ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 28);
+  const metaLeft = 48;
+  const metaBottom = PRINT_H - 32;
+  const rideSize = 44;
+  const townSize = 42;
+  const sinceSize = 24;
+  const sinceLabel = `${(af ? "Sedert" : "Since").toUpperCase()} ${year}`;
 
-  const meta = [`${af ? "Sedert" : "Since"} ${year}`, profile.town].filter(Boolean).join("  ·  ");
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = INK;
-  ctx.font = "600 14px Barlow, sans-serif";
-  ctx.fillText(meta, 48, PRINT_H - 58);
+  ctx.font = `600 ${sinceSize}px Barlow, sans-serif`;
+  if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0.1em";
+  ctx.fillText(sinceLabel, metaLeft, metaBottom);
+  const sinceW = ctx.measureText(sinceLabel).width;
+  if ("letterSpacing" in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = "0px";
+
+  if (profile.town) {
+    ctx.font = `600 ${townSize}px Barlow, sans-serif`;
+    ctx.fillText(profile.town, metaLeft + sinceW + 24, metaBottom);
+  }
+
+  ctx.font = `600 ${rideSize}px Barlow, sans-serif`;
+  ctx.fillText(ride.slice(0, 42), metaLeft, metaBottom - townSize - 10);
 
   const cx = PRINT_W - 90;
   const cy = PRINT_H - 90;

@@ -172,17 +172,28 @@ function MoreMenu({
   );
 }
 
-export function SiteLayout({ children }: { children: ReactNode }) {
+export function SiteLayout({
+  children,
+  portal = "site",
+  portalMenu,
+}: {
+  children: ReactNode;
+  portal?: "site" | "members" | "admin";
+  portalMenu?: (close: () => void) => ReactNode;
+}) {
   const { t } = useI18n();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isPortal = portal !== "site";
+  const hamburgerUntil = portal === "admin" ? "md:hidden" : "lg:hidden";
 
   useEffect(() => {
     function onResize() {
-      if (window.innerWidth >= 768) setMenuOpen(false);
+      const cutoff = portal === "admin" ? 768 : 1024;
+      if (window.innerWidth >= cutoff) setMenuOpen(false);
     }
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [portal]);
 
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = "hidden";
@@ -198,6 +209,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
     { to: "/", label: t("nav.home") },
     { to: "/events", label: t("nav.events") },
     { to: "/classifieds", label: t("nav.classifieds") },
+    { to: "/polls", label: t("nav.polls") },
   ] as const;
 
   const moreNav = [
@@ -262,7 +274,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
             <button
               type="button"
-              className="inline-flex h-12 w-12 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper lg:hidden"
+              className={`inline-flex h-12 w-12 items-center justify-center rounded-md border-2 border-ink bg-primary text-paper ${hamburgerUntil}`}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((o) => !o)}
@@ -273,7 +285,12 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         </div>
 
         {menuOpen && (
-          <div className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-t-2 border-ink bg-paper pb-[env(safe-area-inset-bottom)] lg:hidden">
+          <div className={`max-h-[calc(100dvh-4.5rem)] overflow-y-auto overscroll-contain border-t-2 border-ink bg-paper pb-[env(safe-area-inset-bottom)] ${hamburgerUntil}`}>
+            {isPortal && portalMenu ? (
+              <nav aria-label="Portal" className="mx-auto max-w-6xl px-3 py-3">
+                {portalMenu(closeMenu)}
+              </nav>
+            ) : (
             <nav aria-label="Primary" className="mx-auto max-w-6xl px-4 py-3">
               <div className="mb-3 flex flex-wrap items-center gap-3 border-b border-ink/10 pb-3">
                 <AuthAffordance onNavigate={closeMenu} />
@@ -315,13 +332,14 @@ export function SiteLayout({ children }: { children: ReactNode }) {
                 ))}
               </ul>
             </nav>
+            )}
           </div>
         )}
       </header>
 
       <main className="flex-1">{children}</main>
 
-      <footer className="mt-16 border-t-2 border-ink bg-paper text-ink">
+      <footer className={`mt-16 border-t-2 border-ink bg-paper text-ink ${isPortal ? "hidden lg:block" : ""}`}>
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">

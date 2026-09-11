@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listMyGarage,
@@ -105,6 +105,30 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    function applyHash() {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      if (hash === "#garage-add") {
+        setEditing((cur) =>
+          cur ?? {
+            make: "",
+            model: "",
+            nickname: "",
+            story: "",
+            is_primary: false,
+            sort: 0,
+          },
+        );
+      }
+      if (hash === "#garage" || hash === "#garage-add") {
+        document.getElementById("garage")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
 
   async function refresh() {
     await qc.invalidateQueries({ queryKey: ["garage", "me"] });
@@ -377,10 +401,10 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
   }
 
   return (
-    <section className="mt-8 space-y-6">
+    <section id="garage" className="scroll-mt-20 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-3xl tracking-wide text-ink">My garage</h2>
+          <h2 className="font-display text-2xl tracking-wide text-ink sm:text-3xl">My garage</h2>
           <p className="mt-1 text-sm text-ink/60">
             {lang === "af"
               ? "Laai fotos op, skryf die storie, en kies een foto vir jou lidkaart."
@@ -418,8 +442,8 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
         </p>
       )}
 
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border-2 border-ink bg-paper p-4 shadow-[3px_3px_0_0_var(--color-ink)]">
-        <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-ink bg-ink/10">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-ink bg-paper p-3 shadow-[3px_3px_0_0_var(--color-ink)]">
+        <div className="relative h-16 w-16 overflow-hidden rounded-full border-2 border-ink bg-ink/10 sm:h-24 sm:w-24">
           {avatarUrl ? (
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -452,7 +476,7 @@ export function GarageManager({ avatarUrl, lang = "en" }: { avatarUrl: string | 
       {isLoading ? (
         <p className="text-ink/50">{lang === "af" ? "Laai…" : "Loading…"}</p>
       ) : vehicles.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-ink/30 bg-ink/5 px-6 py-12 text-center">
+        <div className="rounded-xl border-2 border-dashed border-ink/30 bg-ink/5 px-4 py-8 text-center">
           <Car className="mx-auto h-8 w-8 text-ink/30" />
           <p className="mt-2 font-display text-xl text-ink/50">
             {lang === "af" ? "Nog niks in die garage nie" : "Nothing in the garage yet"}

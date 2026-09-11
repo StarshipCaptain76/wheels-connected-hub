@@ -64,7 +64,7 @@ export function MemberCard({
     <article
       ref={ref}
       aria-label="Just Wheels Hessequa member card"
-      className="relative aspect-[85.6/53.98] w-full overflow-hidden rounded-2xl border-4 border-ink bg-white text-ink shadow-[8px_8px_0_0_var(--color-primary)]"
+      className="relative aspect-[85.6/53.98] w-full overflow-hidden rounded-2xl border-4 border-black bg-white text-black shadow-[8px_8px_0_0_var(--color-primary)]"
     >
       {carPhoto ? (
         <img src={carPhoto} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -80,27 +80,27 @@ export function MemberCard({
             <img
               src={LOGO_URL}
               alt="Just Wheels"
-              className={`shrink-0 rounded-full border-2 border-ink bg-white object-cover shadow-md ${
+              className={`shrink-0 rounded-full border-2 border-black bg-white object-cover shadow-md ${
                 compact ? "h-9 w-9" : "h-11 w-11 sm:h-12 sm:w-12"
               }`}
             />
             <div>
               <div
-                className={`font-display leading-none tracking-wide text-ink ${
+                className={`font-display leading-none tracking-wide text-black ${
                   compact ? "text-base" : "text-lg sm:text-xl"
                 }`}
               >
                 JUST WHEELS
               </div>
               <div
-                className={`tracking-[0.28em] text-ink ${compact ? "text-[9px]" : "text-[10px] sm:text-xs"}`}
+                className={`tracking-[0.28em] text-black ${compact ? "text-[9px]" : "text-[10px] sm:text-xs"}`}
               >
                 HESSEQUA
               </div>
             </div>
           </div>
           <span
-            className={`rounded-full border border-ink bg-white px-2.5 py-0.5 font-bold uppercase tracking-widest text-ink ${
+            className={`rounded-full border border-black bg-white px-2.5 py-0.5 font-bold uppercase tracking-widest text-black ${
               compact ? "text-[8px]" : "text-[9px] sm:text-[10px]"
             }`}
           >
@@ -108,40 +108,51 @@ export function MemberCard({
           </span>
         </header>
 
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-3">
-          <p
-            className={`w-full break-words text-center font-display uppercase leading-[0.9] tracking-wide text-ink ${
-              compact ? "text-[3.2rem]" : "text-[4.2rem] sm:text-8xl md:text-9xl"
-            }`}
-          >
-            {profile.display_name ?? "—"}
-          </p>
+        <div className="pointer-events-none absolute inset-x-1 top-[18%] bottom-[22%] flex flex-col items-center justify-center px-2">
+          {(() => {
+            const parts = (profile.display_name ?? "—").trim().split(/\s+/).filter(Boolean);
+            const line1 = (parts[0] ?? "—").toUpperCase();
+            const line2 = parts.length > 1 ? parts.slice(1).join(" ").toUpperCase() : null;
+            const nameCls = `w-full text-center font-display uppercase leading-[0.82] tracking-wide text-black ${
+              compact ? "text-[3.9rem]" : "text-[5.625rem] sm:text-[7.125rem] md:text-[9rem]"
+            }`;
+            return (
+              <>
+                <p className={nameCls}>{line1}</p>
+                {line2 ? <p className={nameCls}>{line2}</p> : null}
+              </>
+            );
+          })()}
         </div>
 
         <div className="mt-auto">
           <div className="max-w-[68%]">
             <p
-              className={`mt-1.5 line-clamp-1 text-ink ${compact ? "text-xs" : "text-sm sm:text-base"}`}
+              className={`mt-1.5 line-clamp-1 font-semibold text-black ${compact ? "text-2xl" : "text-2xl sm:text-3xl"}`}
             >
               {profile.favourite_ride || t("card.noRide")}
             </p>
 
             <div
-              className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 uppercase tracking-widest text-ink ${
-                compact ? "text-[10px]" : "text-xs sm:text-sm"
+              className={`mt-1 flex flex-wrap items-baseline gap-x-4 gap-y-1 uppercase tracking-widest text-black ${
+                compact ? "text-sm" : "text-base"
               }`}
             >
               <span>
                 {t("card.since")} {year}
               </span>
-              {profile.town && <span>{profile.town}</span>}
+              {profile.town && (
+                <span className={compact ? "text-xl" : "text-2xl sm:text-[1.75rem] font-semibold normal-case tracking-normal"}>
+                  {profile.town}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
         <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4">
           <div className={`relative ${compact ? "h-12 w-12" : "h-16 w-16 sm:h-20 sm:w-20"}`}>
-            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-ink bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
+            <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-[3px] border-black bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)]">
               {facePhoto ? (
                 <img
                   src={facePhoto}
@@ -153,14 +164,14 @@ export function MemberCard({
                 />
               ) : (
                 <span
-                  className={`font-display tracking-wide text-ink ${compact ? "text-lg" : "text-xl sm:text-2xl"}`}
+                  className={`font-display tracking-wide text-black ${compact ? "text-lg" : "text-xl sm:text-2xl"}`}
                 >
                   {faceInitials}
                 </span>
               )}
             </div>
             <div
-              className={`absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border-2 border-ink bg-white shadow ${
+              className={`absolute -bottom-0.5 -right-0.5 overflow-hidden rounded-full border-2 border-black bg-white shadow ${
                 compact ? "h-6 w-6" : "h-7 w-7 sm:h-8 sm:w-8"
               }`}
             >

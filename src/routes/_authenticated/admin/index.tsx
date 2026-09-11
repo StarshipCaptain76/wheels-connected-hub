@@ -155,13 +155,32 @@ function AdminOverview() {
     },
   ] as const;
 
+  const attention = cards.filter((c) => "highlight" in c && c.highlight);
+
   return (
     <div>
-      <h1 className="font-display text-4xl tracking-wide text-ink">Overview</h1>
-      <p className="mt-1 text-sm text-ink/60">Quick pulse on the club. Pick a section on the left.</p>
+      <h1 className="font-display text-2xl tracking-wide text-ink sm:text-3xl">Overview</h1>
+      <p className="mt-0.5 text-xs text-ink/55 md:hidden">Menu (☰) jumps to any section.</p>
+      <p className="mt-0.5 hidden text-xs text-ink/55 md:block">Pick a section on the left.</p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((c) => {
+      {attention.length > 0 && (
+        <div className="mt-3 rounded-lg border-2 border-primary bg-primary/10 px-3 py-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Needs action</p>
+          <ul className="mt-1 space-y-1">
+            {attention.map((c) => (
+              <li key={c.to}>
+                <Link to={c.to} className="flex items-center justify-between text-sm font-bold text-ink">
+                  <span>{c.label}</span>
+                  <span className="font-display text-lg text-primary">{c.value}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="mt-3 overflow-hidden rounded-xl border-2 border-ink bg-paper">
+        {cards.map((c, i) => {
           const Icon = c.icon;
           const highlight = "highlight" in c && c.highlight;
           const sub = "sub" in c ? c.sub : undefined;
@@ -169,19 +188,17 @@ function AdminOverview() {
             <Link
               key={c.to}
               to={c.to}
-              className={`group rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none ${
-                highlight ? "ring-2 ring-primary ring-offset-2" : ""
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 ${
+                i > 0 ? "border-t border-ink/10" : ""
+              } ${highlight ? "bg-primary/5" : "hover:bg-ink/5"}`}
             >
-              <div className="flex items-center justify-between">
-                <Icon className="h-5 w-5 text-primary" />
-                <ArrowRight className="h-4 w-4 text-ink/40 group-hover:text-primary" />
+              <Icon className="h-4 w-4 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold leading-tight text-ink">{c.label}</div>
+                {sub ? <div className="text-[11px] font-semibold text-primary">{sub}</div> : null}
               </div>
-              <div className="mt-3 font-display text-3xl text-ink">{c.value}</div>
-              <div className="mt-1 text-xs font-bold uppercase tracking-wider text-ink/60">{c.label}</div>
-              {sub ? (
-                <div className="mt-1 text-xs font-semibold text-primary">{sub}</div>
-              ) : null}
+              <div className="font-display text-xl leading-none text-ink">{c.value}</div>
+              <ArrowRight className="h-4 w-4 shrink-0 text-ink/30" />
             </Link>
           );
         })}
@@ -197,32 +214,26 @@ function TestNotificationButton() {
   const [busy, setBusy] = useState(false);
 
   return (
-    <div className="mt-8 rounded-2xl border-2 border-ink bg-paper p-5 shadow-[4px_4px_0_0_var(--color-ink)]">
-      <p className="font-display text-sm tracking-wide text-ink">Notification check</p>
-      <p className="mt-1 text-xs text-ink/60">
-        Sends a test notification to your own bell so you can confirm delivery works.
-      </p>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            const res = await send();
-            if (res.ok) toast.success(res.message);
-            else toast.error(res.message);
-          } catch (e) {
-            toast.error(e instanceof Error ? e.message : "Failed");
-          } finally {
-            setBusy(false);
-          }
-        }}
-        className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm font-bold uppercase tracking-wide text-ink hover:bg-ink/5 disabled:opacity-50"
-      >
-        <Bell className="h-4 w-4" />
-        {busy ? "Sending…" : "Send me a test notification"}
-      </button>
-    </div>
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          const res = await send();
+          if (res.ok) toast.success(res.message);
+          else toast.error(res.message);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Failed");
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="mt-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-ink/50 hover:text-ink disabled:opacity-50"
+    >
+      <Bell className="h-3.5 w-3.5" />
+      {busy ? "Sending…" : "Send me a test notification"}
+    </button>
   );
 }
 

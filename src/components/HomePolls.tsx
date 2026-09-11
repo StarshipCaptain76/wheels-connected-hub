@@ -12,7 +12,7 @@ import {
   type HomePoll,
 } from "@/lib/polls.functions";
 
-export function HomePolls() {
+export function HomePolls({ asPage = false }: { asPage?: boolean }) {
   const { lang } = useI18n();
   const isAf = lang === "af";
   const qc = useQueryClient();
@@ -56,7 +56,8 @@ export function HomePolls() {
   });
 
   const polls = data ?? [];
-  if (!hydrated || polls.length === 0) return null;
+  if (!hydrated) return null;
+  if (polls.length === 0 && !asPage) return null;
 
   async function onVote(pollId: string, optionId: string) {
     if (!signedIn || busy) return;
@@ -88,8 +89,10 @@ export function HomePolls() {
     }
   }
 
+  const Heading = asPage ? "h1" : "h2";
+
   return (
-    <section className="border-b-2 border-ink bg-paper text-ink">
+    <section id="polls" className="scroll-mt-24 border-b-2 border-ink bg-paper text-ink">
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="mb-5 flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" />
@@ -97,9 +100,9 @@ export function HomePolls() {
             {isAf ? "KLUB-PEILINGS" : "CLUB POLLS"}
           </span>
         </div>
-        <h2 className="font-display text-3xl tracking-wide sm:text-4xl">
+        <Heading className="font-display text-3xl tracking-wide sm:text-4xl">
           {isAf ? "Klub-peilings" : "Club polls"}
-        </h2>
+        </Heading>
         <p className="mt-1 text-sm text-ink/70">
           {isAf
             ? "Een keuse per peiling. Jy kan jou stem later verander."
@@ -112,6 +115,11 @@ export function HomePolls() {
           </p>
         )}
 
+        {polls.length === 0 ? (
+          <p className="mt-6 text-sm text-ink/60">
+            {isAf ? "Geen oop peilings tans nie." : "No open polls right now."}
+          </p>
+        ) : (
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           {polls.map((poll) => (
             <PollCard
@@ -127,6 +135,7 @@ export function HomePolls() {
             />
           ))}
         </div>
+        )}
       </div>
     </section>
   );

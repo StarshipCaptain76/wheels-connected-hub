@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { MembersShell } from "@/components/MembersShell";
 
 /**
  * Layout route for /members/* — MUST render <Outlet /> so child routes
@@ -6,5 +7,9 @@ import { createFileRoute, Outlet } from "@tanstack/react-router";
  * Page content lives in members.index.tsx.
  */
 export const Route = createFileRoute("/_authenticated/members")({
-  component: () => <Outlet />,
+  component: () => (
+    <MembersShell>
+      <Outlet />
+    </MembersShell>
+  ),
 });

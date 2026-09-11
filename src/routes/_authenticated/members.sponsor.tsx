@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
+
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { getMySponsor, updateMySponsor, type MySponsor } from "@/lib/sponsors.functions";
 import { ArrowLeft, Handshake, TriangleAlert } from "lucide-react";
@@ -53,8 +53,7 @@ function MySponsorPage() {
   const locked = Boolean(sponsor?.expired);
 
   return (
-    <SiteLayout>
-      <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto max-w-2xl px-3 py-4 sm:px-4 sm:py-8">
         <Link
           to="/members"
           className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-ink/70"
@@ -204,6 +203,5 @@ function MySponsorPage() {
           </>
         )}
       </div>
-    </SiteLayout>
   );
 }

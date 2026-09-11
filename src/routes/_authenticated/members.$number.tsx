@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { SiteLayout } from "@/components/SiteLayout";
+
 import { ImageLightbox, type LightboxItem } from "@/components/ImageLightbox";
 import { useI18n } from "@/i18n/I18nProvider";
 import { getMemberByNumber, type MemberGarage } from "@/lib/member-lookup.functions";
@@ -32,14 +32,12 @@ export const Route = createFileRoute("/_authenticated/members/$number")({
   },
   component: MemberPage,
   notFoundComponent: () => (
-    <SiteLayout>
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
         <h1 className="font-display text-3xl">Member not found</h1>
         <Link to="/members" className="mt-4 inline-block text-primary underline">
           Back to The Garage
         </Link>
       </div>
-    </SiteLayout>
   ),
 });
 
@@ -64,8 +62,8 @@ function MemberPage() {
   }
 
   return (
-    <SiteLayout>
-      <div className="mx-auto max-w-3xl px-4 py-10">
+    <>
+    <div className="mx-auto max-w-3xl px-3 py-4 sm:px-4 sm:py-8">
         <Link
           to="/members"
           className="mb-4 inline-flex items-center gap-2 text-sm text-ink/60 hover:text-primary"
@@ -289,6 +287,6 @@ function MemberPage() {
           onIndex={(i) => setLightbox((cur) => (cur ? { ...cur, index: i } : null))}
         />
       )}
-    </SiteLayout>
+    </>
   );
 }

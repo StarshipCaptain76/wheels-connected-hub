@@ -9,6 +9,7 @@ import { getNextEvent } from "@/lib/events.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
+import { MemberFeatureHomeFrame, useHomeMemberFeature } from "@/components/MemberFeatureHomeFrame";
 import { NewsletterHomeSection } from "@/components/NewsletterHomeSection";
 import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +110,8 @@ function Index() {
   const { t, lang } = useI18n();
   const { data: nextEvent } = useSuspenseQuery(nextEventQuery);
   const { data: featured } = useQuery(featuredQuery);
+  const homeFeature = useHomeMemberFeature();
+  const showHomeFeature = Boolean(homeFeature.data?.slug && homeFeature.data.cover_url);
   const openConcours = useOpenConcoursIds();
   const voteEventId = nextEvent && openConcours.has(nextEvent.id) ? nextEvent.id : null;
 
@@ -361,8 +364,9 @@ function Index() {
 
       <ConcoursHomeWinner />
 
-
-      {featured && (
+      {showHomeFeature ? (
+        <MemberFeatureHomeFrame feature={homeFeature.data} />
+      ) : featured ? (
         <section className="border-b-2 border-ink bg-paper text-ink">
           <div className="mx-auto max-w-6xl px-4 py-8">
             <div className="flex flex-col overflow-hidden rounded-xl border-2 border-ink bg-card shadow-[4px_4px_0_0_var(--color-ink)] sm:flex-row sm:items-stretch">
@@ -432,7 +436,7 @@ function Index() {
             </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       <section className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="font-display text-4xl tracking-wide text-ink sm:text-5xl">

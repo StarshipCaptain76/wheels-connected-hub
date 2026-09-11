@@ -619,3 +619,197 @@ export const adminDeletePollOption = createServerFn({ method: "POST" })
     const { data: row } = await sb.from("polls").select(POLL_SELECT).eq("id", opt.poll_id).single();
     return hydrateAdmin(sb, row as Record<string, unknown>);
   });
+
+export type PollInsight = {
+  pollId: string;
+  question_en: string;
+  total_votes: number;
+  leader: { id: string; label_en: string; vote_count: number; pct: number } | null;
+  overall: Array<{ id: string; label_en: string; vote_count: number; pct: number }>;
+  recent: Array<{ label_en: string; at: string }>;
+  recent_leader: { label_en: string; count: number } | null;
+  suggestion_en: string | null;
+  suggestion_af: string | null;
+  ai_note: string | null;
+};
+
+function parseSuggestion(raw: string): { en: string; af: string } {
+  const t = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    const j = JSON.parse(t) as { en?: unknown; af?: unknown };
+    const en = typeof j.en === "string" ? j.en.trim() : "";
+    const af = typeof j.af === "string" ? j.af.trim() : en;
+    if (en) return { en, af: af || en };
+  } catch {
+    /* not json */
+  }
+  return { en: t.slice(0, 1200), af: t.slice(0, 1200) };
+}
+
+async function grokSuggest(prompt: string): Promise<string> {
+  const xai = process.env.XAI_API_KEY;
+  if (xai) {
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${xai}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "grok-4.6",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You advise the Just Wheels Hessequa car club committee (Southern Cape). Be practical and brief. Return JSON only: {\"en\":\"...\",\"af\":\"...\"} with 2–4 sentences each. No markdown.",
+          },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`xAI ${res.status}${body ? `: ${body.slice(0, 180)}` : ""}`);
+    }
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const out = json.choices?.[0]?.message?.content?.trim();
+    if (out) return out;
+    throw new Error("xAI returned no text");
+  }
+
+  const lovableKey = process.env.LOVABLE_API_KEY;
+  if (lovableKey) {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You advise the Just Wheels Hessequa car club committee (Southern Cape). Be practical and brief. Return JSON only: {\"en\":\"...\",\"af\":\"...\"} with 2–4 sentences each. No markdown.",
+          },
+          { role: "user", content: prompt },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(`AI gateway ${res.status}`);
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const out = json.choices?.[0]?.message?.content?.trim();
+    if (out) return out;
+  }
+
+  throw new Error("No AI key configured (set XAI_API_KEY on the server).");
+}
+
+export const adminPollInsight = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ pollId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }): Promise<PollInsight> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase as unknown as AnyClient, userId);
+    const { elevated } = await import("./elevated.server");
+    const sb = (await elevated(supabase)) as AnyClient;
+
+    const { data: pollRow, error: pollErr } = await sb
+      .from("polls")
+      .select(POLL_SELECT)
+      .eq("id", data.pollId)
+      .maybeSingle();
+    if (pollErr) throw new Error(pollErr.message);
+    if (!pollRow) throw new Error("Poll not found");
+    const poll = await hydrateAdmin(sb, pollRow as Record<string, unknown>);
+
+    const visible = poll.options.filter((o) => !o.hidden);
+    const total = visible.reduce((s, o) => s + o.vote_count, 0);
+    const overall = visible
+      .map((o) => ({
+        id: o.id,
+        label_en: o.label_en,
+        vote_count: o.vote_count,
+        pct: total === 0 ? 0 : Math.round((o.vote_count / total) * 100),
+      }))
+      .sort((a, b) => b.vote_count - a.vote_count);
+    const leader = overall[0] && overall[0].vote_count > 0 ? overall[0] : null;
+
+    const { data: recentRows, error: recErr } = await sb
+      .from("poll_votes")
+      .select("option_id, created_at")
+      .eq("poll_id", data.pollId)
+      .order("created_at", { ascending: false })
+      .limit(12);
+    if (recErr) throw new Error(recErr.message);
+
+    const labelById = new Map(poll.options.map((o) => [o.id, o.label_en]));
+    const recent: Array<{ label_en: string; at: string }> = (recentRows ?? []).map(
+      (row: { option_id: string; created_at: string }) => ({
+        label_en: labelById.get(String(row.option_id)) ?? "—",
+        at: String(row.created_at),
+      }),
+    );
+    const recentCounts = new Map<string, number>();
+    for (const vote of recent) recentCounts.set(vote.label_en, (recentCounts.get(vote.label_en) ?? 0) + 1);
+    let recent_leader: { label_en: string; count: number } | null = null;
+    for (const [label_en, count] of recentCounts) {
+      if (!recent_leader || count > recent_leader.count) recent_leader = { label_en, count };
+    }
+
+    let suggestion_en: string | null = null;
+    let suggestion_af: string | null = null;
+    let ai_note: string | null = null;
+
+    if (total === 0) {
+      ai_note = "No votes yet.";
+    } else {
+      const overallLine = overall
+        .map((o) => `${o.label_en}: ${o.vote_count} (${o.pct}%)`)
+        .join("; ");
+      const recentLine = recent.map((vote) => vote.label_en).join(" → ");
+      const prompt = [
+        `Poll: ${poll.question_en}`,
+        `Overall (${total} votes): ${overallLine}`,
+        `Most recent ${recent.length} votes (newest first): ${recentLine || "none"}`,
+        recent_leader
+          ? `Among those recent votes, "${recent_leader.label_en}" appears ${recent_leader.count} times.`
+          : "",
+        "Suggest what the club should plan next (outing, venue, distance). Say whether recent votes agree with or pull away from the overall leader.",
+      ]
+        .filter(Boolean)
+        .join("\n");
+      try {
+        const raw = await grokSuggest(prompt);
+        const parsed = parseSuggestion(raw);
+        suggestion_en = parsed.en;
+        suggestion_af = parsed.af;
+      } catch (e) {
+        ai_note = e instanceof Error ? e.message : "AI suggestion unavailable";
+      }
+    }
+
+    return {
+      pollId: poll.id,
+      question_en: poll.question_en,
+      total_votes: total,
+      leader,
+      overall,
+      recent,
+      recent_leader,
+      suggestion_en,
+      suggestion_af,
+      ai_note,
+    };
+  });

@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { CharCounter } from "@/components/CharCounter";
+import { useI18n } from "@/i18n/I18nProvider";
 import {
   adminAddPollOption,
   adminDeletePollOption,
   adminHidePollOption,
   adminListPolls,
+  adminPollInsight,
   adminSetPollHome,
   adminSetPollStatus,
   adminUpsertPoll,
   type AdminPoll,
+  type PollInsight,
   type PollStatus,
 } from "@/lib/polls.functions";
 
@@ -155,6 +158,20 @@ export function PollsAdminPanel() {
         <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm font-bold text-primary">
           {msg}
         </p>
+      )}
+
+      {polls.length > 0 && (
+        <div className="rounded-xl border-2 border-ink bg-paper px-4 py-3 shadow-[4px_4px_0_0_var(--color-ink)]">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">All polls</p>
+          <p className="mt-1 font-display text-3xl leading-none text-ink">
+            {polls.reduce((s, p) => s + p.total_votes, 0)}
+            <span className="ml-2 font-sans text-sm font-semibold text-ink/55">votes received</span>
+          </p>
+          <p className="mt-1 text-xs text-ink/60">
+            {polls.filter((p) => p.status === "open").length} open ·{" "}
+            {polls.filter((p) => p.show_on_home).length} on home
+          </p>
+        </div>
       )}
 
       <div className="overflow-x-auto rounded-lg border-2 border-ink">
@@ -366,6 +383,7 @@ export function PollsAdminPanel() {
 
         {editing && (
           <>
+            <PollSummaryCard pollId={editing.id} totalVotes={editing.total_votes} />
             <h3 className="font-display text-xl text-ink">Results</h3>
             <div className="overflow-x-auto rounded-lg border-2 border-ink">
               <table className="w-full min-w-[640px] text-sm">
@@ -468,6 +486,117 @@ export function PollsAdminPanel() {
               </div>
             )}
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PollSummaryCard({ pollId, totalVotes }: { pollId: string; totalVotes: number }) {
+  const { lang } = useI18n();
+  const insightFn = useServerFn(adminPollInsight);
+  const [data, setData] = useState<PollInsight | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    setBusy(true);
+    setErr(null);
+    try {
+      setData(await insightFn({ data: { pollId } }));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not load insight");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pollId, totalVotes]);
+
+  const max = Math.max(1, ...(data?.overall.map((o) => o.vote_count) ?? [1]));
+  const suggestion =
+    lang === "af" && data?.suggestion_af ? data.suggestion_af : data?.suggestion_en;
+
+  return (
+    <div className="rounded-xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Vote summary</p>
+          <p className="mt-1 font-display text-4xl leading-none text-ink">
+            {data?.total_votes ?? totalVotes}
+            <span className="ml-2 font-sans text-sm font-semibold text-ink/55">votes</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void load()}
+          className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-primary" />}
+          {busy ? "Thinking…" : "Refresh"}
+        </button>
+      </div>
+
+      {data?.leader && (
+        <p className="mt-2 text-sm text-ink">
+          <span className="font-bold">Overall lead:</span> {data.leader.label_en}{" "}
+          <span className="text-ink/60">
+            ({data.leader.vote_count} · {data.leader.pct}%)
+          </span>
+        </p>
+      )}
+      {data?.recent_leader && (
+        <p className="text-sm text-ink">
+          <span className="font-bold">Recent votes:</span> {data.recent_leader.label_en}{" "}
+          <span className="text-ink/60">
+            ({data.recent_leader.count} of last {data.recent.length})
+          </span>
+        </p>
+      )}
+
+      {data && data.overall.length > 0 && (
+        <ul className="mt-3 space-y-1">
+          {data.overall.map((o) => (
+            <li key={o.id}>
+              <div className="flex justify-between text-[11px] font-semibold">
+                <span>{o.label_en}</span>
+                <span className="tabular-nums">
+                  {o.vote_count} · {o.pct}%
+                </span>
+              </div>
+              <div className="mt-0.5 h-1.5 overflow-hidden rounded-full border border-ink/20 bg-ink/5">
+                <div className="h-full bg-primary" style={{ width: `${Math.round((o.vote_count / max) * 100)}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {data && data.recent.length > 0 && (
+        <p className="mt-3 text-[11px] leading-relaxed text-ink/70">
+          <span className="font-bold uppercase tracking-wider text-ink/50">Latest: </span>
+          {data.recent
+            .slice()
+            .reverse()
+            .map((r) => r.label_en)
+            .join(" → ")}
+        </p>
+      )}
+
+      <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 px-3 py-2">
+        <p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+          <Sparkles className="h-3 w-3" /> Suggestion
+        </p>
+        {busy && !suggestion ? (
+          <p className="mt-1 text-sm text-ink/50">Reading the votes…</p>
+        ) : suggestion ? (
+          <p className="mt-1 text-sm leading-relaxed text-ink">{suggestion}</p>
+        ) : (
+          <p className="mt-1 text-sm text-ink/60">{data?.ai_note || err || "No suggestion yet."}</p>
         )}
       </div>
     </div>

@@ -109,7 +109,12 @@ function AdminEvents() {
     });
     await qc.invalidateQueries({ queryKey: ["events"] });
     await qc.invalidateQueries({ queryKey: ["event", res.id] });
+    await qc.invalidateQueries({ queryKey: ["waypoints"] });
+    // Public event pages are server-rendered; refresh router data too so the
+    // change is visible immediately, not only in the admin list.
+    await router.invalidate();
     setEditing(null);
+
   }
 
   async function remove(id: string) {

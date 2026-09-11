@@ -199,42 +199,30 @@ export const upsertEvent = createServerFn({ method: "POST" })
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
     if (!isAdmin) throw new Error("Forbidden");
     const { id, ...rest } = data;
+    const emptyToNull = (v: unknown) =>
+      typeof v === "string" && v.trim() === "" ? null : (v ?? null);
     const values: Record<string, unknown> = {
       ...rest,
+      title_af: emptyToNull(rest.title_af),
+      description: emptyToNull(rest.description),
+      description_af: emptyToNull(rest.description_af),
+      location: emptyToNull(rest.location),
+      details_md: emptyToNull(rest.details_md),
+      details_af_md: emptyToNull(rest.details_af_md),
+      destination_address: emptyToNull(rest.destination_address),
+      destination_place_id: emptyToNull(rest.destination_place_id),
       cover_url: stabilizeStorageUrl(rest.cover_url),
       hero_image_url: stabilizeStorageUrl(rest.hero_image_url),
     };
     if (id) {
+      // The admin form submits every field, so whatever it sends is the new
+      // truth — including cleared images, details and map pins.
       const { data: prev } = await supabase
         .from("events")
-        .select(
-          "is_published, destination_lat, destination_lng, destination_address, destination_place_id, hero_image_url, details_md, details_af_md",
-        )
+        .select("is_published")
         .eq("id", id)
         .maybeSingle();
-      // Form used to omit destination fields; never wipe a saved pin unless the
-      // admin actually submitted new coordinates.
-      if (values.destination_lat == null || values.destination_lng == null) {
-        if (prev && asCoord(prev.destination_lat) != null && asCoord(prev.destination_lng) != null) {
-          values.destination_lat = asCoord(prev.destination_lat);
-          values.destination_lng = asCoord(prev.destination_lng);
-          if (!values.destination_address) {
-            values.destination_address = prev.destination_address ?? null;
-          }
-          if (!values.destination_place_id) {
-            values.destination_place_id = prev.destination_place_id ?? null;
-          }
-        }
-      }
-      if (values.hero_image_url == null && prev?.hero_image_url) {
-        values.hero_image_url = prev.hero_image_url;
-      }
-      if (values.details_md == null && prev?.details_md) {
-        values.details_md = prev.details_md;
-      }
-      if (values.details_af_md == null && prev?.details_af_md) {
-        values.details_af_md = prev.details_af_md;
-      }
+
       const { data: updated, error } = await supabase
         .from("events")
         .update(values as never)

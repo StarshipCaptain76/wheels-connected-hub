@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect, type ReactNode } from "react";
@@ -62,6 +62,8 @@ function toLocalDT(iso: string | null | undefined) {
 function AdminEvents() {
   const { data: events } = useSuspenseQuery(eventsAdminQuery);
   const qc = useQueryClient();
+  const router = useRouter();
+
   const upsert = useServerFn(upsertEvent);
   const del = useServerFn(deleteEvent);
   const [editing, setEditing] = useState<FormState | null>(null);
@@ -109,7 +111,12 @@ function AdminEvents() {
     });
     await qc.invalidateQueries({ queryKey: ["events"] });
     await qc.invalidateQueries({ queryKey: ["event", res.id] });
+    await qc.invalidateQueries({ queryKey: ["waypoints"] });
+    // Public event pages are server-rendered; refresh router data too so the
+    // change is visible immediately, not only in the admin list.
+    await router.invalidate();
     setEditing(null);
+
   }
 
   async function remove(id: string) {

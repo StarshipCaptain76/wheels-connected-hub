@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { CharCounter } from "@/components/CharCounter";
 import { useI18n } from "@/i18n/I18nProvider";
 import {
   adminAddPollOption,
+  adminCombinedPollInsight,
   adminDeletePollOption,
   adminHidePollOption,
   adminListPolls,
@@ -14,6 +15,8 @@ import {
   adminSetPollStatus,
   adminUpsertPoll,
   type AdminPoll,
+  type CombinedPollInsight,
+  type OutingRoute,
   type PollInsight,
   type PollStatus,
 } from "@/lib/polls.functions";
@@ -160,19 +163,7 @@ export function PollsAdminPanel() {
         </p>
       )}
 
-      {polls.length > 0 && (
-        <div className="rounded-xl border-2 border-ink bg-paper px-4 py-3 shadow-[4px_4px_0_0_var(--color-ink)]">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">All polls</p>
-          <p className="mt-1 font-display text-3xl leading-none text-ink">
-            {polls.reduce((s, p) => s + p.total_votes, 0)}
-            <span className="ml-2 font-sans text-sm font-semibold text-ink/55">votes received</span>
-          </p>
-          <p className="mt-1 text-xs text-ink/60">
-            {polls.filter((p) => p.status === "open").length} open ·{" "}
-            {polls.filter((p) => p.show_on_home).length} on home
-          </p>
-        </div>
-      )}
+      {polls.length > 0 && <CombinedOutingCard voteHint={polls.reduce((s, p) => s + p.total_votes, 0)} />}
 
       <div className="overflow-x-auto rounded-lg border-2 border-ink">
         <table className="w-full min-w-[720px] text-sm">
@@ -488,6 +479,146 @@ export function PollsAdminPanel() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function mapsUrl(route: OutingRoute): string {
+  const tag = (p: string) => `${p}, Western Cape, South Africa`;
+  const origin = encodeURIComponent(tag(route.start));
+  const destination = encodeURIComponent(tag(route.destination));
+  const waypoints = route.stops.map((s) => encodeURIComponent(tag(s))).join("%7C");
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+  if (waypoints) url += `&waypoints=${waypoints}`;
+  return url;
+}
+
+function CombinedOutingCard({ voteHint }: { voteHint: number }) {
+  const { lang } = useI18n();
+  const insightFn = useServerFn(adminCombinedPollInsight);
+  const [data, setData] = useState<CombinedPollInsight | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function load() {
+    setBusy(true);
+    setErr(null);
+    try {
+      setData(await insightFn({}));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Could not load combined insight");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voteHint]);
+
+  const af = lang === "af";
+  const suggestion = af && data?.suggestion_af ? data.suggestion_af : data?.suggestion_en;
+  const route = data?.route ?? null;
+  const routeTitle = route ? (af && route.title_af ? route.title_af : route.title_en) : null;
+  const distance = route ? (af && route.distance_af ? route.distance_af : route.distance_en) : null;
+  const why = route ? (af && route.why_af ? route.why_af : route.why_en) : null;
+
+  return (
+    <div className="rounded-xl border-2 border-ink bg-paper p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            {af ? "Al die peilings" : "All polls combined"}
+          </p>
+          <p className="mt-1 font-display text-4xl leading-none text-ink">
+            {data?.total_votes ?? voteHint}
+            <span className="ml-2 font-sans text-sm font-semibold text-ink/55">
+              {af ? "stemme" : "votes"}
+            </span>
+          </p>
+          <p className="mt-1 text-xs text-ink/60">
+            {data?.open_polls ?? 0} {af ? "oop" : "open"}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void load()}
+          className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider disabled:opacity-50"
+        >
+          {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3 text-primary" />}
+          {busy ? (af ? "Dink…" : "Thinking…") : af ? "Verfris" : "Refresh"}
+        </button>
+      </div>
+
+      {data && data.polls.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {data.polls.map((p) => (
+            <li key={p.id} className="flex flex-wrap justify-between gap-2 border-t border-ink/10 pt-1">
+              <span className="min-w-0 font-semibold">{p.question_en}</span>
+              <span className="text-ink/65">
+                {p.total_votes} {af ? "stemme" : "votes"}
+                {p.leader ? ` · ${p.leader}` : ""}
+                {p.recent_leader && p.recent_leader !== p.leader ? ` · ${af ? "onlangs" : "recent"}: ${p.recent_leader}` : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 px-3 py-2">
+        <p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+          <Sparkles className="h-3 w-3" /> {af ? "Voorstel" : "Suggestion"}
+        </p>
+        {busy && !suggestion ? (
+          <p className="mt-1 text-sm text-ink/50">{af ? "Lees al die stemme…" : "Reading all the votes…"}</p>
+        ) : suggestion ? (
+          <p className="mt-1 text-sm leading-relaxed text-ink">{suggestion}</p>
+        ) : (
+          <p className="mt-1 text-sm text-ink/60">{data?.ai_note || err || (af ? "Nog geen voorstel." : "No suggestion yet.")}</p>
+        )}
+      </div>
+
+      {route && (
+        <div className="mt-3 rounded-md border-2 border-ink bg-card px-3 py-3">
+          <p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+            <MapPin className="h-3 w-3" /> {af ? "Voorgestelde roete" : "Proposed route"}
+          </p>
+          {routeTitle && <p className="mt-1 font-display text-2xl leading-tight text-ink">{routeTitle}</p>}
+          <ol className="mt-2 space-y-1 text-sm">
+            <li>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink/45">{af ? "Begin" : "Start"} </span>
+              {route.start}
+            </li>
+            {route.stops.map((s, i) => (
+              <li key={`${s}-${i}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                  {af ? "Stop" : "Stop"} {i + 1}{" "}
+                </span>
+                {s}
+              </li>
+            ))}
+            <li>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-ink/45">
+                {af ? "Bestemming" : "Destination"}{" "}
+              </span>
+              {route.destination}
+            </li>
+          </ol>
+          {distance && <p className="mt-2 text-sm font-semibold text-ink">{distance}</p>}
+          {why && <p className="mt-1 text-sm leading-relaxed text-ink/75">{why}</p>}
+          <a
+            href={mapsUrl(route)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1 rounded-md border-2 border-ink bg-primary px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-paper"
+          >
+            <MapPin className="h-3.5 w-3.5" />
+            {af ? "Maak oop in Maps" : "Open in Maps"}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

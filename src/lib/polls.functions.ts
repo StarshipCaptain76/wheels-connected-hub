@@ -633,22 +633,87 @@ export type PollInsight = {
   ai_note: string | null;
 };
 
-function parseSuggestion(raw: string): { en: string; af: string } {
+export type OutingRoute = {
+  title_en: string;
+  title_af: string;
+  start: string;
+  destination: string;
+  stops: string[];
+  distance_en: string;
+  distance_af: string;
+  why_en: string;
+  why_af: string;
+};
+
+export type CombinedPollInsight = {
+  total_votes: number;
+  open_polls: number;
+  polls: Array<{
+    id: string;
+    question_en: string;
+    total_votes: number;
+    leader: string | null;
+    recent_leader: string | null;
+  }>;
+  suggestion_en: string | null;
+  suggestion_af: string | null;
+  route: OutingRoute | null;
+  ai_note: string | null;
+};
+
+function asStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x).trim()).filter(Boolean).slice(0, 8);
+}
+
+function parseSuggestion(raw: string): {
+  en: string;
+  af: string;
+  route: OutingRoute | null;
+} {
   const t = raw
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/```$/i, "")
     .trim();
   try {
-    const j = JSON.parse(t) as { en?: unknown; af?: unknown };
+    const j = JSON.parse(t) as Record<string, unknown>;
     const en = typeof j.en === "string" ? j.en.trim() : "";
     const af = typeof j.af === "string" ? j.af.trim() : en;
-    if (en) return { en, af: af || en };
+    let route: OutingRoute | null = null;
+    if (j.route && typeof j.route === "object") {
+      const r = j.route as Record<string, unknown>;
+      const start = typeof r.start === "string" ? r.start.trim() : "";
+      const destination = typeof r.destination === "string" ? r.destination.trim() : "";
+      if (start && destination) {
+        route = {
+          title_en: typeof r.title_en === "string" ? r.title_en.trim() : `${start} to ${destination}`,
+          title_af: typeof r.title_af === "string" ? r.title_af.trim() : `${start} na ${destination}`,
+          start,
+          destination,
+          stops: asStringArray(r.stops),
+          distance_en: typeof r.distance_en === "string" ? r.distance_en.trim() : "",
+          distance_af: typeof r.distance_af === "string" ? r.distance_af.trim() : "",
+          why_en: typeof r.why_en === "string" ? r.why_en.trim() : "",
+          why_af: typeof r.why_af === "string" ? r.why_af.trim() : "",
+        };
+      }
+    }
+    if (en) return { en, af: af || en, route };
   } catch {
     /* not json */
   }
-  return { en: t.slice(0, 1200), af: t.slice(0, 1200) };
+  return { en: t.slice(0, 1200), af: t.slice(0, 1200), route: null };
 }
+
+const OUTING_SYSTEM =
+  "You advise the Just Wheels Hessequa car club committee (Southern Cape: Stilbaai, Riversdale, Heidelberg, Albertinia). " +
+  "Combine ALL poll results (destination AND how far members will drive, plus any other polls). " +
+  "If a single winning destination is too far for the distance votes, or if several nearby places scored well, build a better day-run: start, coffee/photo stops, destination. " +
+  "Keep it realistic for classics and mixed convoy (tar preferred, fuel, toilets). " +
+  "Return JSON only, no markdown: " +
+  '{"en":"2-4 sentences","af":"2-4 sinne","route":{"title_en":"","title_af":"","start":"Stilbaai","destination":"","stops":["..."],"distance_en":"","distance_af":"","why_en":"why this beats a single winner","why_af":""}} ' +
+  "Set route to null only if a simple one-place outing is clearly best.";
 
 async function grokSuggest(prompt: string): Promise<string> {
   const xai = process.env.XAI_API_KEY;
@@ -663,11 +728,7 @@ async function grokSuggest(prompt: string): Promise<string> {
         model: "grok-4.6",
         temperature: 0.4,
         messages: [
-          {
-            role: "system",
-            content:
-              "You advise the Just Wheels Hessequa car club committee (Southern Cape). Be practical and brief. Return JSON only: {\"en\":\"...\",\"af\":\"...\"} with 2–4 sentences each. No markdown.",
-          },
+          { role: "system", content: OUTING_SYSTEM },
           { role: "user", content: prompt },
         ],
       }),
@@ -696,11 +757,7 @@ async function grokSuggest(prompt: string): Promise<string> {
         model: "google/gemini-2.5-flash",
         temperature: 0.4,
         messages: [
-          {
-            role: "system",
-            content:
-              "You advise the Just Wheels Hessequa car club committee (Southern Cape). Be practical and brief. Return JSON only: {\"en\":\"...\",\"af\":\"...\"} with 2–4 sentences each. No markdown.",
-          },
+          { role: "system", content: OUTING_SYSTEM },
           { role: "user", content: prompt },
         ],
       }),
@@ -810,6 +867,116 @@ export const adminPollInsight = createServerFn({ method: "POST" })
       recent_leader,
       suggestion_en,
       suggestion_af,
+      ai_note,
+    };
+  });
+
+export const adminCombinedPollInsight = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CombinedPollInsight> => {
+    const { supabase, userId } = context;
+    await assertAdmin(supabase as unknown as AnyClient, userId);
+    const { elevated } = await import("./elevated.server");
+    const sb = (await elevated(supabase)) as AnyClient;
+
+    const { data: pollRows, error } = await sb
+      .from("polls")
+      .select(POLL_SELECT)
+      .order("sort_order", { ascending: true });
+    if (error) throw new Error(error.message);
+    const polls: AdminPoll[] = [];
+    for (const row of pollRows ?? []) polls.push(await hydrateAdmin(sb, row as Record<string, unknown>));
+
+    const summaries: CombinedPollInsight["polls"] = [];
+    const promptParts: string[] = [];
+    let total_votes = 0;
+
+    for (const poll of polls) {
+      const visible = poll.options.filter((o) => !o.hidden);
+      const total = visible.reduce((s, o) => s + o.vote_count, 0);
+      total_votes += total;
+      const ranked = [...visible].sort((a, b) => b.vote_count - a.vote_count);
+      const leader = ranked[0] && ranked[0].vote_count > 0 ? ranked[0].label_en : null;
+
+      const { data: recentRows } = await sb
+        .from("poll_votes")
+        .select("option_id, created_at")
+        .eq("poll_id", poll.id)
+        .order("created_at", { ascending: false })
+        .limit(12);
+      const labelById = new Map(poll.options.map((o) => [o.id, o.label_en]));
+      const recentLabels = (recentRows ?? []).map(
+        (row: { option_id: string }) => labelById.get(String(row.option_id)) ?? "—",
+      );
+      const recentCounts = new Map<string, number>();
+      for (const label of recentLabels) recentCounts.set(label, (recentCounts.get(label) ?? 0) + 1);
+      let recent_leader: string | null = null;
+      let recentBest = 0;
+      for (const [label, count] of recentCounts) {
+        if (count > recentBest) {
+          recentBest = count;
+          recent_leader = label;
+        }
+      }
+
+      summaries.push({
+        id: poll.id,
+        question_en: poll.question_en,
+        total_votes: total,
+        leader,
+        recent_leader,
+      });
+
+      const overallLine = ranked
+        .map((o) => {
+          const pct = total === 0 ? 0 : Math.round((o.vote_count / total) * 100);
+          return `${o.label_en}: ${o.vote_count} (${pct}%)`;
+        })
+        .join("; ");
+      promptParts.push(
+        [
+          `POLL: ${poll.title_en || poll.question_en}`,
+          `Question: ${poll.question_en}`,
+          `Status: ${poll.status}`,
+          `Overall (${total} votes): ${overallLine || "no votes"}`,
+          `Most recent votes (newest first): ${recentLabels.join(" → ") || "none"}`,
+        ].join("\n"),
+      );
+    }
+
+    let suggestion_en: string | null = null;
+    let suggestion_af: string | null = null;
+    let route: OutingRoute | null = null;
+    let ai_note: string | null = null;
+
+    if (total_votes === 0) {
+      ai_note = "No votes yet across polls.";
+    } else {
+      const prompt = [
+        "Club base: Hessequa (Stilbaai / Riversdale), Western Cape.",
+        "Use EVERY poll below together — destination, driving distance, and any others.",
+        "Prefer a route that more members can join over a single far-away winner.",
+        "",
+        promptParts.join("\n\n"),
+      ].join("\n");
+      try {
+        const raw = await grokSuggest(prompt);
+        const parsed = parseSuggestion(raw);
+        suggestion_en = parsed.en;
+        suggestion_af = parsed.af;
+        route = parsed.route;
+      } catch (e) {
+        ai_note = e instanceof Error ? e.message : "AI suggestion unavailable";
+      }
+    }
+
+    return {
+      total_votes,
+      open_polls: polls.filter((p) => p.status === "open").length,
+      polls: summaries,
+      suggestion_en,
+      suggestion_af,
+      route,
       ai_note,
     };
   });

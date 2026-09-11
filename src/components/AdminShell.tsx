@@ -15,6 +15,7 @@ import {
   X,
   Shield,
   Trophy,
+  BarChart3,
 } from "lucide-react";
 
 const NAV: Array<{
@@ -49,6 +50,7 @@ const NAV: Array<{
     groupAf: "Gemeenskap",
     items: [
       { to: "/admin/members", label: "Members", labelAf: "Lede", icon: Users },
+      { to: "/admin/polls", label: "Polls", labelAf: "Peilings", icon: BarChart3 },
       { to: "/admin/classifieds", label: "Classifieds", labelAf: "Advertensies", icon: Tag },
     ],
   },

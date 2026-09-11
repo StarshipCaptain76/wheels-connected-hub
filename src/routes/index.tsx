@@ -11,6 +11,7 @@ import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
 import { MemberFeatureHomeFrame, useHomeMemberFeature } from "@/components/MemberFeatureHomeFrame";
 import { NewsletterHomeSection } from "@/components/NewsletterHomeSection";
+import { HomePolls } from "@/components/HomePolls";
 import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -361,6 +362,8 @@ function Index() {
       <SponsorCarousel />
 
       <NewsletterHomeSection />
+
+      <HomePolls />
 
       <ConcoursHomeWinner />
 

@@ -645,19 +645,32 @@ export type OutingRoute = {
   why_af: string;
 };
 
+export type SuggestedPoll = {
+  title_en: string;
+  title_af: string;
+  question_en: string;
+  question_af: string;
+  why_en: string;
+  why_af: string;
+  options: Array<{ en: string; af: string }>;
+};
+
 export type CombinedPollInsight = {
   total_votes: number;
   open_polls: number;
+  on_home: number;
   polls: Array<{
     id: string;
     question_en: string;
     total_votes: number;
     leader: string | null;
     recent_leader: string | null;
+    overall: Array<{ label_en: string; vote_count: number; pct: number }>;
   }>;
   suggestion_en: string | null;
   suggestion_af: string | null;
   route: OutingRoute | null;
+  new_polls: SuggestedPoll[];
   ai_note: string | null;
 };
 
@@ -666,10 +679,55 @@ function asStringArray(v: unknown): string[] {
   return v.map((x) => String(x).trim()).filter(Boolean).slice(0, 8);
 }
 
+function parseSuggestedPolls(v: unknown): SuggestedPoll[] {
+  if (!Array.isArray(v)) return [];
+  const out: SuggestedPoll[] = [];
+  for (const item of v.slice(0, 5)) {
+    if (!item || typeof item !== "object") continue;
+    const p = item as Record<string, unknown>;
+    const question_en = typeof p.question_en === "string" ? p.question_en.trim() : "";
+    if (!question_en) continue;
+    const optionsRaw = Array.isArray(p.options) ? p.options : [];
+    const options: Array<{ en: string; af: string }> = [];
+    for (const o of optionsRaw.slice(0, 8)) {
+      if (typeof o === "string" && o.trim()) {
+        options.push({ en: o.trim(), af: o.trim() });
+      } else if (o && typeof o === "object") {
+        const r = o as Record<string, unknown>;
+        const en =
+          typeof r.en === "string"
+            ? r.en.trim()
+            : typeof r.label_en === "string"
+              ? r.label_en.trim()
+              : "";
+        if (!en) continue;
+        const af =
+          typeof r.af === "string"
+            ? r.af.trim()
+            : typeof r.label_af === "string"
+              ? r.label_af.trim()
+              : en;
+        options.push({ en, af: af || en });
+      }
+    }
+    out.push({
+      title_en: typeof p.title_en === "string" && p.title_en.trim() ? p.title_en.trim() : question_en.slice(0, 60),
+      title_af: typeof p.title_af === "string" ? p.title_af.trim() : "",
+      question_en,
+      question_af: typeof p.question_af === "string" ? p.question_af.trim() : "",
+      why_en: typeof p.why_en === "string" ? p.why_en.trim() : "",
+      why_af: typeof p.why_af === "string" ? p.why_af.trim() : "",
+      options,
+    });
+  }
+  return out;
+}
+
 function parseSuggestion(raw: string): {
   en: string;
   af: string;
   route: OutingRoute | null;
+  new_polls: SuggestedPoll[];
 } {
   const t = raw
     .trim()
@@ -699,11 +757,12 @@ function parseSuggestion(raw: string): {
         };
       }
     }
-    if (en) return { en, af: af || en, route };
+    const new_polls = parseSuggestedPolls(j.new_polls);
+    if (en) return { en, af: af || en, route, new_polls };
   } catch {
     /* not json */
   }
-  return { en: t.slice(0, 1200), af: t.slice(0, 1200), route: null };
+  return { en: t.slice(0, 1200), af: t.slice(0, 1200), route: null, new_polls: [] };
 }
 
 const OUTING_SYSTEM =
@@ -711,8 +770,11 @@ const OUTING_SYSTEM =
   "Combine ALL poll results (destination AND how far members will drive, plus any other polls). " +
   "If a single winning destination is too far for the distance votes, or if several nearby places scored well, build a better day-run: start, coffee/photo stops, destination. " +
   "Keep it realistic for classics and mixed convoy (tar preferred, fuel, toilets). " +
+  "Also propose 2–4 NEW polls that would fill gaps in what you know about club needs " +
+  "(e.g. weekday vs weekend, braai vs restaurant, overnight yes/no, budget, convoy speed, start time, family vs cars-only). " +
+  "Do not repeat questions already asked. Each new poll needs EN+AF question, why it helps, and 4–7 seed options. " +
   "Return JSON only, no markdown: " +
-  '{"en":"2-4 sentences","af":"2-4 sinne","route":{"title_en":"","title_af":"","start":"Stilbaai","destination":"","stops":["..."],"distance_en":"","distance_af":"","why_en":"why this beats a single winner","why_af":""}} ' +
+  '{"en":"2-4 sentences analysis","af":"2-4 sinne","route":{"title_en":"","title_af":"","start":"Stilbaai","destination":"","stops":["..."],"distance_en":"","distance_af":"","why_en":"","why_af":""},"new_polls":[{"title_en":"","title_af":"","question_en":"","question_af":"","why_en":"","why_af":"","options":[{"en":"","af":""}]}]} ' +
   "Set route to null only if a simple one-place outing is clearly best.";
 
 async function grokSuggest(prompt: string): Promise<string> {
@@ -925,6 +987,11 @@ export const adminCombinedPollInsight = createServerFn({ method: "POST" })
         total_votes: total,
         leader,
         recent_leader,
+        overall: ranked.map((o) => ({
+          label_en: o.label_en,
+          vote_count: o.vote_count,
+          pct: total === 0 ? 0 : Math.round((o.vote_count / total) * 100),
+        })),
       });
 
       const overallLine = ranked
@@ -947,15 +1014,19 @@ export const adminCombinedPollInsight = createServerFn({ method: "POST" })
     let suggestion_en: string | null = null;
     let suggestion_af: string | null = null;
     let route: OutingRoute | null = null;
+    let new_polls: SuggestedPoll[] = [];
     let ai_note: string | null = null;
 
     if (total_votes === 0) {
       ai_note = "No votes yet across polls.";
     } else {
+      const existingQs = polls.map((p) => `- ${p.question_en}`).join("\n");
       const prompt = [
         "Club base: Hessequa (Stilbaai / Riversdale), Western Cape.",
         "Use EVERY poll below together — destination, driving distance, and any others.",
         "Prefer a route that more members can join over a single far-away winner.",
+        "Do not suggest new polls that duplicate these existing questions:",
+        existingQs,
         "",
         promptParts.join("\n\n"),
       ].join("\n");
@@ -965,6 +1036,7 @@ export const adminCombinedPollInsight = createServerFn({ method: "POST" })
         suggestion_en = parsed.en;
         suggestion_af = parsed.af;
         route = parsed.route;
+        new_polls = parsed.new_polls;
       } catch (e) {
         ai_note = e instanceof Error ? e.message : "AI suggestion unavailable";
       }
@@ -973,10 +1045,12 @@ export const adminCombinedPollInsight = createServerFn({ method: "POST" })
     return {
       total_votes,
       open_polls: polls.filter((p) => p.status === "open").length,
+      on_home: polls.filter((p) => p.show_on_home).length,
       polls: summaries,
       suggestion_en,
       suggestion_af,
       route,
+      new_polls,
       ai_note,
     };
   });

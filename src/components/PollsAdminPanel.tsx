@@ -19,6 +19,7 @@ import {
   type OutingRoute,
   type PollInsight,
   type PollStatus,
+  type SuggestedPoll,
 } from "@/lib/polls.functions";
 
 const inp = "mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm";
@@ -163,7 +164,18 @@ export function PollsAdminPanel() {
         </p>
       )}
 
-      {polls.length > 0 && <CombinedOutingCard voteHint={polls.reduce((s, p) => s + p.total_votes, 0)} />}
+      {polls.length > 0 && (
+        <CombinedOutingCard
+          voteHint={polls.reduce((s, p) => s + p.total_votes, 0)}
+          onUsePoll={(draft) => {
+            setForm(draft);
+            setMsg(null);
+            requestAnimationFrame(() =>
+              document.getElementById("new-poll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+            );
+          }}
+        />
+      )}
 
       <div className="overflow-x-auto rounded-lg border-2 border-ink">
         <table className="w-full min-w-[720px] text-sm">
@@ -244,7 +256,10 @@ export function PollsAdminPanel() {
         </table>
       </div>
 
-      <div className="space-y-4 rounded-xl border-2 border-ink bg-card p-4 shadow-[4px_4px_0_0_var(--color-ink)]">
+      <div
+        id="new-poll-form"
+        className="scroll-mt-20 space-y-4 rounded-xl border-2 border-ink bg-card p-4 shadow-[4px_4px_0_0_var(--color-ink)]"
+      >
         <h2 className="font-display text-2xl text-ink">{form.id ? "Edit poll" : "New poll"}</h2>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -493,7 +508,13 @@ function mapsUrl(route: OutingRoute): string {
   return url;
 }
 
-function CombinedOutingCard({ voteHint }: { voteHint: number }) {
+function CombinedOutingCard({
+  voteHint,
+  onUsePoll,
+}: {
+  voteHint: number;
+  onUsePoll: (draft: FormState) => void;
+}) {
   const { lang } = useI18n();
   const insightFn = useServerFn(adminCombinedPollInsight);
   const [data, setData] = useState<CombinedPollInsight | null>(null);
@@ -529,7 +550,7 @@ function CombinedOutingCard({ voteHint }: { voteHint: number }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-            {af ? "Al die peilings" : "All polls combined"}
+            {af ? "Alle peilings" : "All polls"}
           </p>
           <p className="mt-1 font-display text-4xl leading-none text-ink">
             {data?.total_votes ?? voteHint}
@@ -539,6 +560,7 @@ function CombinedOutingCard({ voteHint }: { voteHint: number }) {
           </p>
           <p className="mt-1 text-xs text-ink/60">
             {data?.open_polls ?? 0} {af ? "oop" : "open"}
+            {typeof data?.on_home === "number" ? ` · ${data.on_home} ${af ? "op tuis" : "on home"}` : ""}
           </p>
         </div>
         <button
@@ -553,23 +575,50 @@ function CombinedOutingCard({ voteHint }: { voteHint: number }) {
       </div>
 
       {data && data.polls.length > 0 && (
-        <ul className="mt-3 space-y-1 text-sm">
-          {data.polls.map((p) => (
-            <li key={p.id} className="flex flex-wrap justify-between gap-2 border-t border-ink/10 pt-1">
-              <span className="min-w-0 font-semibold">{p.question_en}</span>
-              <span className="text-ink/65">
-                {p.total_votes} {af ? "stemme" : "votes"}
-                {p.leader ? ` · ${p.leader}` : ""}
-                {p.recent_leader && p.recent_leader !== p.leader ? ` · ${af ? "onlangs" : "recent"}: ${p.recent_leader}` : ""}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-4 space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink/45">
+            {af ? "Lopende opsomming" : "Running summary"}
+          </p>
+          {data.polls.map((p) => {
+            const max = Math.max(1, ...p.overall.map((o) => o.vote_count));
+            return (
+              <div key={p.id} className="border-t border-ink/10 pt-2">
+                <div className="flex flex-wrap justify-between gap-2 text-sm">
+                  <span className="min-w-0 font-semibold">{p.question_en}</span>
+                  <span className="text-ink/60">
+                    {p.total_votes} {af ? "stemme" : "votes"}
+                    {p.leader ? ` · ${p.leader}` : ""}
+                  </span>
+                </div>
+                {p.recent_leader && p.recent_leader !== p.leader && (
+                  <p className="text-[11px] text-ink/55">
+                    {af ? "Onlangse stemme" : "Recent votes"}: {p.recent_leader}
+                  </p>
+                )}
+                <ul className="mt-1 space-y-0.5">
+                  {p.overall.slice(0, 6).map((o) => (
+                    <li key={o.label_en}>
+                      <div className="flex justify-between text-[11px]">
+                        <span>{o.label_en}</span>
+                        <span className="tabular-nums text-ink/60">
+                          {o.vote_count} · {o.pct}%
+                        </span>
+                      </div>
+                      <div className="h-1 overflow-hidden rounded-full bg-ink/10">
+                        <div className="h-full bg-primary" style={{ width: `${Math.round((o.vote_count / max) * 100)}%` }} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       <div className="mt-3 rounded-md border-2 border-primary/40 bg-primary/5 px-3 py-2">
         <p className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-primary">
-          <Sparkles className="h-3 w-3" /> {af ? "Voorstel" : "Suggestion"}
+          <Sparkles className="h-3 w-3" /> {af ? "AI-ontleding" : "AI analysis"}
         </p>
         {busy && !suggestion ? (
           <p className="mt-1 text-sm text-ink/50">{af ? "Lees al die stemme…" : "Reading all the votes…"}</p>
@@ -619,6 +668,62 @@ function CombinedOutingCard({ voteHint }: { voteHint: number }) {
           </a>
         </div>
       )}
+
+      {data && data.new_polls.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-ink/45">
+            {af ? "Voorgestelde nuwe peilings" : "Suggested next polls"}
+          </p>
+          {data.new_polls.map((np, i) => (
+            <SuggestedPollRow key={`${np.question_en}-${i}`} poll={np} af={af} onUse={onUsePoll} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SuggestedPollRow({
+  poll,
+  af,
+  onUse,
+}: {
+  poll: SuggestedPoll;
+  af: boolean;
+  onUse: (draft: FormState) => void;
+}) {
+  const question = af && poll.question_af ? poll.question_af : poll.question_en;
+  const why = af && poll.why_af ? poll.why_af : poll.why_en;
+  const seeds =
+    poll.options.length > 0
+      ? poll.options.map((o) => ({ labelEn: o.en, labelAf: o.af }))
+      : emptyForm().seeds;
+
+  return (
+    <div className="rounded-md border-2 border-ink/20 bg-card px-3 py-2">
+      <p className="font-semibold text-ink">{question}</p>
+      {why ? <p className="mt-0.5 text-xs leading-relaxed text-ink/65">{why}</p> : null}
+      {poll.options.length > 0 && (
+        <p className="mt-1 text-[11px] text-ink/50">{poll.options.map((o) => (af && o.af ? o.af : o.en)).join(" · ")}</p>
+      )}
+      <button
+        type="button"
+        onClick={() =>
+          onUse({
+            titleEn: poll.title_en,
+            titleAf: poll.title_af,
+            questionEn: poll.question_en,
+            questionAf: poll.question_af,
+            allowMemberOptions: true,
+            showOnHome: true,
+            status: "open",
+            seeds,
+          })
+        }
+        className="mt-2 inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+      >
+        <Plus className="h-3 w-3" /> {af ? "Begin hierdie peiling" : "Start this poll"}
+      </button>
     </div>
   );
 }

@@ -44,6 +44,7 @@ import { Route as AuthenticatedClassifiedsNewRouteImport } from './routes/_authe
 import { Route as AuthenticatedClassifiedsMineRouteImport } from './routes/_authenticated/classifieds.mine'
 import { Route as AuthenticatedAdminSponsorsRouteImport } from './routes/_authenticated/admin/sponsors'
 import { Route as AuthenticatedAdminShopRouteImport } from './routes/_authenticated/admin/shop'
+import { Route as AuthenticatedAdminPollsRouteImport } from './routes/_authenticated/admin/polls'
 import { Route as AuthenticatedAdminNewsletterRouteImport } from './routes/_authenticated/admin/newsletter'
 import { Route as AuthenticatedAdminMembersRouteImport } from './routes/_authenticated/admin/members'
 import { Route as AuthenticatedAdminGalleryRouteImport } from './routes/_authenticated/admin/gallery'
@@ -242,6 +243,11 @@ const AuthenticatedAdminNewsletterRoute =
     path: '/newsletter',
     getParentRoute: () => AuthenticatedAdminRouteRoute,
   } as any)
+const AuthenticatedAdminPollsRoute = AuthenticatedAdminPollsRouteImport.update({
+  id: '/polls',
+  path: '/polls',
+  getParentRoute: () => AuthenticatedAdminRouteRoute,
+} as any)
 const AuthenticatedAdminMembersRoute =
   AuthenticatedAdminMembersRouteImport.update({
     id: '/members',
@@ -311,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/polls': typeof AuthenticatedAdminPollsRoute
   '/admin/shop': typeof AuthenticatedAdminShopRoute
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
@@ -351,6 +358,7 @@ export interface FileRoutesByTo {
   '/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/admin/members': typeof AuthenticatedAdminMembersRoute
   '/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/admin/polls': typeof AuthenticatedAdminPollsRoute
   '/admin/shop': typeof AuthenticatedAdminShopRoute
   '/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
@@ -397,6 +405,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/gallery': typeof AuthenticatedAdminGalleryRoute
   '/_authenticated/admin/members': typeof AuthenticatedAdminMembersRoute
   '/_authenticated/admin/newsletter': typeof AuthenticatedAdminNewsletterRoute
+  '/_authenticated/admin/polls': typeof AuthenticatedAdminPollsRoute
   '/_authenticated/admin/shop': typeof AuthenticatedAdminShopRoute
   '/_authenticated/admin/sponsors': typeof AuthenticatedAdminSponsorsRoute
   '/_authenticated/classifieds/mine': typeof AuthenticatedClassifiedsMineRoute
@@ -443,6 +452,7 @@ export interface FileRouteTypes {
     | '/admin/gallery'
     | '/admin/members'
     | '/admin/newsletter'
+    | '/admin/polls'
     | '/admin/shop'
     | '/admin/sponsors'
     | '/classifieds/mine'
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/gallery'
     | '/admin/members'
     | '/admin/newsletter'
+    | '/admin/polls'
     | '/admin/shop'
     | '/admin/sponsors'
     | '/classifieds/mine'
@@ -528,6 +539,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/gallery'
     | '/_authenticated/admin/members'
     | '/_authenticated/admin/newsletter'
+    | '/_authenticated/admin/polls'
     | '/_authenticated/admin/shop'
     | '/_authenticated/admin/sponsors'
     | '/_authenticated/classifieds/mine'
@@ -824,6 +836,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminNewsletterRouteImport
       parentRoute: typeof AuthenticatedAdminRouteRoute
     }
+    '/_authenticated/admin/polls': {
+      id: '/_authenticated/admin/polls'
+      path: '/polls'
+      fullPath: '/admin/polls'
+      preLoaderRoute: typeof AuthenticatedAdminPollsRouteImport
+      parentRoute: typeof AuthenticatedAdminRouteRoute
+    }
     '/_authenticated/admin/members': {
       id: '/_authenticated/admin/members'
       path: '/members'
@@ -883,6 +902,7 @@ interface AuthenticatedAdminRouteRouteChildren {
   AuthenticatedAdminGalleryRoute: typeof AuthenticatedAdminGalleryRoute
   AuthenticatedAdminMembersRoute: typeof AuthenticatedAdminMembersRoute
   AuthenticatedAdminNewsletterRoute: typeof AuthenticatedAdminNewsletterRoute
+  AuthenticatedAdminPollsRoute: typeof AuthenticatedAdminPollsRoute
   AuthenticatedAdminShopRoute: typeof AuthenticatedAdminShopRoute
   AuthenticatedAdminSponsorsRoute: typeof AuthenticatedAdminSponsorsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -896,6 +916,7 @@ const AuthenticatedAdminRouteRouteChildren: AuthenticatedAdminRouteRouteChildren
     AuthenticatedAdminGalleryRoute: AuthenticatedAdminGalleryRoute,
     AuthenticatedAdminMembersRoute: AuthenticatedAdminMembersRoute,
     AuthenticatedAdminNewsletterRoute: AuthenticatedAdminNewsletterRoute,
+    AuthenticatedAdminPollsRoute: AuthenticatedAdminPollsRoute,
     AuthenticatedAdminShopRoute: AuthenticatedAdminShopRoute,
     AuthenticatedAdminSponsorsRoute: AuthenticatedAdminSponsorsRoute,
     AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,

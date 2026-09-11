@@ -1946,7 +1946,6 @@ export type Database = {
         }
         Returns: number
       }
-      app_secret: { Args: { _name: string }; Returns: string }
       poll_option_vote_counts: {
         Args: { _poll_ids: string[] }
         Returns: {

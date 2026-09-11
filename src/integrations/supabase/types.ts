@@ -1141,6 +1141,109 @@ export type Database = {
         }
         Relationships: []
       }
+      member_feature_photos: {
+        Row: {
+          caption_af: string | null
+          caption_en: string | null
+          created_at: string
+          feature_id: string
+          id: string
+          sort_order: number
+          url: string
+        }
+        Insert: {
+          caption_af?: string | null
+          caption_en?: string | null
+          created_at?: string
+          feature_id: string
+          id?: string
+          sort_order?: number
+          url: string
+        }
+        Update: {
+          caption_af?: string | null
+          caption_en?: string | null
+          created_at?: string
+          feature_id?: string
+          id?: string
+          sort_order?: number
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_feature_photos_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "member_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_features: {
+        Row: {
+          body_af: string | null
+          body_en: string
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          deck_af: string | null
+          deck_en: string | null
+          headline_af: string | null
+          headline_en: string
+          id: string
+          member_user_id: string
+          publishead_at: string | null
+          published: boolean
+          show_on_home: boolean
+          slug: string | null
+          updated_at: string
+        }
+        Insert: {
+          body_af?: string | null
+          body_en?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          deck_af?: string | null
+          deck_en?: string | null
+          headline_af?: string | null
+          headline_en?: string
+          id?: string
+          member_user_id: string
+          publishead_at?: string | null
+          published?: boolean
+          show_on_home?: boolean
+          slug?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body_af?: string | null
+          body_en?: string
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          deck_af?: string | null
+          deck_en?: string | null
+          headline_af?: string | null
+          headline_en?: string
+          id?: string
+          member_user_id?: string
+          publishead_at?: string | null
+          published?: boolean
+          show_on_home?: boolean
+          slug?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_features_member_user_id_fkey"
+            columns: ["member_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       merch_items: {
         Row: {
           available_from: string | null
@@ -1369,6 +1472,137 @@ export type Database = {
           title_en?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      poll_options: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          hidden: boolean
+          id: string
+          label_af: string | null
+          label_en: string
+          poll_id: string
+          sort_order: number
+          source: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          label_af?: string | null
+          label_en: string
+          poll_id: string
+          sort_order?: number
+          source?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          label_af?: string | null
+          label_en?: string
+          poll_id?: string
+          sort_order?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          allow_member_options: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          question_af: string | null
+          question_en: string
+          show_on_home: boolean
+          sort_order: number
+          status: string
+          title_af: string | null
+          title_en: string
+          updated_at: string
+        }
+        Insert: {
+          allow_member_options?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question_af?: string | null
+          question_en?: string
+          show_on_home?: boolean
+          sort_order?: number
+          status?: string
+          title_af?: string | null
+          title_en?: string
+          updated_at?: string
+        }
+        Update: {
+          allow_member_options?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          question_af?: string | null
+          question_en?: string
+          show_on_home?: boolean
+          sort_order?: number
+          status?: string
+          title_af?: string | null
+          title_en?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1711,6 +1945,13 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      poll_option_vote_counts: {
+        Args: { _poll_ids: string[] }
+        Returns: {
+          option_id: string
+          vote_count: number
+        }[]
       }
       recompute_idle_rr_standard: {
         Args: { _event_id: string }

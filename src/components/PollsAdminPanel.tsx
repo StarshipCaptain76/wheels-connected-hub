@@ -498,6 +498,17 @@ export function PollsAdminPanel() {
   );
 }
 
+function safeAiNote(
+  note: string | null | undefined,
+  err: string | null | undefined,
+  fallback: string,
+): string {
+  const raw = (note || err || "").trim();
+  if (!raw) return fallback;
+  if (/no ai key|xai_api_key|lovable_api_key|api key configured/i.test(raw)) return fallback;
+  return raw;
+}
+
 function mapsUrl(route: OutingRoute): string {
   const tag = (p: string) => `${p}, Western Cape, South Africa`;
   const origin = encodeURIComponent(tag(route.start));
@@ -625,7 +636,9 @@ function CombinedOutingCard({
         ) : suggestion ? (
           <p className="mt-1 text-sm leading-relaxed text-ink">{suggestion}</p>
         ) : (
-          <p className="mt-1 text-sm text-ink/60">{data?.ai_note || err || (af ? "Nog geen voorstel." : "No suggestion yet.")}</p>
+          <p className="mt-1 text-sm text-ink/60">
+            {safeAiNote(data?.ai_note, err, af ? "Nog geen voorstel." : "No suggestion yet.")}
+          </p>
         )}
       </div>
 
@@ -832,7 +845,7 @@ function PollSummaryCard({ pollId, totalVotes }: { pollId: string; totalVotes: n
         ) : suggestion ? (
           <p className="mt-1 text-sm leading-relaxed text-ink">{suggestion}</p>
         ) : (
-          <p className="mt-1 text-sm text-ink/60">{data?.ai_note || err || "No suggestion yet."}</p>
+          <p className="mt-1 text-sm text-ink/60">{safeAiNote(data?.ai_note, err, "No suggestion yet.")}</p>
         )}
       </div>
     </div>

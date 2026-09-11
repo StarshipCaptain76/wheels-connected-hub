@@ -7,6 +7,7 @@ type AnyClient = {
   from: (t: string) => any;
   rpc: (fn: string, args: Record<string, unknown>) => any;
   auth?: any;
+  schema?: (s: string) => { from: (t: string) => any };
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -777,8 +778,79 @@ const OUTING_SYSTEM =
   '{"en":"2-4 sentences analysis","af":"2-4 sinne","route":{"title_en":"","title_af":"","start":"Stilbaai","destination":"","stops":["..."],"distance_en":"","distance_af":"","why_en":"","why_af":""},"new_polls":[{"title_en":"","title_af":"","question_en":"","question_af":"","why_en":"","why_af":"","options":[{"en":"","af":""}]}]} ' +
   "Set route to null only if a simple one-place outing is clearly best.";
 
-async function grokSuggest(prompt: string): Promise<string> {
-  const xai = process.env.XAI_API_KEY;
+const XAI_SECRET_NAMES = ["XAI_API_KEY", "xai_api_key", "XAI_KEY", "GROK_API_KEY"] as const;
+
+function firstNonEmpty(...vals: Array<string | null | undefined>): string {
+  for (const v of vals) {
+    const t = (v ?? "").trim();
+    if (t) return t;
+  }
+  return "";
+}
+
+async function secretFromTable(
+  sb: AnyClient,
+  table: string,
+  column: string,
+  names: readonly string[],
+  schema?: string,
+): Promise<string> {
+  if (schema && typeof sb.schema !== "function") return "";
+  for (const name of names) {
+    try {
+      const from = schema ? sb.schema!(schema).from(table) : sb.from(table);
+      const { data, error } = await from.select(column).eq("name", name).maybeSingle();
+      if (error) continue;
+      const v = firstNonEmpty((data as Record<string, unknown> | null)?.[column] as string | undefined);
+      if (v) return v;
+    } catch {
+      /* table/schema may be unreadable from this client */
+    }
+  }
+  return "";
+}
+
+async function resolveXaiKey(sb?: AnyClient): Promise<string> {
+  const fromEnv = firstNonEmpty(...XAI_SECRET_NAMES.map((n) => process.env[n]));
+  if (fromEnv) return fromEnv;
+  if (!sb) return "";
+
+  const fromCron = await secretFromTable(sb, "cron_secrets", "secret", XAI_SECRET_NAMES);
+  if (fromCron) return fromCron;
+
+  const fromVault = await secretFromTable(
+    sb,
+    "decrypted_secrets",
+    "decrypted_secret",
+    XAI_SECRET_NAMES,
+    "vault",
+  );
+  if (fromVault) return fromVault;
+
+  for (const name of XAI_SECRET_NAMES) {
+    try {
+      const { data, error } = await sb.rpc("app_secret", { _name: name });
+      if (error) continue;
+      const v = firstNonEmpty(typeof data === "string" ? data : undefined);
+      if (v) return v;
+    } catch {
+      /* rpc may not exist yet */
+    }
+  }
+  return "";
+}
+
+function publicAiNote(e: unknown): string {
+  const msg = e instanceof Error ? e.message : "AI suggestion unavailable";
+  if (/no ai key|xai_api_key|lovable_api_key|api key configured|xAI \d|AI gateway/i.test(msg)) {
+    console.error("[polls ai]", msg);
+    return "Suggestion unavailable. Try again shortly.";
+  }
+  return msg;
+}
+
+async function grokSuggest(prompt: string, sb?: AnyClient): Promise<string> {
+  const xai = await resolveXaiKey(sb);
   if (xai) {
     const res = await fetch("https://api.x.ai/v1/chat/completions", {
       method: "POST",
@@ -832,7 +904,7 @@ async function grokSuggest(prompt: string): Promise<string> {
     if (out) return out;
   }
 
-  throw new Error("No AI key configured (set XAI_API_KEY on the server).");
+  throw new Error("AI suggestion unavailable");
 }
 
 export const adminPollInsight = createServerFn({ method: "POST" })
@@ -910,12 +982,12 @@ export const adminPollInsight = createServerFn({ method: "POST" })
         .filter(Boolean)
         .join("\n");
       try {
-        const raw = await grokSuggest(prompt);
+        const raw = await grokSuggest(prompt, sb);
         const parsed = parseSuggestion(raw);
         suggestion_en = parsed.en;
         suggestion_af = parsed.af;
       } catch (e) {
-        ai_note = e instanceof Error ? e.message : "AI suggestion unavailable";
+        ai_note = publicAiNote(e);
       }
     }
 
@@ -1031,14 +1103,14 @@ export const adminCombinedPollInsight = createServerFn({ method: "POST" })
         promptParts.join("\n\n"),
       ].join("\n");
       try {
-        const raw = await grokSuggest(prompt);
+        const raw = await grokSuggest(prompt, sb);
         const parsed = parseSuggestion(raw);
         suggestion_en = parsed.en;
         suggestion_af = parsed.af;
         route = parsed.route;
         new_polls = parsed.new_polls;
       } catch (e) {
-        ai_note = e instanceof Error ? e.message : "AI suggestion unavailable";
+        ai_note = publicAiNote(e);
       }
     }
 

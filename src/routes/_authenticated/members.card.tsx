@@ -22,6 +22,8 @@ export const Route = createFileRoute("/_authenticated/members/card")({
 /** CR80 credit-card size at ~300 DPI for laminate print */
 const PRINT_W = 1013;
 const PRINT_H = 638;
+const INK = "#140e0c";
+const PAPER = "#ffffff";
 
 function readCache(): MemberProfile | null {
   if (typeof window === "undefined") return null;
@@ -214,8 +216,8 @@ function MemberCardPage() {
 
         <p className="mb-4 text-sm text-ink/60">
           {lang === "af"
-            ? "Agtergrond = motor · regs onder = jou gesig (My Garage → Lidkaart-foto) · links bo = klublogo."
-            : "Background = car · bottom-right = your face (My Garage → Member card photo) · top-left = club logo."}
+            ? "Dagmodus: wit kaart, swart teks. Agtergrond = motor · regs onder = jou gesig · links bo = klublogo."
+            : "Day mode: white card, black type. Background = car · bottom-right = your face · top-left = club logo."}
         </p>
 
         {!profile ? (
@@ -256,13 +258,17 @@ async function downloadLandscapeCard(
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas unsupported");
 
-  const number = String(profile.member_number).padStart(4, "0");
   const year = new Date(profile.joined_at).getFullYear();
   const name = profile.display_name ?? "—";
   const ride = profile.favourite_ride || (af ? "Geen ry gelys nie" : "No ride listed");
   const faceInitials = initials(profile.display_name);
+  const slug =
+    (profile.display_name || "member")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "member";
 
-  ctx.fillStyle = "#140e0c";
+  ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
   if (carPhoto) {
@@ -273,20 +279,20 @@ async function downloadLandscapeCard(
       const h = img.height * scale;
       ctx.drawImage(img, (PRINT_W - w) / 2, (PRINT_H - h) / 2, w, h);
     } catch {
-      /* solid bg */
+      /* solid white bg */
     }
   }
 
-  const grad = ctx.createLinearGradient(0, 0, PRINT_W * 0.75, 0);
-  grad.addColorStop(0, "rgba(20,14,12,0.96)");
-  grad.addColorStop(0.55, "rgba(20,14,12,0.72)");
-  grad.addColorStop(1, "rgba(20,14,12,0.15)");
+  const grad = ctx.createLinearGradient(0, 0, PRINT_W * 0.85, 0);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.92)");
+  grad.addColorStop(1, "rgba(255,255,255,0.7)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
   const bot = ctx.createLinearGradient(0, PRINT_H * 0.45, 0, PRINT_H);
-  bot.addColorStop(0, "rgba(20,14,12,0)");
-  bot.addColorStop(1, "rgba(20,14,12,0.88)");
+  bot.addColorStop(0, "rgba(255,255,255,0)");
+  bot.addColorStop(1, "rgba(255,255,255,1)");
   ctx.fillStyle = bot;
   ctx.fillRect(0, 0, PRINT_W, PRINT_H);
 
@@ -297,25 +303,23 @@ async function downloadLandscapeCard(
     /* skip */
   }
 
-  ctx.fillStyle = "#f5f0e8";
+  ctx.fillStyle = INK;
   ctx.font = "700 28px Bebas Neue, Barlow, sans-serif";
   ctx.fillText("JUST WHEELS", 100, 52);
-  ctx.fillStyle = "#cc2222";
   ctx.font = "600 14px Barlow, sans-serif";
   ctx.fillText("HESSEQUA", 100, 74);
 
-  ctx.strokeStyle = "rgba(245,240,232,0.45)";
+  ctx.strokeStyle = INK;
   ctx.lineWidth = 2;
   roundRect(ctx, PRINT_W - 140, 28, 110, 28, 14);
   ctx.stroke();
-  ctx.fillStyle = "rgba(245,240,232,0.9)";
+  ctx.fillStyle = INK;
   ctx.font = "700 12px Barlow, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(af ? "LIDKAART" : "MEMBER", PRINT_W - 85, 47);
   ctx.textAlign = "left";
 
-  // Name largest on print card
-  ctx.fillStyle = "#f5f0e8";
+  ctx.fillStyle = INK;
   let nameSize = 280;
   ctx.font = `700 ${nameSize}px Bebas Neue, Barlow, sans-serif`;
   const nameText = name.toUpperCase();
@@ -330,23 +334,14 @@ async function downloadLandscapeCard(
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
 
-  ctx.fillStyle = "#cc2222";
-  ctx.font = "600 16px Barlow, sans-serif";
-  ctx.fillText(af ? "LIDNOMMER" : "MEMBER NO.", 48, PRINT_H - 95);
-  ctx.fillStyle = "#f5f0e8";
-  ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
-  ctx.fillText(`#${number}`, 48, PRINT_H - 58);
-
-  ctx.fillStyle = "rgba(245,240,232,0.8)";
+  ctx.fillStyle = INK;
   ctx.font = "500 18px Barlow, sans-serif";
   ctx.fillText(ride.slice(0, 40), 48, PRINT_H - 28);
 
-  const meta = [`${af ? "Sedert" : "Since"} ${year}`, profile.membership_status, profile.town]
-    .filter(Boolean)
-    .join("  ·  ");
-  ctx.fillStyle = "rgba(245,240,232,0.55)";
+  const meta = [`${af ? "Sedert" : "Since"} ${year}`, profile.town].filter(Boolean).join("  ·  ");
+  ctx.fillStyle = INK;
   ctx.font = "600 14px Barlow, sans-serif";
-  ctx.fillText(meta, 220, PRINT_H - 58);
+  ctx.fillText(meta, 48, PRINT_H - 58);
 
   const cx = PRINT_W - 90;
   const cy = PRINT_H - 90;
@@ -355,9 +350,9 @@ async function downloadLandscapeCard(
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-    ctx.fillStyle = "#f5f0e8";
+    ctx.fillStyle = PAPER;
     ctx.fill();
-    ctx.strokeStyle = "#140e0c";
+    ctx.strokeStyle = INK;
     ctx.lineWidth = 4;
     ctx.stroke();
 
@@ -368,9 +363,9 @@ async function downloadLandscapeCard(
       } catch {
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = "#2a1a16";
+        ctx.fillStyle = PAPER;
         ctx.fill();
-        ctx.fillStyle = "#f5f0e8";
+        ctx.fillStyle = INK;
         ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -381,9 +376,9 @@ async function downloadLandscapeCard(
     } else {
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.fillStyle = "#2a1a16";
+      ctx.fillStyle = PAPER;
       ctx.fill();
-      ctx.fillStyle = "#f5f0e8";
+      ctx.fillStyle = INK;
       ctx.font = "700 36px Bebas Neue, Barlow, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -399,9 +394,9 @@ async function downloadLandscapeCard(
     const by = cy + r * 0.65;
     ctx.beginPath();
     ctx.arc(bx, by, br + 2, 0, Math.PI * 2);
-    ctx.fillStyle = "#f5f0e8";
+    ctx.fillStyle = PAPER;
     ctx.fill();
-    ctx.strokeStyle = "#140e0c";
+    ctx.strokeStyle = INK;
     ctx.lineWidth = 2;
     ctx.stroke();
     drawCircleImage(ctx, logo, bx, by, br);
@@ -409,14 +404,14 @@ async function downloadLandscapeCard(
     /* skip */
   }
 
-  ctx.strokeStyle = "#140e0c";
+  ctx.strokeStyle = INK;
   ctx.lineWidth = 10;
   ctx.strokeRect(5, 5, PRINT_W - 10, PRINT_H - 10);
 
   const url = canvas.toDataURL("image/png");
   const a = document.createElement("a");
   a.href = url;
-  a.download = `just-wheels-member-${number}.png`;
+  a.download = `just-wheels-member-${slug}.png`;
   a.click();
 }
 

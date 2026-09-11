@@ -62,6 +62,8 @@ function toLocalDT(iso: string | null | undefined) {
 function AdminEvents() {
   const { data: events } = useSuspenseQuery(eventsAdminQuery);
   const qc = useQueryClient();
+  const router = useRouter();
+
   const upsert = useServerFn(upsertEvent);
   const del = useServerFn(deleteEvent);
   const [editing, setEditing] = useState<FormState | null>(null);

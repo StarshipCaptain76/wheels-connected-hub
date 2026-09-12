@@ -74,7 +74,10 @@ export function buildInviteEmail(input: {
   const eventUrl = `${SITE_ORIGIN}/events/${ev.id}`;
   const rsvp = (r: string) => `${SITE_ORIGIN}/api/public/event-rsvp?token=${token}&r=${r}`;
   const map = staticMapUrl(ev, input.mapsKey);
-  const hero = ev.hero_image_url || ev.cover_url;
+  // Event images live in a private bucket, so signed/private URLs never render
+  // in email clients. Use the stable public image proxy with an absolute URL.
+  const heroKind = ev.hero_image_url ? "hero" : ev.cover_url ? "cover" : null;
+  const hero = heroKind ? `${SITE_ORIGIN}/api/public/event-image?id=${ev.id}&k=${heroKind}` : null;
 
   const t = af
     ? {

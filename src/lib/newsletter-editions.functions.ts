@@ -150,7 +150,7 @@ export const saveEdition = createServerFn({ method: "POST" })
         .from("newsletter_editions")
         .update(row)
         .eq("id", data.id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return { id: data.id };
     }
 
@@ -159,7 +159,10 @@ export const saveEdition = createServerFn({ method: "POST" })
       .insert({ ...row, created_by: userId })
       .select("id")
       .single();
-    if (error) throw error;
+    if (error) {
+      if (error.code === "23505") throw new Error("An edition for that month already exists — open it from the list instead.");
+      throw new Error(error.message);
+    }
     return { id: (inserted as { id: string }).id };
   });
 

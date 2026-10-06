@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/admin/sponsors")({
   component: AdminSponsors,
   errorComponent: ({ error }) => (
     <div className="py-20 text-center">
-      <p className="text-ink/70">Could not load sponsors: {error.message}</p>
+      <p className="text-ink/70">Could not load sponsors: {(error as Error).message}</p>
       <p className="mt-2 text-xs text-ink/50">
         If this mentions billing_starts_at, run the sponsors SQL migration in Supabase first.
       </p>

@@ -139,7 +139,7 @@ export const Route = createFileRoute("/_authenticated/admin/members")({
   errorComponent: ({ error, reset }) => (
     <div className="rounded-xl border-2 border-primary bg-primary/10 p-6">
       <h1 className="font-display text-2xl text-ink">Members failed to load</h1>
-      <p className="mt-2 text-sm text-ink/80">{error.message}</p>
+      <p className="mt-2 text-sm text-ink/80">{(error as Error).message}</p>
       <button
         type="button"
         onClick={reset}

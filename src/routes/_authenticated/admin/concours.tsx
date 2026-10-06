@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/admin/concours")({
   errorComponent: ({ error }) => (
     <SiteLayout>
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="text-ink/70">Access denied: {error.message}</p>
+        <p className="text-ink/70">Access denied: {(error as Error).message}</p>
         <Link to="/members" className="mt-4 inline-block text-primary underline">
           Back to garage
         </Link>

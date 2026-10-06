@@ -107,7 +107,7 @@ export const Route = createFileRoute("/events/")({
   errorComponent: ({ error }) => (
     <SiteLayout>
       <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-        <p className="text-ink/70">Could not load events: {error.message}</p>
+        <p className="text-ink/70">Could not load events: {(error as Error).message}</p>
       </div>
     </SiteLayout>
   ),

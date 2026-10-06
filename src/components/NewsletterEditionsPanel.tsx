@@ -11,6 +11,7 @@ import {
   type NewsletterEdition,
 } from "@/lib/newsletter-editions.functions";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -105,8 +106,20 @@ export function NewsletterEditionsPanel() {
 
   async function persist(silent = false): Promise<string | null> {
     if (!draft) return null;
-    const pdfBase64 = pdfFile ? await fileToBase64(pdfFile) : undefined;
-    const pdfAfBase64 = pdfAfFile ? await fileToBase64(pdfAfFile) : undefined;
+    // Upload PDFs straight to storage — large files are too big to pass through the save call.
+    const uploadDirect = async (file: File, tag: string) => {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/\.pdf$/i, "");
+      const path = `${draft.year}-${String(draft.month).padStart(2, "0")}/${tag}-${Date.now()}-${safe}.pdf`;
+      const { error } = await supabase.storage
+        .from("newsletters")
+        .upload(path, file, { contentType: "application/pdf", upsert: true });
+      if (error) throw new Error(`PDF upload failed: ${error.message}`);
+      return path;
+    };
+    const uploadedPdfPath = pdfFile ? await uploadDirect(pdfFile, "en") : undefined;
+    const uploadedPdfPathAf = pdfAfFile ? await uploadDirect(pdfAfFile, "af") : undefined;
+    const pdfBase64 = uploadedPdfPath;
+    const pdfAfBase64 = uploadedPdfPathAf;
     const res = await saveFn({
       data: {
         ...(draft.id ? { id: draft.id } : {}),
@@ -118,8 +131,8 @@ export function NewsletterEditionsPanel() {
         bodyAf: draft.bodyAf,
         adminNotes: draft.adminNotes,
         isPublished: draft.isPublished,
-        ...(pdfBase64 ? { pdfBase64, pdfName: pdfFile!.name } : {}),
-        ...(pdfAfBase64 ? { pdfAfBase64, pdfAfName: pdfAfFile!.name } : {}),
+        ...(uploadedPdfPath ? { uploadedPdfPath } : {}),
+        ...(uploadedPdfPathAf ? { uploadedPdfPathAf } : {}),
       },
     });
     setPdfFile(null);

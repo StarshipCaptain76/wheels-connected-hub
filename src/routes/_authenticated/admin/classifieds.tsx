@@ -31,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/admin/classifieds")({
   component: AdminClassifieds,
   errorComponent: ({ error }) => (
     <div className="py-20 text-center">
-      <p className="text-ink/70">Access denied: {error.message}</p>
+      <p className="text-ink/70">Access denied: {(error as Error).message}</p>
     </div>
   ),
 });

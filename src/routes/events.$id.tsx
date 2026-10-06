@@ -113,7 +113,7 @@ export const Route = createFileRoute("/events/$id")({
       </div>
     </SiteLayout>
   ),
-  errorComponent: EventDetailError,
+  errorComponent: EventDetailError as never,
 });
 
 function EventDetailError({ error, reset }: { error: Error; reset: () => void }) {

@@ -99,6 +99,9 @@ const saveSchema = z.object({
   /** base64 (no data: prefix) of a newly uploaded Afrikaans PDF */
   pdfAfBase64: z.string().max(14_000_000).optional(),
   pdfAfName: z.string().max(200).optional(),
+  /** storage path of a PDF already uploaded directly from the browser */
+  uploadedPdfPath: z.string().regex(/^\d{4}-\d{2}\/[\w.-]+\.pdf$/i).max(300).optional(),
+  uploadedPdfPathAf: z.string().regex(/^\d{4}-\d{2}\/[\w.-]+\.pdf$/i).max(300).optional(),
 });
 
 export const saveEdition = createServerFn({ method: "POST" })
@@ -119,9 +122,9 @@ export const saveEdition = createServerFn({ method: "POST" })
       return path;
     }
 
-    let pdfPath: string | undefined;
+    let pdfPath: string | undefined = data.uploadedPdfPath;
     if (data.pdfBase64) pdfPath = await uploadPdf(data.pdfBase64, data.pdfName, "en");
-    let pdfPathAf: string | undefined;
+    let pdfPathAf: string | undefined = data.uploadedPdfPathAf;
     if (data.pdfAfBase64) pdfPathAf = await uploadPdf(data.pdfAfBase64, data.pdfAfName, "af");
 
     const row = {

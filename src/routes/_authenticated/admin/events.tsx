@@ -493,7 +493,7 @@ function EditModal({
               label="Cover image (card thumbnail)"
               value={form.cover_url ?? ""}
               onChange={(v) => set("cover_url", v || null)}
-              previewSrc={form.id && form.cover_url ? eventImageUrl(form.id, "cover") : null}
+              previewSrc={form.id && form.cover_url ? eventImageUrl(form.id, "cover", form.cover_url) : null}
               bucket="gallery"
               folder="events/covers"
               maxMb={5}
@@ -502,7 +502,7 @@ function EditModal({
               label="Hero image (event page)"
               value={form.hero_image_url ?? ""}
               onChange={(v) => set("hero_image_url", v || null)}
-              previewSrc={form.id && form.hero_image_url ? eventImageUrl(form.id, "hero") : null}
+              previewSrc={form.id && form.hero_image_url ? eventImageUrl(form.id, "hero", form.hero_image_url) : null}
               bucket="gallery"
               folder="events/heroes"
               maxMb={8}

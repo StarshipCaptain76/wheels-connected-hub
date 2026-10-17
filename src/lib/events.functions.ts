@@ -52,7 +52,7 @@ function withDisplayUrls<T extends { id: string; cover_url: string | null }>(row
   return rows.map((r) => ({
     ...r,
     cover_display_url:
-      r.cover_url && isPrivateStorageUrl(r.cover_url) ? eventImageUrl(r.id, "cover") : r.cover_url,
+      r.cover_url && isPrivateStorageUrl(r.cover_url) ? eventImageUrl(r.id, "cover", r.cover_url) : r.cover_url,
   }));
 }
 

@@ -109,7 +109,7 @@ export const getEventDetail = createServerFn({ method: "GET" })
 
     const { eventImageUrl, isPrivateStorageUrl } = await import("./event-image-url");
     const display = (u: string | null, kind: "cover" | "hero") =>
-      u && isPrivateStorageUrl(u) ? eventImageUrl(event.id as string, kind) : u;
+      u && isPrivateStorageUrl(u) ? eventImageUrl(event.id as string, kind, u) : u;
 
     return {
       id: event.id as string,

@@ -82,7 +82,7 @@ export function buildInviteEmail(input: {
   const hero = !heroKind
     ? null
     : isStorage
-      ? `${SITE_ORIGIN}/api/public/event-image?id=${ev.id}&k=${heroKind}`
+      ? `${SITE_ORIGIN}/api/public/event-image?id=${ev.id}&k=${heroKind}&v=${encodeURIComponent(String(rawHero).slice(-24))}`
       : rawHero && /^https?:\/\//i.test(rawHero)
         ? rawHero
         : null;

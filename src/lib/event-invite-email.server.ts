@@ -77,7 +77,15 @@ export function buildInviteEmail(input: {
   // Event images live in a private bucket, so signed/private URLs never render
   // in email clients. Use the stable public image proxy with an absolute URL.
   const heroKind = ev.hero_image_url ? "hero" : ev.cover_url ? "cover" : null;
-  const hero = heroKind ? `${SITE_ORIGIN}/api/public/event-image?id=${ev.id}&k=${heroKind}` : null;
+  const rawHero = heroKind === "hero" ? ev.hero_image_url : heroKind === "cover" ? ev.cover_url : null;
+  const isStorage = !!rawHero && /\/storage\/v1\/object\/(?:public|sign|authenticated)\//.test(rawHero);
+  const hero = !heroKind
+    ? null
+    : isStorage
+      ? `${SITE_ORIGIN}/api/public/event-image?id=${ev.id}&k=${heroKind}`
+      : rawHero && /^https?:\/\//i.test(rawHero)
+        ? rawHero
+        : null;
 
   const t = af
     ? {

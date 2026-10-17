@@ -108,18 +108,24 @@ export function MemberCard({
           </span>
         </header>
 
-        <div className="pointer-events-none absolute inset-x-1 top-[18%] bottom-[22%] flex flex-col items-center justify-center px-2">
+        <div
+          className="pointer-events-none absolute inset-x-1 top-[18%] bottom-[22%] flex flex-col items-center justify-center overflow-hidden px-2"
+          style={{ containerType: "size" }}
+        >
           {(() => {
             const parts = (profile.display_name ?? "—").trim().split(/\s+/).filter(Boolean);
             const line1 = (parts[0] ?? "—").toUpperCase();
             const line2 = parts.length > 1 ? parts.slice(1).join(" ").toUpperCase() : null;
-            const nameCls = `w-full text-center font-display uppercase leading-[0.82] tracking-wide text-black ${
-              compact ? "text-[3.9rem]" : "text-[5.625rem] sm:text-[7.125rem] md:text-[9rem]"
-            }`;
+            const longest = Math.max(line1.length, line2?.length ?? 0, 1);
+            const lines = line2 ? 2 : 1;
+            // Shrink-to-fit: limit by width (≈0.5em per glyph in the display face) and box height.
+            const fontSize = `min(${(100 / (longest * 0.5)).toFixed(2)}cqw, ${(100 / (lines * 0.86)).toFixed(2)}cqh)`;
+            const nameCls =
+              "w-full whitespace-nowrap text-center font-display uppercase leading-[0.82] tracking-wide text-black";
             return (
               <>
-                <p className={nameCls}>{line1}</p>
-                {line2 ? <p className={nameCls}>{line2}</p> : null}
+                <p className={nameCls} style={{ fontSize }}>{line1}</p>
+                {line2 ? <p className={nameCls} style={{ fontSize }}>{line2}</p> : null}
               </>
             );
           })()}

@@ -16,9 +16,11 @@ const mixed = Array.from({ length: 15 }, (_, i) => ({ id: `road${i}`, category: 
 mixed.push({ id: 'paint', category: 'Exterior', active: true }, { id: 'retired', category: 'Roadworthy', active: false });
 const roadBank = concoursQuestionPool(mixed, 'Roadworthy').map(q => q.id);
 const roadSelected = prepareConcoursSelection(roadBank, ['paint'], 10, false);
-const roadDraw = selectConcoursQuestionIds(roadBank, roadSelected, 10, 'oct31:car');
+const guestBank = concoursQuestionPool(mixed, null).map(q => q.id);
+const roadDraw = selectConcoursQuestionIds(roadBank, roadSelected, 10, 'oct31:car', guestBank);
 assert(roadDraw.allIds.length === 10 && roadDraw.allIds.every(id => roadBank.includes(id)), '31 October members get ten roadworthy questions only');
-assert(roadDraw.spectatorIds.length === 5 && roadDraw.spectatorIds.every(id => roadBank.includes(id)), '31 October guests get five random roadworthy questions only');
+assert(roadDraw.spectatorIds.length === 5 && JSON.stringify(roadDraw.spectatorIds) === JSON.stringify(selectConcoursQuestionIds(guestBank, [], 10, 'oct31:car').spectatorIds), '31 October guests get five random questions from the full active bank, ignoring the member category');
+assert(Array.from({length: 100}, (_, i) => selectConcoursQuestionIds(roadBank, roadSelected, 10, `oct31:car${i}`, guestBank)).some(draw => draw.spectatorIds.includes('paint')), 'Questions outside Roadworthy remain eligible for guests');
 assert(JSON.stringify(prepareConcoursSelection(roadBank, roadSelected, 10, true)) === JSON.stringify(roadSelected), 'Manual selection keeps exactly the admin chosen questions');
 let rejected = false;
 try { prepareConcoursSelection(roadBank, [...roadSelected.slice(0, 9), 'paint'], 10, true); } catch { rejected = true; }

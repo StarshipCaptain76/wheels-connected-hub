@@ -19,17 +19,18 @@ export function prepareConcoursSelection(bank: string[], selected: string[], tot
   return [...retained, ...rest.slice(0, total - retained.length)];
 }
 
-/** The configured count is the entire member questionnaire. Guest draws use the scoped bank. */
-export function selectConcoursQuestionIds(bank: string[], selected: string[], total: number, seed: string) {
+/** The configured count is the entire member questionnaire. Guests use the full active bank. */
+export function selectConcoursQuestionIds(bank: string[], selected: string[], total: number, seed: string, spectatorBank: string[] = bank) {
   function hash(value: string) {
     let h = 2166136261;
     for (let i = 0; i < value.length; i++) h = Math.imul(h ^ value.charCodeAt(i), 16777619);
     return h >>> 0;
   }
-  const pool = [...new Set(bank)].sort((a, b) => hash(`${seed}:${a}`) - hash(`${seed}:${b}`) || a.localeCompare(b));
+  const order = (ids: string[]) => [...new Set(ids)].sort((a, b) => hash(`${seed}:${a}`) - hash(`${seed}:${b}`) || a.localeCompare(b));
+  const pool = order(bank);
   const adminIds = [...new Set(selected)].filter((id) => pool.includes(id)).slice(0, total);
   const randomIds = pool.filter((id) => !adminIds.includes(id)).slice(0, Math.max(0, total - adminIds.length));
-  return { adminIds, randomIds, allIds: [...adminIds, ...randomIds], spectatorIds: pool.slice(0, Math.ceil(total / 2)) };
+  return { adminIds, randomIds, allIds: [...adminIds, ...randomIds], spectatorIds: order(spectatorBank).slice(0, Math.ceil(total / 2)) };
 }
 
 export function canSeeIdleCompetition(member: boolean, admin: boolean) {

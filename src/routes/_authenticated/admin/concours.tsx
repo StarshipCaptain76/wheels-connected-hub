@@ -16,6 +16,11 @@ export const Route = createFileRoute("/_authenticated/admin/concours")({
   head: () => ({
     meta: [
       { title: "Concours Questions — Just Wheels" },
+      { name: "description", content: "Manage the bilingual Just Wheels Concours Mini question bank." },
+      { property: "og:title", content: "Concours Questions — Just Wheels" },
+      { property: "og:description", content: "Manage the bilingual Just Wheels Concours Mini question bank." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -130,6 +130,7 @@ export type Database = {
           leaderboard_revealed: boolean
           prize_af: string | null
           prize_en: string | null
+          question_category: string | null
           question_count: number
           results_on_home: boolean
           results_published_at: string | null
@@ -159,6 +160,7 @@ export type Database = {
           leaderboard_revealed?: boolean
           prize_af?: string | null
           prize_en?: string | null
+          question_category?: string | null
           question_count?: number
           results_on_home?: boolean
           results_published_at?: string | null
@@ -188,6 +190,7 @@ export type Database = {
           leaderboard_revealed?: boolean
           prize_af?: string | null
           prize_en?: string | null
+          question_category?: string | null
           question_count?: number
           results_on_home?: boolean
           results_published_at?: string | null

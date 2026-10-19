@@ -1,0 +1,2 @@
+ALTER TABLE public.event_concours ADD COLUMN IF NOT EXISTS question_category text;
+COMMENT ON COLUMN public.event_concours.question_category IS 'Optional category restricting member and spectator question draws; null uses the full active bank.';

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792405800122,
+      "tag": "0000_concours_question_category",
+      "breakpoints": true
+    }
+  ]
+}

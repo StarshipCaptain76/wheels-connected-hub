@@ -22,6 +22,7 @@ import { IdleTestMeter } from "@/components/IdleTestMeter";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Gauge, Loader2 } from "lucide-react";
+import { canSeeIdleCompetition } from "@/lib/concours-questions";
 
 type Props = {
   eventId: string;
@@ -62,6 +63,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   const [identityReady, setIdentityReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isMember, setIsMember] = useState(false);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -78,6 +80,8 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         return;
       }
       setMyUserId(session.user.id);
+      const { data: profile } = await supabase.from("profiles").select("membership_status").eq("id", session.user.id).maybeSingle();
+      setIsMember(profile?.membership_status === "active" || profile?.membership_status === "member");
       const { data: admin } = await supabase.rpc("has_role", {
         _user_id: session.user.id,
         _role: "admin",
@@ -88,6 +92,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       if (!s) {
         setIsAdmin(false);
+        setIsMember(false);
         setMyUserId(null);
         setIdentityReady(true);
       }
@@ -105,7 +110,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   const windowOpen = isConcoursWindowOpen(eventStartsAt, eventEndsAt);
   const phase = concoursPhase(eventStartsAt, eventEndsAt);
-  const enabled = !!concoursQ.data?.idle_test_enabled;
+  const enabled = identityReady && canSeeIdleCompetition(isMember, isAdmin) && !!concoursQ.data?.idle_test_enabled;
   const revealed = !!concoursQ.data?.idle_test_revealed;
 
   const vehiclesQ = useQuery({

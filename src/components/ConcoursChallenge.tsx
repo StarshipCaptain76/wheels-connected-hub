@@ -141,7 +141,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const myScoresQ = useQuery({
     queryKey: ["concours-my-scores", eventId, myUserId ?? voterKey],
     enabled: !!concoursQ.data?.enabled && !!voterKey && identityReady,
-    queryFn: () => listMyConcoursScores({ data: { eventId, voterKey: voterKey! } }),
+    queryFn: () => listMyConcoursScores({ data: { eventId, voterKey: voterKey ?? undefined } }),
   });
 
   const garagePicksQ = useQuery({
@@ -175,10 +175,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     queryKey: ["concours-qset", eventId, selectedVehicle?.id, memberMode],
     enabled: !!selectedVehicle,
     staleTime: 5 * 60_000,
-    queryFn: () =>
-      getVehicleQuestionSet({
-        data: { eventId, vehicleId: selectedVehicle!.id, full: memberMode },
-      }),
+    queryFn: () => {
+      if (!selectedVehicle) return [];
+      return getVehicleQuestionSet({ data: { eventId, vehicleId: selectedVehicle.id, full: memberMode } });
+    },
   });
 
   const c = concoursQ.data;
@@ -294,10 +294,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       let asMember = false;
       if (isMember || isAdmin) {
         try {
-          await doCheckIn({
+          const checkIn = await doCheckIn({
             data: { eventId, lat: pos?.lat ?? 0, lng: pos?.lng ?? 0 },
           });
-          asMember = true;
+          asMember = checkIn.ok;
         } catch {
           asMember = isAdmin;
         }
@@ -329,6 +329,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         data: {
           eventId,
           vehicleId,
+          full: memberMode,
           answers: all,
           ...(gps ? { lat: gps.lat, lng: gps.lng } : {}),
           ...(voterKey ? { voterKey } : {}),
@@ -436,6 +437,8 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
             {lang === "af" ? "Laai vrae…" : "Loading questions…"}
           </p>
         )}
+
+        {(msg || questionSetQ.error) && <p role="alert" className="mt-4 text-sm text-primary">{msg || (questionSetQ.error instanceof Error ? questionSetQ.error.message : "Could not load questions")}</p>}
 
         {q && (
           <div className="mt-5">

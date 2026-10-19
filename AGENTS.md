@@ -8,3 +8,6 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Keep Concours question selection in the shared pure selector and reuse it for loading and submission; configured totals must not drift between paths.
+- Insert member scores once rather than upserting; members have insert-own permissions, and completed votes are locked.

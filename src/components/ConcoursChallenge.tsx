@@ -297,7 +297,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           const checkIn = await doCheckIn({
             data: { eventId, lat: pos?.lat ?? 0, lng: pos?.lng ?? 0 },
           });
-          asMember = !checkIn.isSpectator;
+          asMember = checkIn.ok;
         } catch {
           asMember = isAdmin;
         }

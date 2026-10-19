@@ -655,7 +655,6 @@ export const listMyConcoursScores = createServerFn({ method: "GET" })
       .object({
         eventId: z.string().uuid(),
         voterKey: z.string().uuid().optional(),
-        full: z.boolean().optional(),
       })
       .parse(i),
   )
@@ -728,6 +727,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         lat: z.number().min(-90).max(90).optional(),
         lng: z.number().min(-180).max(180).optional(),
         voterKey: z.string().uuid().optional(),
+        full: z.boolean().optional(),
       })
       .parse(i),
   )

@@ -420,7 +420,7 @@ export const adminSetVehicleYearMeta = createServerFn({ method: "POST" })
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
 
-    const { error } = await sb
+    const { data: saved, error } = await sb
       .from("event_concours_vehicles")
       .update({
         vehicle_year: data.year,
@@ -428,7 +428,30 @@ export const adminSetVehicleYearMeta = createServerFn({ method: "POST" })
         vehicle_model: data.model,
         powertrain: data.powertrain,
       })
-      .eq("id", data.vehicleId);
+      .eq("id", data.vehicleId).select("id").single();
     if (error) throw new Error(error.message);
+    if (!saved) throw new Error("Vehicle details were not saved.");
     return { ok: true as const };
+  });
+
+export const saveIdleVehicleSetup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({
+    eventId: z.string().uuid(), vehicleId: z.string().uuid(),
+    year: z.number().int().min(1886).max(2100),
+    make: z.string().trim().min(1).max(80), model: z.string().trim().min(1).max(80),
+    powertrain: powertrainSchema,
+  }).parse(i))
+  .handler(async ({ context, data }) => {
+    const sb = context.supabase as unknown as AnyClient;
+    const { data: admin } = await sb.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    const { data: vehicle, error: readError } = await sb.from("event_concours_vehicles").select("id,event_id,tagged_user_id").eq("id", data.vehicleId).single();
+    if (readError) throw new Error(readError.message);
+    if (!vehicle || vehicle.event_id !== data.eventId) throw new Error("Vehicle is not part of this event.");
+    if (!admin && vehicle.tagged_user_id !== context.userId) throw new Error("Only the owner or an admin can save vehicle details.");
+    const { data: saved, error } = await sb.from("event_concours_vehicles").update({
+      vehicle_year: data.year, vehicle_make: data.make, vehicle_model: data.model, powertrain: data.powertrain,
+    }).eq("id", data.vehicleId).eq("event_id", data.eventId).select("id,vehicle_year,vehicle_make,vehicle_model,powertrain").single();
+    if (error) throw new Error(error.message);
+    return saved;
   });

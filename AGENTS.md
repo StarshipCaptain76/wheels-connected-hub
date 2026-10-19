@@ -11,3 +11,5 @@
 
 - Keep Concours question selection in the shared pure selector and reuse it for loading and submission; configured totals must not drift between paths.
 - Insert member scores once rather than upserting; members have insert-own permissions, and completed votes are locked.
+- Idle capture setup is keyed by event vehicle ID and saved with owner/admin checks before sensors start; never share setup fields between cars.
+- Keep captured sensor results until saving succeeds so a network failure can be retried without recapturing.

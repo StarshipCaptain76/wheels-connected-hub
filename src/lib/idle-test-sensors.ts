@@ -3,17 +3,19 @@ import type { IdleMetrics } from "@/lib/idle-test-score";
 /** Capture protocol timings (ms) and thresholds. */
 export const FLAT_HOLD_MS = 400;
 export const BASELINE_MS = 2000;
-export const BASELINE_MAX_RMS = 0.045;
+export const BASELINE_MAX_RMS = 0.25;
+export const BASELINE_SETTLE_TIMEOUT_MS = 10_000;
+export const TILT_HOLD_MS = 500;
 export const HP_WINDOW_MS = 400;
 export const ARM_TIMEOUT_MS = 18_000;
 export const SPIKE_HOLD_MS = 80;
 export const SPIKE_MIN_MAG = 0.12;
 export const IDLE_MS = 12_000;
-export const TILT_FLAT_MAX_DEG = 15;
+export const TILT_FLAT_MAX_DEG = 25;
 export const TILT_JUMP_DEG = 25;
 export const SAMPLE_HZ = 5;
 export const SPIKE_MAX_MS = 2000;
-export const MOTION_WATCHDOG_MS = 2500;
+export const MOTION_WATCHDOG_MS = 5000;
 
 export type CapturePhase =
   "wait_flat" | "baseline" | "armed" | "start" | "idle" | "done" | "rejected";
@@ -98,6 +100,8 @@ export class IdleCaptureEngine {
   private flatSince: number | null = null;
   private lockedTilt: number | null = null;
   private baselineStart: number | null = null;
+  private baselineFirstStart: number | null = null;
+  private tiltJumpSince: number | null = null;
   private baselineMags: number[] = [];
   private baselineRms = 0;
   private threshold = SPIKE_MIN_MAG;
@@ -133,14 +137,17 @@ export class IdleCaptureEngine {
     const ry = y - sy / n;
     const rz = z - sz / n;
     const mag = Math.hypot(rx, ry, rz);
-    const tilt = tiltDegFromGravity(x, y, z);
+    const tilt = tiltDegFromGravity(sx / n, sy / n, sz / n);
     const isFlat = tilt <= TILT_FLAT_MAX_DEG;
     this.lastTilt = tilt;
     this.lastMag = mag;
     this.magTrace.push({ t, mag });
 
     if (this.lockedTilt != null && Math.abs(tilt - this.lockedTilt) > TILT_JUMP_DEG) {
-      return this.reject("picked_up");
+      if (this.tiltJumpSince == null) this.tiltJumpSince = t;
+      if (t - this.tiltJumpSince >= TILT_HOLD_MS) return this.reject("picked_up");
+    } else {
+      this.tiltJumpSince = null;
     }
 
     switch (this.phase) {
@@ -150,6 +157,7 @@ export class IdleCaptureEngine {
           if (t - this.flatSince >= FLAT_HOLD_MS) {
             this.phase = "baseline";
             this.baselineStart = t;
+            this.baselineFirstStart = t;
             this.baselineMags = [];
             this.lockedTilt = tilt;
           }
@@ -162,7 +170,12 @@ export class IdleCaptureEngine {
         this.baselineMags.push(mag);
         if (this.baselineStart != null && t - this.baselineStart >= BASELINE_MS) {
           const rms = rmsOf(this.baselineMags);
-          if (rms > BASELINE_MAX_RMS) return this.reject("noisy_baseline");
+          if (rms > BASELINE_MAX_RMS) {
+            if (t - (this.baselineFirstStart ?? t) >= BASELINE_SETTLE_TIMEOUT_MS) return this.reject("noisy_baseline");
+            this.baselineStart = t;
+            this.baselineMags = [];
+            break;
+          }
           this.baselineRms = rms;
           this.threshold = Math.max(SPIKE_MIN_MAG, rms * 3);
           this.phase = "armed";
@@ -183,7 +196,7 @@ export class IdleCaptureEngine {
         } else {
           this.spikeOnSince = null;
         }
-        if (this.armStart != null && t - this.armStart >= ARM_TIMEOUT_MS) {
+        if (this.phase === "armed" && this.armStart != null && t - this.armStart >= ARM_TIMEOUT_MS) {
           this.startDetected = false;
           this.startPeak = 0;
           this.durationMs = 0;
@@ -325,13 +338,13 @@ export function startCapture(
 ): CaptureSession {
   const engine = new IdleCaptureEngine();
   let stopped = false;
-  let sawSample = false;
+  let lastSampleAt = performance.now();
 
   const onMotion = (ev: DeviceMotionEvent) => {
     if (stopped) return;
-    const acc = ev.accelerationIncludingGravity ?? ev.acceleration;
-    if (!acc || acc.x == null || acc.y == null || acc.z == null) return;
-    sawSample = true;
+    const acc = ev.accelerationIncludingGravity;
+    if (!acc || acc.x == null || acc.y == null || acc.z == null || ![acc.x, acc.y, acc.z].every(Number.isFinite)) return;
+    lastSampleAt = performance.now();
     const t = typeof performance !== "undefined" ? performance.now() : Date.now();
     const live = engine.push(t, acc.x, acc.y, acc.z);
     const result = live.phase === "done" || live.phase === "rejected" ? engine.getResult() : null;
@@ -339,17 +352,17 @@ export function startCapture(
     if (live.phase === "done" || live.phase === "rejected") stop();
   };
 
-  const watchdog = window.setTimeout(() => {
-    if (stopped || sawSample) return;
+  const watchdog = window.setInterval(() => {
+    if (stopped || performance.now() - lastSampleAt < MOTION_WATCHDOG_MS) return;
     const live = engine.fail("no_motion");
     onLive(live, engine.getResult());
     stop();
-  }, MOTION_WATCHDOG_MS);
+  }, 1000);
 
   function stop() {
     if (stopped) return;
     stopped = true;
-    window.clearTimeout(watchdog);
+    window.clearInterval(watchdog);
     window.removeEventListener("devicemotion", onMotion);
   }
 

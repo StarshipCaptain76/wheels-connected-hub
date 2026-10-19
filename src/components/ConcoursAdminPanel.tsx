@@ -751,6 +751,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                                 },
                               });
                               await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
+                              await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
                             } catch (err) {
                               alert(err instanceof Error ? err.message : "Save failed");
                             } finally {

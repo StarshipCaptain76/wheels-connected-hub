@@ -10,7 +10,7 @@ import {
   type ConcoursVehicle,
 } from "@/lib/concours.functions";
 import { isConcoursWindowOpen, concoursPhase } from "@/lib/concours-window";
-import { listIdleLeaderboard, submitIdleTest } from "@/lib/idle-test.functions";
+import { listIdleLeaderboard, submitIdleTest, saveIdleVehicleSetup } from "@/lib/idle-test.functions";
 import {
   hasMotionSupport,
   requestMotionPermission,
@@ -23,6 +23,9 @@ import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Gauge, Loader2 } from "lucide-react";
 import { canSeeIdleCompetition } from "@/lib/concours-questions";
+import { Button } from "@/components/ui/button";
+import { parseIdleVehicleYear, updateIdleVehicleDraft, type IdleVehicleDraft } from "@/lib/idle-vehicle-setup";
+import { concoursImageUrl } from "@/lib/event-image-url";
 
 type Props = {
   eventId: string;
@@ -60,6 +63,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const qc = useQueryClient();
   const doCheckIn = useServerFn(checkInToEvent);
   const submit = useServerFn(submitIdleTest);
+  const saveSetup = useServerFn(saveIdleVehicleSetup);
 
   const [identityReady, setIdentityReady] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -68,7 +72,9 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [yearInput, setYearInput] = useState("");
+  const [drafts, setDrafts] = useState<Record<string, IdleVehicleDraft>>({});
+  const [pendingCapture, setPendingCapture] = useState<{ vehicleId: string; year: number; result: Extract<import("@/lib/idle-test-sensors").CaptureResult, { ok: true }> } | null>(null);
+  const startingRef = useRef(false);
   const [live, setLive] = useState<CaptureLiveState | null>(null);
   const sessionRef = useRef<CaptureSession | null>(null);
 
@@ -183,7 +189,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   }
 
   async function beginCapture(v: ConcoursVehicle) {
-    if (!canRun || busy) return;
+    if (!canRun || busy || capturing || startingRef.current || pendingCapture) return;
     if (officialIds.has(v.id) && !isAdmin) {
       setMsg(
         af ? "Hierdie kar het al ’n amptelike lopie." : "This car already has an official run.",
@@ -191,12 +197,14 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       return;
     }
     setSelectedId(v.id);
-    const year =
-      v.vehicle_year ??
-      garageQ.data?.find((x) => x.id === v.garage_vehicle_id)?.year ??
-      (Number.isInteger(Number(yearInput)) ? Number(yearInput) : null);
+    const draft = vehicleDraft(v);
+    const year = parseIdleVehicleYear(draft.year);
     if (year == null) {
       setMsg(af ? "Jaar van die kar word vereis." : "Vehicle year is required.");
+      return;
+    }
+    if (!draft.make.trim() || !draft.model.trim()) {
+      setMsg(af ? "Vul die fabrikaat en model in." : "Enter the vehicle make and model.");
       return;
     }
     if (!hasMotionSupport()) {
@@ -206,11 +214,26 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       return;
     }
     setMsg(null);
+    startingRef.current = true;
     const permitted = await requestMotionPermission();
     if (!permitted) {
+      startingRef.current = false;
       setMsg(af ? "Bewegingstoestemming geweier." : "Motion permission denied.");
       return;
     }
+    setBusy(true);
+    try {
+      await saveSetup({ data: { eventId, vehicleId: v.id, year, make: draft.make.trim(), model: draft.model.trim(), powertrain: draft.powertrain as "ice" | "diesel" | "hybrid" | "ev" | "other" } });
+      await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
+      await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Vehicle details could not be saved");
+      startingRef.current = false;
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    startingRef.current = false;
     sessionRef.current?.stop();
     setLive({
       phase: "wait_flat",
@@ -228,26 +251,28 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       sessionRef.current?.stop();
       sessionRef.current = null;
       if (!result.ok) return;
-      setBusy(true);
-      try {
-        await submit({
-          data: {
-            eventId,
-            vehicleId: v.id,
-            metrics: result.metrics,
-            samples: result.samples,
-            year,
-          },
-        });
-        setMsg(af ? "Amptelike lopie gestuur. Wag vir die ranglys." : "Official run submitted.");
-        await qc.invalidateQueries({ queryKey: ["idle-tests", eventId] });
-        await qc.invalidateQueries({ queryKey: ["concours", eventId] });
-      } catch (err) {
-        setMsg(err instanceof Error ? err.message : "Submit failed");
-      } finally {
-        setBusy(false);
-      }
+      const capture = { vehicleId: v.id, year, result };
+      setPendingCapture(capture);
+      await sendCapture(capture);
     });
+  }
+
+  function vehicleDraft(v: ConcoursVehicle): IdleVehicleDraft {
+    const garage = garageQ.data?.find((g) => g.id === v.garage_vehicle_id);
+    return drafts[v.id] ?? { year: String(v.vehicle_year ?? garage?.year ?? ""), make: v.vehicle_make ?? garage?.make ?? "", model: v.vehicle_model ?? garage?.model ?? "", powertrain: v.powertrain ?? "ice" };
+  }
+
+  async function sendCapture(capture: NonNullable<typeof pendingCapture>) {
+    setBusy(true);
+    try {
+      await submit({ data: { eventId, vehicleId: capture.vehicleId, metrics: capture.result.metrics, samples: capture.result.samples, year: capture.year } });
+      setPendingCapture(null);
+      setMsg(af ? "Amptelike lopie gestuur." : "Official run submitted.");
+      await qc.invalidateQueries({ queryKey: ["idle-tests", eventId] });
+      await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+    } catch (err) {
+      setMsg(err instanceof Error ? err.message : "Submit failed — retry saving this capture");
+    } finally { setBusy(false); }
   }
 
   const board =
@@ -362,9 +387,13 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           {myCars.map((v) => {
             const done = officialIds.has(v.id);
             const active = selectedId === v.id;
+            const draft = vehicleDraft(v);
+            const locked = busy || capturing || !!pendingCapture;
             return (
               <li key={v.id} className="rounded-lg border-2 border-ink bg-paper p-3">
+                <img src={concoursImageUrl(v.id)} alt={v.label ?? "Vehicle"} className="mb-2 h-24 w-36 rounded object-cover" />
                 <p className="font-bold text-ink">
+                  {[v.vehicle_make, v.vehicle_model].filter(Boolean).join(" ") || v.label || "Vehicle"} ·
                   {v.tagged_display_name || v.label || (af ? "Voertuig" : "Vehicle")}
                   {v.vehicle_year != null ? ` · ${v.vehicle_year}` : ""}
                 </p>
@@ -373,24 +402,13 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                     {af ? "Amptelike lopie is in." : "Official run is in."}
                   </p>
                 )}
-                {!done && v.vehicle_year == null && (
-                  <label className="mt-2 block text-xs font-bold uppercase tracking-wider text-ink/70">
-                    {af ? "Jaar" : "Year"}
-                    <input
-                      inputMode="numeric"
-                      value={yearInput}
-                      onChange={(e) => {
-                        setSelectedId(v.id);
-                        setYearInput(e.target.value);
-                      }}
-                      placeholder="e.g. 1968"
-                      className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm font-bold"
-                    />
-                  </label>
-                )}
-                <button
+                {(!done || isAdmin) && <fieldset disabled={locked} className="mt-3 grid gap-3 sm:grid-cols-4">
+                  {([['year', af ? 'Jaar' : 'Year'], ['make', af ? 'Fabrikaat' : 'Make'], ['model', 'Model']] as const).map(([key, label]) => <label key={key} className="text-xs font-bold text-ink">{label}<input aria-label={`${label} ${v.id}`} inputMode={key === 'year' ? 'numeric' : 'text'} value={draft[key]} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, [key]: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm" /></label>)}
+                  <label className="text-xs font-bold text-ink">{af ? 'Aandrywing' : 'Powertrain'}<select value={draft.powertrain} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, powertrain: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"><option value="ice">Petrol</option><option value="diesel">Diesel</option><option value="hybrid">Hybrid</option><option value="ev">EV</option><option value="other">Other</option></select></label>
+                </fieldset>}
+                <Button
                   type="button"
-                  disabled={busy || (!isAdmin && done) || (active && capturing)}
+                  disabled={locked || (!isAdmin && done)}
                   onClick={() => void beginCapture(v)}
                   className="mt-2 inline-flex items-center gap-2 rounded-md border-2 border-ink bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wider text-paper disabled:opacity-50"
                 >
@@ -404,9 +422,11 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                       ? "Nuwe lopie (admin)"
                       : "New run (admin)"
                     : af
-                      ? "Begin toets"
-                      : "Start test"}
-                </button>
+                      ? "Stoor en begin toets"
+                      : "Save & start test"}
+                </Button>
+                {active && capturing && <Button variant="outline" size="sm" className="ml-2" onClick={() => { sessionRef.current?.stop(); sessionRef.current = null; setLive(null); }}>{af ? 'Kanselleer' : 'Cancel'}</Button>}
+                {active && pendingCapture && !busy && <Button variant="outline" className="ml-2" onClick={() => void sendCapture(pendingCapture)}>{af ? 'Probeer stoor weer' : 'Retry saving capture'}</Button>}
                 {active && live && <IdleTestMeter live={live} lang={lang} />}
               </li>
             );

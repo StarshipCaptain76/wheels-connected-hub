@@ -343,7 +343,7 @@ export function startCapture(
   const onMotion = (ev: DeviceMotionEvent) => {
     if (stopped) return;
     const acc = ev.accelerationIncludingGravity;
-    if (!acc || acc.x == null || acc.y == null || acc.z == null) return;
+    if (!acc || acc.x == null || acc.y == null || acc.z == null || ![acc.x, acc.y, acc.z].every(Number.isFinite)) return;
     lastSampleAt = performance.now();
     const t = typeof performance !== "undefined" ? performance.now() : Date.now();
     const live = engine.push(t, acc.x, acc.y, acc.z);

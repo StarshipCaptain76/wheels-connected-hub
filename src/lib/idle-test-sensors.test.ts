@@ -4,6 +4,8 @@ import {
   BASELINE_MS,
   ARM_TIMEOUT_MS,
   IDLE_MS,
+  BASELINE_SETTLE_TIMEOUT_MS,
+  TILT_HOLD_MS,
   tiltDegFromGravity,
 } from "./idle-test-sensors.ts";
 
@@ -45,7 +47,7 @@ function feed(
 {
   const e = new IdleCaptureEngine();
   feed(e, 0, FLAT_HOLD_MS + 50, () => [0, 0, 9.81]);
-  const noisy = feed(e, FLAT_HOLD_MS + 50, BASELINE_MS + 50, (t) => [Math.sin(t / 8) * 3, 0, 9.81]);
+  const noisy = feed(e, FLAT_HOLD_MS + 50, BASELINE_SETTLE_TIMEOUT_MS + BASELINE_MS + 50, (t) => [Math.sin(t / 8) * 3, 0, 9.81]);
   assert(noisy === "rejected", `noisy baseline rejected, got ${noisy}`);
   assert(e.getResult()?.ok === false, "noisy result fail");
 }
@@ -85,9 +87,32 @@ function feed(
 {
   const e = new IdleCaptureEngine();
   feed(e, 0, FLAT_HOLD_MS + 20, () => [0, 0, 9.81]);
-  const picked = e.push(FLAT_HOLD_MS + 40, 9.81, 0, 0);
-  assert(picked.phase === "rejected", "tilt jump picked_up");
-  assert(picked.rejectReason === "picked_up", "picked_up reason");
+  feed(e, FLAT_HOLD_MS + 40, TILT_HOLD_MS + 600, () => [9.81, 0, 0]);
+  assert(e.phase === "rejected", "sustained tilt jump picked_up");
+  assert(e.rejectReason === "picked_up", "picked_up reason");
+}
+
+{
+  const e = new IdleCaptureEngine();
+  feed(e, 0, FLAT_HOLD_MS + BASELINE_MS + 100, (t) => [Math.sin(t / 15) * 0.1, 0, 9.81]);
+  assert(e.phase === 'armed', 'Normal small sensor noise must pass calibration');
+  feed(e, FLAT_HOLD_MS + BASELINE_MS + 100, ARM_TIMEOUT_MS + IDLE_MS + 100, (t) => [Math.sin(t / 15) * 0.1, 0, 9.81]);
+  assert(e.getResult()?.ok === true, 'Noisy-but-stable phone completes idle capture');
+}
+{
+  const e = new IdleCaptureEngine();
+  feed(e, 0, FLAT_HOLD_MS + 20, () => [0, 0, 9.81]);
+  feed(e, FLAT_HOLD_MS + 20, BASELINE_MS + 40, (t) => [Math.sin(t / 8) * 1, 0, 9.81]);
+  assert(e.phase === 'baseline', 'First noisy calibration window retries rather than rejects');
+  feed(e, FLAT_HOLD_MS + BASELINE_MS + 60, BASELINE_MS + 600, () => [0, 0, 9.81]);
+  assert(e.phase === 'armed', 'Calibration recovers once phone settles');
+}
+{
+  const e = new IdleCaptureEngine();
+  feed(e, 0, FLAT_HOLD_MS + 20, () => [0, 0, 9.81]);
+  e.push(FLAT_HOLD_MS + 40, 9.81, 0, 0);
+  feed(e, FLAT_HOLD_MS + 60, 600, () => [0, 0, 9.81]);
+  assert(e.phase !== 'rejected', 'One bad tilt sample must not reject capture');
 }
 
 console.log("idle-test-sensors ok");

@@ -198,7 +198,8 @@ async function questionIdsForVehicle(
   if (error) throw new Error(error.message);
   const pool = concoursQuestionPool((bank ?? []) as Array<{ id: string; category: string }>, category).map(q => q.id);
   if (pool.length < questionCount) throw new Error("Not enough active questions in this event’s category. Please contact an admin.");
-  return selectConcoursQuestionIds(pool, selectedIds, questionCount, `${eventId}:${vehicleId}`);
+  const fullBank = concoursQuestionPool((bank ?? []) as Array<{ id: string; category: string }>, null).map(q => q.id);
+  return selectConcoursQuestionIds(pool, selectedIds, questionCount, `${eventId}:${vehicleId}`, fullBank);
 }
 
 async function assertScoringOpen(sb: AnyClient, eventId: string) {

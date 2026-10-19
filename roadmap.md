@@ -1,4 +1,6 @@
 # Concours corrections
+- [ ] Add category/manual question selection and enforce the selected category during scoring.
+- [ ] Set the 31 October event to ten roadworthy questions and verify the saved settings.
 - [x] Make Rolls-Royce calibration tolerant of small phone noise; simulated recovery and completion tests passed.
 - [x] Save vehicle-specific details before capture, lock other cars during capture, retain results for retry; isolation tests passed.
 - [ ] Verify Rolls-Royce setup and completion on a physical phone — requires signed-in owner/admin, an enabled event and motion sensor.

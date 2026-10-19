@@ -178,20 +178,9 @@ async function sha256Hex(raw: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Small stable hash so a car's random question draw is reproducible at submit. */
-function seedHash(raw: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < raw.length; i++) {
-    h ^= raw.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
 /**
- * Questions for one car: the admin-selected set first, then an equal number of
- * extras drawn from the bank — deterministic per (event, vehicle), so every
- * car feels different while the server can re-validate the same set at submit.
+ * Member questions respect the configured total. Spectators get a random half
+ * from the entire active bank. The draw is reproducible at submit.
  */
 async function questionIdsForVehicle(
   sb: AnyClient,
@@ -293,17 +282,18 @@ async function upsertScoreRow(
   kind: "member" | "spectator",
 ) {
   if (kind === "member") {
-    const { data: row } = await sb
+    const { data: row, error: readError } = await sb
       .from("event_concours_scores")
       .select("id")
       .eq("event_id", payload.event_id)
       .eq("vehicle_id", payload.vehicle_id)
       .eq("user_id", payload.user_id)
       .maybeSingle();
+    if (readError) throw new Error(readError.message);
     if (row?.id) {
       throw new Error("You have already scored this car.");
     }
-    const { error: ierr } = await sb.from("event_concours_scores").insert(payload);
+    const { error: ierr } = await sb.from("event_concours_scores").insert(payload).select("vehicle_id").single();
     if (ierr) throw new Error(ierr.message);
     return;
   }
@@ -665,6 +655,7 @@ export const listMyConcoursScores = createServerFn({ method: "GET" })
       .object({
         eventId: z.string().uuid(),
         voterKey: z.string().uuid().optional(),
+        full: z.boolean().optional(),
       })
       .parse(i),
   )
@@ -798,7 +789,11 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       memberCheckedIn = !!cin && !cin.is_spectator;
     }
 
-    if (clubMember && authed && memberCheckedIn) {
+    if (data.full && (!clubMember || !authed || !memberCheckedIn)) {
+      throw new Error("Your member check-in could not be confirmed. Close scoring and open the car again to retry.");
+    }
+
+    if (clubMember && authed && memberCheckedIn && data.full !== false) {
       const { allIds } = await questionIdsForVehicle(
         publicSb,
         data.eventId,

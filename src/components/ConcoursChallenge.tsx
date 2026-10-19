@@ -294,10 +294,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       let asMember = false;
       if (isMember || isAdmin) {
         try {
-          await doCheckIn({
+          const checkIn = await doCheckIn({
             data: { eventId, lat: pos?.lat ?? 0, lng: pos?.lng ?? 0 },
           });
-          asMember = true;
+          asMember = !checkIn.isSpectator;
         } catch {
           asMember = isAdmin;
         }
@@ -329,6 +329,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         data: {
           eventId,
           vehicleId,
+          full: memberMode,
           answers: all,
           ...(gps ? { lat: gps.lat, lng: gps.lng } : {}),
           ...(voterKey ? { voterKey } : {}),

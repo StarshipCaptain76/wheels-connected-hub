@@ -1,5 +1,5 @@
 # Concours corrections
-- [ ] Correct guest selection to draw five questions from the full active bank while keeping ten roadworthy member questions for 31 October.
+- [x] Correct guest selection to draw five questions from the full active bank while keeping ten roadworthy member questions for 31 October; rule tests and live question loading verified.
 - [x] Add category/manual question selection and enforce the selected category during scoring; selection rule tests passed.
 - [x] Set the 31 October event to ten roadworthy questions; saved count, category and all ten question IDs verified.
 - [ ] Verify category/manual saving through the signed-in admin screen — requires an admin preview session; automatic session minting could not match the requesting account.

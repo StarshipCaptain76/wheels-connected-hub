@@ -1,7 +1,8 @@
 # Concours corrections
-- [ ] Make Rolls-Royce calibration tolerant of normal phone noise and verify completion.
-- [ ] Save vehicle-specific details before capture and prevent switching cars during a run.
+- [x] Make Rolls-Royce calibration tolerant of small phone noise; simulated recovery and completion tests passed.
+- [x] Save vehicle-specific details before capture, lock other cars during capture, retain results for retry; isolation tests passed.
+- [ ] Verify Rolls-Royce setup and completion on a physical phone — requires signed-in owner/admin, an enabled event and motion sensor.
 - [x] Correct configured total and random half-size spectator questions; rule tests passed.
 - [ ] Verify member scores save and scoring closes end-to-end — blocked by no signed-in test session and no currently open event. Insert-only saving and visible submission errors implemented.
 - [x] Hide Rolls-Royce competition from non-members; guest view and rule tests checked.
-- [ ] Public-storage findings reviewed: only published media are allowed; ignoring these intentional public reads requires user approval.
+- [x] Public-storage findings reviewed; user chose to keep public access and warnings active. No access restrictions or dismissals applied.

@@ -25,6 +25,8 @@ import {
   adminResetIdleTest,
   adminSetVehicleYearMeta,
 } from "@/lib/idle-test.functions";
+import { Button } from "@/components/ui/button";
+import { concoursQuestionPool } from "@/lib/concours-questions";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
@@ -80,6 +82,12 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
 
   const [enabled, setEnabled] = useState(false);
   const [questionCount, setQuestionCount] = useState(10);
+  const [questionCategory, setQuestionCategory] = useState("");
+  const [selectionMode, setSelectionMode] = useState<"draw" | "manual">("draw");
+  const [manualIds, setManualIds] = useState<string[]>([]);
+  const [questionSearch, setQuestionSearch] = useState("");
+  const categories = [...new Set((questionsQ.data ?? []).filter(q => q.active !== false).map(q => q.category))].sort();
+  const eligibleQuestions = concoursQuestionPool(questionsQ.data ?? [], questionCategory || null);
   const [prizeEn, setPrizeEn] = useState("");
   const [prizeAf, setPrizeAf] = useState("");
   const [sponsorName, setSponsorName] = useState("");
@@ -114,6 +122,8 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     if (c) {
       setEnabled(c.enabled);
       setQuestionCount(c.question_count);
+      setQuestionCategory(c.question_category ?? "");
+      setManualIds(c.selected_question_ids);
       setPrizeEn(c.prize_en ?? "");
       setPrizeAf(c.prize_af ?? "");
       setSponsorName(c.sponsor_name ?? "");
@@ -140,14 +150,17 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   }
 
   async function save(reRoll = false) {
+    if (!eventId) return;
     setBusy(true);
     setMsg(null);
     try {
       const res = await upsert({
         data: {
-          eventId: eventId!,
+          eventId,
           enabled,
           questionCount,
+          questionCategory: questionCategory || null,
+          selectedQuestionIds: selectionMode === "manual" && !reRoll ? manualIds : undefined,
           prizeEn: prizeEn || null,
           prizeAf: prizeAf || null,
           sponsorName: sponsorName || null,
@@ -356,17 +369,42 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                     className={inp}
                   />
                 </label>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => save(true)}
-                    className="inline-flex items-center gap-1 rounded-md border-2 border-ink bg-paper px-3 py-2 text-xs font-bold uppercase disabled:opacity-50"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Shuffle from full bank
-                  </button>
-                </div>
+                <label className="block">
+                  <span className="text-xs font-bold uppercase text-ink/70">Question category</span>
+                  <select aria-label="Question category" className={inp} value={questionCategory} onChange={e => {
+                    const category = e.target.value;
+                    setQuestionCategory(category);
+                    const allowed = new Set(concoursQuestionPool(questionsQ.data ?? [], category || null).map(q => q.id));
+                    setManualIds(ids => ids.filter(id => allowed.has(id)));
+                  }}>
+                    <option value="">All categories</option>
+                    {categories.map(category => <option key={category} value={category}>{category}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs font-bold uppercase text-ink/70">Question selection</span>
+                  <select aria-label="Question selection" className={inp} value={selectionMode} onChange={e => setSelectionMode(e.target.value === "manual" ? "manual" : "draw")}>
+                    <option value="draw">Category draw</option>
+                    <option value="manual">Choose questions manually</option>
+                  </select>
+                </label>
+                {selectionMode === "draw" && <div className="flex items-end">
+                  <Button type="button" variant="outline" size="sm" disabled={busy || eligibleQuestions.length < questionCount} onClick={() => save(true)}>
+                    <RefreshCw /> Shuffle questions
+                  </Button>
+                </div>}
               </div>
+              {selectionMode === "manual" && <fieldset className="space-y-2" disabled={busy}>
+                <legend className="text-sm font-bold text-primary">Selected: {manualIds.length} / {questionCount}</legend>
+                <input aria-label="Search questions" placeholder="Search questions" className={inp} value={questionSearch} onChange={e => setQuestionSearch(e.target.value)} />
+                <div className="max-h-72 space-y-2 overflow-y-auto">
+                  {eligibleQuestions.filter(q => `${q.text_en} ${q.text_af}`.toLowerCase().includes(questionSearch.toLowerCase())).map(q => <label key={q.id} className="flex items-start gap-3 border-b border-ink/20 py-2 text-sm">
+                    <input type="checkbox" checked={manualIds.includes(q.id)} disabled={!manualIds.includes(q.id) && manualIds.length >= questionCount} onChange={e => setManualIds(ids => e.target.checked ? [...ids, q.id] : ids.filter(id => id !== q.id))} className="mt-1 h-4 w-4 shrink-0" />
+                    <span><span className="block text-xs text-primary">{q.category}</span>{q.text_en}</span>
+                  </label>)}
+                </div>
+              </fieldset>}
+              {eligibleQuestions.length < questionCount && <p role="alert" className="text-sm text-destructive">Only {eligibleQuestions.length} active questions in this category; {questionCount} required.</p>}
 
               <div className="rounded-lg border-2 border-ink/20 bg-paper p-3">
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -374,8 +412,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                   {questionCount ? ` of ${questionCount}` : ""})
                 </p>
                 <p className="mt-1 text-xs text-ink/60">
-                  Drawn at random from every active question. Shuffle to draw a new set. Save
-                  settings does not reshuffle an existing set.
+                  {questionCategory || "All categories"} · {selectionMode === "manual" ? "Manual selection" : "Category draw"}
                 </p>
                 {pickedIds.length === 0 ? (
                   <p className="mt-2 text-sm text-ink/60">

@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
-import { selectConcoursQuestionIds } from "./concours-questions";
+import { selectConcoursQuestionIds, concoursQuestionPool, prepareConcoursSelection } from "./concours-questions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,6 +23,7 @@ export type EventConcours = {
   event_id: string;
   enabled: boolean;
   question_count: number;
+  question_category?: string | null;
   selected_question_ids: string[];
   prize_en: string | null;
   prize_af: string | null;
@@ -188,12 +189,16 @@ async function questionIdsForVehicle(
   vehicleId: string,
   selectedIds: string[],
   questionCount: number,
+  category: string | null,
 ): Promise<{ adminIds: string[]; randomIds: string[]; spectatorIds: string[]; allIds: string[] }> {
-  const { data: bank } = await sb
+  const { data: bank, error } = await sb
     .from("concours_questions")
-    .select("id")
+    .select("id, category")
     .eq("active", true);
-  return selectConcoursQuestionIds(((bank ?? []) as Array<{ id: string }>).map((q) => q.id), selectedIds, questionCount, `${eventId}:${vehicleId}`);
+  if (error) throw new Error(error.message);
+  const pool = concoursQuestionPool((bank ?? []) as Array<{ id: string; category: string }>, category).map(q => q.id);
+  if (pool.length < questionCount) throw new Error("Not enough active questions in this event’s category. Please contact an admin.");
+  return selectConcoursQuestionIds(pool, selectedIds, questionCount, `${eventId}:${vehicleId}`);
 }
 
 async function assertScoringOpen(sb: AnyClient, eventId: string) {
@@ -447,6 +452,8 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
         sponsorName: z.string().nullable().optional(),
         sponsorLogoUrl: z.string().nullable().optional(),
         reRollQuestions: z.boolean().optional(),
+        questionCategory: z.string().min(1).max(80).nullable().optional(),
+        selectedQuestionIds: z.array(z.string().uuid()).max(15).optional(),
         idleTestEnabled: z.boolean().optional(),
         idlePrizeEn: z.string().nullable().optional(),
         idlePrizeAf: z.string().nullable().optional(),
@@ -464,37 +471,26 @@ export const upsertEventConcours = createServerFn({ method: "POST" })
       .eq("event_id", data.eventId)
       .maybeSingle();
 
-    let selectedIds: string[] = (existing?.selected_question_ids as string[] | undefined) ?? [];
-
-    if (!existing || data.reRollQuestions || selectedIds.length === 0) {
-      const { data: allQ } = await sb
-        .from("concours_questions")
-        .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
-        .eq("active", true);
-      const picked = pickRandomQuestions((allQ ?? []) as ConcoursQuestion[], data.questionCount);
-      selectedIds = picked.map((q) => q.id);
-    } else if (selectedIds.length !== data.questionCount) {
-      const { data: allQ } = await sb
-        .from("concours_questions")
-        .select("id, category, category_af, text_en, text_af, scoring_type, sort_order")
-        .eq("active", true);
-      const bank = (allQ ?? []) as ConcoursQuestion[];
-      if (selectedIds.length > data.questionCount) {
-        selectedIds = selectedIds.slice(0, data.questionCount);
-      } else {
-        const have = new Set(selectedIds);
-        const extra = pickRandomQuestions(
-          bank.filter((q) => !have.has(q.id)),
-          data.questionCount - selectedIds.length,
-        );
-        selectedIds = [...selectedIds, ...extra.map((q) => q.id)];
-      }
-    }
+    const category = data.questionCategory === undefined ? existing?.question_category ?? null : data.questionCategory;
+    const { data: bank, error: bankError } = await sb
+      .from("concours_questions")
+      .select("id, category")
+      .eq("active", true);
+    if (bankError) throw new Error(bankError.message);
+    const pool = concoursQuestionPool((bank ?? []) as Array<{ id: string; category: string }>, category);
+    const selectedIds = prepareConcoursSelection(
+      pool.map(q => q.id),
+      data.selectedQuestionIds ?? existing?.selected_question_ids ?? [],
+      data.questionCount,
+      data.selectedQuestionIds !== undefined,
+      data.reRollQuestions,
+    );
 
     const payload: Record<string, unknown> = {
       event_id: data.eventId,
       enabled: data.enabled,
       question_count: data.questionCount,
+      question_category: category,
       selected_question_ids: selectedIds,
       prize_en: data.prizeEn ?? null,
       prize_af: data.prizeAf ?? null,
@@ -624,7 +620,7 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
 
     const { data: ec } = await sb
       .from("event_concours")
-      .select("selected_question_ids, question_count, enabled")
+      .select("selected_question_ids, question_count, question_category, enabled")
       .eq("event_id", data.eventId)
       .maybeSingle();
     const selectedIds: string[] = (ec?.selected_question_ids as string[]) ?? [];
@@ -636,6 +632,7 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
       data.vehicleId,
       selectedIds,
       Number(ec.question_count),
+      ec.question_category ?? null,
     );
     const ids = data.full ? allIds : spectatorIds;
 
@@ -739,7 +736,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
 
     const { data: ec } = await publicSb
       .from("event_concours")
-      .select("selected_question_ids, question_count, enabled, results_published_at")
+      .select("selected_question_ids, question_count, question_category, enabled, results_published_at")
       .eq("event_id", data.eventId)
       .maybeSingle();
     if (!ec?.enabled) throw new Error("Concours is not enabled for this event");
@@ -800,6 +797,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         data.vehicleId,
         selectedIds,
         Number(ec.question_count),
+      ec.question_category ?? null,
       );
       const allowedIds = allIds;
       assertAllQuestionsAnswered(data.answers, allowedIds);
@@ -834,6 +832,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       data.vehicleId,
       selectedIds,
       Number(ec.question_count),
+      ec.question_category ?? null,
     );
     const allowedIds = spectatorIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);

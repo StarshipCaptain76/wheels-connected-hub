@@ -29,7 +29,15 @@ const eventsAdminQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/admin/events")({
   head: () => ({
-    meta: [{ title: "Manage Events — Just Wheels" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "Manage Events — Just Wheels" },
+      { name: "description", content: "Manage Just Wheels events, invitations and Concours competitions." },
+      { property: "og:title", content: "Manage Events — Just Wheels" },
+      { property: "og:description", content: "Manage Just Wheels events, invitations and Concours competitions." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsAdminQuery),
   component: AdminEvents,

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
+import { selectConcoursQuestionIds } from "./concours-questions";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -197,20 +198,13 @@ async function questionIdsForVehicle(
   eventId: string,
   vehicleId: string,
   selectedIds: string[],
+  questionCount: number,
 ): Promise<{ adminIds: string[]; randomIds: string[]; spectatorIds: string[]; allIds: string[] }> {
-  const adminIds = selectedIds;
   const { data: bank } = await sb
     .from("concours_questions")
     .select("id")
     .eq("active", true);
-  const chosen = new Set(adminIds);
-  const pool = ((bank ?? []) as Array<{ id: string }>)
-    .map((q) => q.id)
-    .filter((id) => !chosen.has(id))
-    .sort((a, b) => seedHash(`${eventId}:${vehicleId}:${a}`) - seedHash(`${eventId}:${vehicleId}:${b}`));
-  const randomIds = pool.slice(0, adminIds.length);
-  const spectatorIds = pool.slice(0, Math.ceil(adminIds.length / 2));
-  return { adminIds, randomIds, spectatorIds, allIds: [...adminIds, ...randomIds] };
+  return selectConcoursQuestionIds(((bank ?? []) as Array<{ id: string }>).map((q) => q.id), selectedIds, questionCount, `${eventId}:${vehicleId}`);
 }
 
 async function assertScoringOpen(sb: AnyClient, eventId: string) {
@@ -299,10 +293,6 @@ async function upsertScoreRow(
   kind: "member" | "spectator",
 ) {
   if (kind === "member") {
-    const { error } = await sb.from("event_concours_scores").upsert(payload, {
-      onConflict: "event_id,vehicle_id,user_id",
-    });
-    if (!error) return;
     const { data: row } = await sb
       .from("event_concours_scores")
       .select("id")
@@ -311,9 +301,7 @@ async function upsertScoreRow(
       .eq("user_id", payload.user_id)
       .maybeSingle();
     if (row?.id) {
-      const { error: uerr } = await sb.from("event_concours_scores").update(payload).eq("id", row.id);
-      if (uerr) throw new Error(uerr.message);
-      return;
+      throw new Error("You have already scored this car.");
     }
     const { error: ierr } = await sb.from("event_concours_scores").insert(payload);
     if (ierr) throw new Error(ierr.message);
@@ -646,7 +634,7 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
 
     const { data: ec } = await sb
       .from("event_concours")
-      .select("selected_question_ids, enabled")
+      .select("selected_question_ids, question_count, enabled")
       .eq("event_id", data.eventId)
       .maybeSingle();
     const selectedIds: string[] = (ec?.selected_question_ids as string[]) ?? [];
@@ -657,6 +645,7 @@ export const getVehicleQuestionSet = createServerFn({ method: "GET" })
       data.eventId,
       data.vehicleId,
       selectedIds,
+      Number(ec.question_count),
     );
     const ids = data.full ? allIds : spectatorIds;
 
@@ -759,7 +748,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
 
     const { data: ec } = await publicSb
       .from("event_concours")
-      .select("selected_question_ids, enabled, results_published_at")
+      .select("selected_question_ids, question_count, enabled, results_published_at")
       .eq("event_id", data.eventId)
       .maybeSingle();
     if (!ec?.enabled) throw new Error("Concours is not enabled for this event");
@@ -815,6 +804,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
         data.eventId,
         data.vehicleId,
         selectedIds,
+        Number(ec.question_count),
       );
       const allowedIds = allIds;
       assertAllQuestionsAnswered(data.answers, allowedIds);
@@ -848,6 +838,7 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       data.eventId,
       data.vehicleId,
       selectedIds,
+      Number(ec.question_count),
     );
     const allowedIds = spectatorIds;
     assertAllQuestionsAnswered(data.answers, allowedIds);

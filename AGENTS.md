@@ -15,4 +15,5 @@
 - Idle capture setup is keyed by event vehicle ID and saved with owner/admin checks before sensors start; never share setup fields between cars.
 - Keep captured sensor results until saving succeeds so a network failure can be retried without recapturing.
 - Recheck Rolls-Royce membership after sign-in and enforce the same member/admin restriction in server access and storage policies; spectator UI hiding alone cannot prevent judging.
+- Prepare member card PNG files before offering native sharing or download, so mobile saving runs from a fresh user tap rather than after asynchronous image rendering.
 - Serve saved Concours sponsor logos through the cache-versioned event image endpoint, with public storage reads restricted to logos referenced by enabled competitions on published events; never expose unrelated uploads.

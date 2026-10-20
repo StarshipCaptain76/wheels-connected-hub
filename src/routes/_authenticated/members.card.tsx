@@ -11,11 +11,21 @@ import { MemberCard, pickCarPhoto, pickFacePhoto, initials } from "@/components/
 import { DisplayBoardPreview } from "@/components/DisplayBoardPreview";
 import { LOGO_URL } from "@/lib/brand";
 import { downloadDisplayBoard } from "@/lib/display-board";
-import { Download, WifiOff, FileDown } from "lucide-react";
+import { Download, WifiOff, FileDown, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/_authenticated/members/card")({
   head: () => ({
-    meta: [{ title: "Member card — Just Wheels Hessequa" }, { name: "robots", content: "noindex" }],
+    meta: [
+      { title: "Member card — Just Wheels Hessequa" },
+      { name: "description", content: "View and save your Just Wheels Hessequa membership card." },
+      { property: "og:title", content: "Member card — Just Wheels Hessequa" },
+      { property: "og:description", content: "View and save your Just Wheels Hessequa membership card." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      { name: "robots", content: "noindex" },
+    ],
   }),
   component: MemberCardPage,
 });
@@ -43,6 +53,10 @@ function MemberCardPage() {
   const [cached, setCached] = useState<MemberProfile | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [cardFile, setCardFile] = useState<File | null>(null);
+  const [cardUrl, setCardUrl] = useState<string | null>(null);
+  const [shareSupported, setShareSupported] = useState(false);
+  const [cardMsg, setCardMsg] = useState<string | null>(null);
   const [boardBusy, setBoardBusy] = useState(false);
   const [boardMsg, setBoardMsg] = useState<string | null>(null);
   const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
@@ -90,11 +104,45 @@ function MemberCardPage() {
   const carPhoto = pickCarPhoto(garageQuery.data ?? []);
   const facePhoto = pickFacePhoto(profile?.avatar_url ?? null, carPhoto);
 
+  useEffect(() => {
+    if (!cardFile) {
+      setCardUrl(null);
+      setShareSupported(false);
+      return;
+    }
+    const url = URL.createObjectURL(cardFile);
+    setCardUrl(url);
+    setShareSupported(Boolean(navigator.canShare?.({ files: [cardFile] })));
+    return () => URL.revokeObjectURL(url);
+  }, [cardFile]);
+
+  async function shareCard() {
+    if (!cardFile || !navigator.share) return;
+    setCardMsg(null);
+    try {
+      await navigator.share({ files: [cardFile] });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setCardMsg(lang === "af" ? "Deel is nie beskikbaar nie. Probeer Laai af." : "Sharing is unavailable. Try Download instead.");
+    }
+  }
+
+  function saveCardFile() {
+    if (!cardUrl || !cardFile) return;
+    const link = document.createElement("a");
+    link.href = cardUrl;
+    link.download = cardFile.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+
   async function downloadCard() {
     if (!profile || downloading) return;
     setDownloading(true);
+    setCardMsg(null);
     try {
-      await downloadLandscapeCard(profile, carPhoto, facePhoto, lang === "af");
+      setCardFile(await downloadLandscapeCard(profile, carPhoto, facePhoto, lang === "af"));
     } catch (e) {
       console.error(e);
       alert(lang === "af" ? "Aflaai het misluk" : "Download failed");
@@ -153,7 +201,7 @@ function MemberCardPage() {
               </span>
             )}
             {profile && (
-              <button
+              <Button
                 type="button"
                 onClick={() => void downloadCard()}
                 disabled={downloading}
@@ -167,7 +215,7 @@ function MemberCardPage() {
                   : lang === "af"
                     ? "Laai af vir laminaat"
                     : "Download for laminate"}
-              </button>
+              </Button>
             )}
             {profile && boardVehicle && (
               <div className="inline-flex overflow-hidden rounded-md border-2 border-ink">
@@ -298,6 +346,19 @@ function MemberCardPage() {
             </div>
           </div>
         )}
+        <Dialog open={!!cardFile} onOpenChange={(open) => { if (!open) setCardFile(null); }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{lang === "af" ? "Stoor lidkaart" : "Save member card"}</DialogTitle>
+            </DialogHeader>
+            {cardUrl && <img src={cardUrl} alt={lang === "af" ? "Jou lidkaart" : "Your member card"} className="h-auto w-full" />}
+            <div className="flex flex-wrap gap-2">
+              {shareSupported && <Button onClick={() => void shareCard()}><Share2 className="h-4 w-4" />{lang === "af" ? "Deel / stoor foto" : "Share / save photo"}</Button>}
+              <Button variant="outline" onClick={saveCardFile} disabled={!cardUrl}><Download className="h-4 w-4" />{lang === "af" ? "Laai PNG af" : "Download PNG"}</Button>
+            </div>
+            {cardMsg && <p role="alert" className="text-sm text-primary">{cardMsg}</p>}
+          </DialogContent>
+        </Dialog>
       </section>
   );
 }
@@ -488,11 +549,10 @@ async function downloadLandscapeCard(
   ctx.lineWidth = 10;
   ctx.strokeRect(5, 5, PRINT_W - 10, PRINT_H - 10);
 
-  const url = canvas.toDataURL("image/png");
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `just-wheels-member-${slug}.png`;
-  a.click();
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => result ? resolve(result) : reject(new Error("Could not create card image")), "image/png");
+  });
+  return new File([blob], `just-wheels-member-${slug}.png`, { type: "image/png" });
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

@@ -1,16 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, useEffect } from "react";
 import {
   listAllMembers,
   updateMemberStatus,
   setAdminRole,
   approveAllPendingMembers,
   adminUpdateMemberProfile,
+  getMemberCardBatch,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { createMemberCardImage } from "@/lib/member-card-image";
+import { useI18n } from "@/i18n/I18nProvider";
 import { MemberFeatureAdminPanel } from "@/components/MemberFeatureAdminPanel";
 
 const inputCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink";
@@ -125,7 +130,7 @@ const membersQuery = queryOptions({
 
 export const Route = createFileRoute("/_authenticated/admin/members")({
   head: () => ({
-    meta: [{ title: "Members — Admin — Just Wheels" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Members — Admin — Just Wheels" }, { name: "description", content: "Manage Just Wheels members and download selected membership cards." }, { property: "og:title", content: "Members — Admin — Just Wheels" }, { property: "og:description", content: "Manage Just Wheels members and download selected membership cards." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }],
   }),
   loader: async ({ context }) => {
     try {
@@ -161,6 +166,42 @@ function AdminMembersPage() {
   const setStatus = useServerFn(updateMemberStatus);
   const setRole = useServerFn(setAdminRole);
   const approveAll = useServerFn(approveAllPendingMembers);
+  const fetchCards = useServerFn(getMemberCardBatch);
+  const { lang } = useI18n();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [cardProgress, setCardProgress] = useState<string | null>(null);
+  const [batch, setBatch] = useState<Blob | null>(null);
+  const [batchUrl, setBatchUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!batch) { setBatchUrl(null); return; }
+    const url = URL.createObjectURL(batch);
+    setBatchUrl(url);
+    return () => { setTimeout(() => URL.revokeObjectURL(url), 30_000); };
+  }, [batch]);
+
+  function selectMember(id: string, checked: boolean) {
+    setSelected(current => { const next = new Set(current); if (checked) next.add(id); else next.delete(id); return next; });
+    setBatch(null);
+  }
+
+  async function prepareCards() {
+    setError(null);
+    setBatch(null);
+    setCardProgress("Loading selected members…");
+    try {
+      const cards = await fetchCards({ data: { userIds: [...selected] } });
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const [index, card] of cards.entries()) {
+        setCardProgress(`Preparing card ${index + 1} of ${cards.length}…`);
+        const file = await createMemberCardImage(card.profile, card.carPhoto, card.facePhoto, lang === "af");
+        zip.file(`${String(card.profile.member_number).padStart(4, "0")}-${card.profile.id}-${file.name}`, await file.arrayBuffer());
+      }
+      setCardProgress("Packaging images…");
+      setBatch(await zip.generateAsync({ type: "blob", compression: "STORE" }));
+    } catch (e) { setError(e instanceof Error ? e.message : "Card preparation failed. Try again."); }
+    finally { setCardProgress(null); }
+  }
 
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -215,6 +256,7 @@ function AdminMembersPage() {
       <Fragment key={m.user_id}>
         <tr className="border-t border-ink/10 bg-paper align-top">
           <td className="px-3 py-2 font-mono text-ink/70">
+            <Checkbox aria-label={`Select card for ${m.display_name ?? m.member_number}`} checked={selected.has(m.user_id)} disabled={!!cardProgress} onCheckedChange={value => selectMember(m.user_id, value === true)} className="mr-2" />
             {String(m.member_number).padStart(4, "0")}
           </td>
           <td className="px-3 py-2">
@@ -339,6 +381,13 @@ function AdminMembersPage() {
           <MemberFeatureAdminPanel />
         </div>
       ) : (
+      <>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Button variant="outline" disabled={!!cardProgress} onClick={() => { setSelected(new Set([...groups.members, ...groups.pending, ...groups.admins].map(m => m.user_id))); setBatch(null); }}>Select shown</Button>
+        <Button variant="outline" disabled={!!cardProgress || selected.size === 0} onClick={() => { setSelected(new Set()); setBatch(null); }}>Clear selection</Button>
+        <Button disabled={selected.size === 0 || !!cardProgress} onClick={() => void prepareCards()}><Download className="h-4 w-4" />{cardProgress ?? `Prepare cards (${selected.size})`}</Button>
+        {batchUrl && <Button asChild><a href={batchUrl} download="just-wheels-member-cards.zip"><Download className="h-4 w-4" />Download {selected.size} card images (.zip)</a></Button>}
+      </div>
       <div className="mt-4 overflow-x-auto rounded-lg border-2 border-ink">
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-black text-white">
@@ -402,6 +451,7 @@ function AdminMembersPage() {
           </tbody>
         </table>
       </div>
+      </>
       )}
     </div>
   );

@@ -36,6 +36,42 @@ async function getAdminClient(fallback?: any) {
 const PROFILE_SELECT =
   "id, display_name, phone, town, favourite_ride, member_number, membership_status, joined_at, is_featured, featured_bio, featured_photo_url";
 
+export const getMemberCardBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ userIds: z.array(z.string().uuid()).min(1) }).parse(input))
+  .handler(async ({ context, data }) => {
+    const sb = context.supabase;
+    await assertAdmin(sb, context.userId);
+    const ids = [...new Set(data.userIds)];
+    const { data: profiles, error } = await sb.from("profiles")
+      .select("id,display_name,member_number,town,favourite_ride,joined_at,membership_status,avatar_url")
+      .in("id", ids);
+    if (error) throw new Error(error.message);
+    if (profiles?.length !== ids.length) throw new Error("Some selected members could not be loaded. Refresh the list and try again.");
+    const { data: vehicles, error: vehicleError } = await sb.from("garage_vehicles")
+      .select("id,user_id,is_primary,sort").in("user_id", ids).order("sort");
+    if (vehicleError) throw new Error(vehicleError.message);
+    const vehicleIds = (vehicles ?? []).map(v => v.id);
+    const { data: photos, error: photoError } = vehicleIds.length
+      ? await sb.from("garage_vehicle_photos").select("vehicle_id,storage_path,sort").in("vehicle_id", vehicleIds).order("sort").order("created_at")
+      : { data: [], error: null };
+    if (photoError) throw new Error(photoError.message);
+    const { signPaths, signStoredUrls } = await import("./storage-urls.server");
+    const [photoUrls, avatars] = await Promise.all([
+      signPaths(sb, "garage", (photos ?? []).map(p => p.storage_path)),
+      signStoredUrls(sb, (profiles ?? []).map(p => p.avatar_url)),
+    ]);
+    return (profiles ?? []).map(profile => {
+      const cars = (vehicles ?? []).filter(v => v.user_id === profile.id).sort((a,b) => Number(b.is_primary) - Number(a.is_primary));
+      let carPhoto: string | null = null;
+      for (const car of cars) {
+        const photo = (photos ?? []).find(p => p.vehicle_id === car.id && photoUrls.has(p.storage_path));
+        if (photo) { carPhoto = photoUrls.get(photo.storage_path) ?? null; break; }
+      }
+      return { profile, carPhoto, facePhoto: profile.avatar_url ? avatars.get(profile.avatar_url) ?? profile.avatar_url : null };
+    });
+  });
+
 export const listAllMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminMember[]> => {

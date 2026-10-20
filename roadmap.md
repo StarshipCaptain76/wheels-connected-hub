@@ -1,4 +1,5 @@
 # Concours corrections
+- [x] Add admin member selection and one ZIP batch containing separate member-card PNGs; browser export downloaded two valid PNGs. Full admin selection/read verification requires an approved admin session.
 - [ ] Repair phone member-card saving using a prepared PNG and native share/download controls; signed-in device verification required.
 - [x] Enable 31 October Rolls-Royce challenge, refresh member visibility after sign-in, block spectator reads/submission; rule tests and guest event view passed. Member screen verification still requires an approved member session.
 - [x] Repair Concours sponsor logo display and upload/save timing; saved MOOVE logo loads after refresh on desktop and mobile, URL tests pass. New uploads require an admin session to verify.

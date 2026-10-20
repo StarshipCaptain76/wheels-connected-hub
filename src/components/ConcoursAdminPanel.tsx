@@ -577,7 +577,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || sponsorLogoUploading}
                 onClick={async () => {
                   setBusy(true);
                   setIdleMsg(null);
@@ -589,8 +589,8 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                         questionCount: c?.question_count ?? questionCount,
                         prizeEn: (c?.prize_en ?? prizeEn) || null,
                         prizeAf: (c?.prize_af ?? prizeAf) || null,
-                        sponsorName: (c?.sponsor_name ?? sponsorName) || null,
-                        sponsorLogoUrl: (c?.sponsor_logo_url ?? sponsorLogoUrl) || null,
+                        sponsorName: sponsorName || null,
+                        sponsorLogoUrl: sponsorLogoUrl || null,
                         reRollQuestions: false,
                         idleTestEnabled,
                         idlePrizeEn: idlePrizeEn || null,

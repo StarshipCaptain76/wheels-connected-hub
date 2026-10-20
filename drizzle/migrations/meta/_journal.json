@@ -8,6 +8,13 @@
       "when": 1792405800122,
       "tag": "0000_concours_question_category",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792485577388,
+      "tag": "0001_concours_published_sponsor_logo_read",
+      "breakpoints": true
     }
   ]
 }

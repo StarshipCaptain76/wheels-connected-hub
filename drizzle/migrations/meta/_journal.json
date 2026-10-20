@@ -15,6 +15,13 @@
       "when": 1792485577388,
       "tag": "0001_concours_published_sponsor_logo_read",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792485591057,
+      "tag": "0002_concours_sponsor_logo_exact_storage_reference",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,7 @@ import {
 } from "@/lib/idle-test.functions";
 import { Button } from "@/components/ui/button";
 import { concoursQuestionPool } from "@/lib/concours-questions";
+import { concoursSponsorImageUrl } from "@/lib/event-image-url";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
@@ -92,6 +93,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const [prizeAf, setPrizeAf] = useState("");
   const [sponsorName, setSponsorName] = useState("");
   const [sponsorLogoUrl, setSponsorLogoUrl] = useState("");
+  const [sponsorLogoUploading, setSponsorLogoUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -150,7 +152,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   }
 
   async function save(reRoll = false) {
-    if (!eventId) return;
+    if (!eventId || sponsorLogoUploading) return;
     setBusy(true);
     setMsg(null);
     try {
@@ -455,6 +457,8 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               <ImageUploadField
                 label="Sponsor logo (optional)"
                 value={sponsorLogoUrl}
+                previewSrc={sponsorLogoUrl ? concoursSponsorImageUrl(eventId, sponsorLogoUrl) : null}
+                onUploadingChange={setSponsorLogoUploading}
                 onChange={(v) => setSponsorLogoUrl(v || "")}
                 bucket="gallery"
                 folder="events/concours-sponsors"
@@ -464,11 +468,11 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || sponsorLogoUploading}
                   onClick={() => save(false)}
                   className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
                 >
-                  {busy ? "Saving…" : "Save settings"}
+                  {sponsorLogoUploading ? "Uploading logo…" : busy ? "Saving…" : "Save settings"}
                 </button>
                 {c && (
                   <button
@@ -573,7 +577,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || sponsorLogoUploading}
                 onClick={async () => {
                   setBusy(true);
                   setIdleMsg(null);
@@ -585,8 +589,8 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                         questionCount: c?.question_count ?? questionCount,
                         prizeEn: (c?.prize_en ?? prizeEn) || null,
                         prizeAf: (c?.prize_af ?? prizeAf) || null,
-                        sponsorName: (c?.sponsor_name ?? sponsorName) || null,
-                        sponsorLogoUrl: (c?.sponsor_logo_url ?? sponsorLogoUrl) || null,
+                        sponsorName: sponsorName || null,
+                        sponsorLogoUrl: sponsorLogoUrl || null,
                         reRollQuestions: false,
                         idleTestEnabled,
                         idlePrizeEn: idlePrizeEn || null,

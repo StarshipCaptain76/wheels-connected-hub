@@ -16,7 +16,7 @@ import {
   type ConcoursVehicle,
 } from "@/lib/concours.functions";
 import { concoursPhase } from "@/lib/concours-window";
-import { concoursImageUrl } from "@/lib/event-image-url";
+import { concoursImageUrl, concoursSponsorImageUrl } from "@/lib/event-image-url";
 import { useI18n } from "@/i18n/I18nProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, ChevronLeft, Check, Plus, User, X, Loader2 } from "lucide-react";
@@ -215,6 +215,9 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           <p className="mt-2 text-sm font-bold text-primary">
             {lang === "af" && c.prize_af ? c.prize_af : c.prize_en}
           </p>
+        )}
+        {c.sponsor_logo_url && (
+          <img src={concoursSponsorImageUrl(eventId, c.sponsor_logo_url)} alt={c.sponsor_name ?? "Concours sponsor"} className="mt-3 h-20 w-40 object-contain object-left" />
         )}
         {c.sponsor_name && (
           <p className="mt-1 text-xs text-ink/60">
@@ -539,6 +542,10 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
             <Trophy className="h-6 w-6 text-primary" />
             Concours Mini
           </h2>
+          {c.sponsor_logo_url && (
+            <img src={concoursSponsorImageUrl(eventId, c.sponsor_logo_url)} alt={c.sponsor_name ?? "Concours sponsor"} className="mt-3 h-20 w-40 object-contain object-left" />
+          )}
+          {c.sponsor_name && <p className="mt-1 text-xs text-ink/60">{lang === "af" ? "Geborg deur" : "Sponsored by"} {c.sponsor_name}</p>}
           {(c.prize_en || c.prize_af) && (
             <p className="mt-1 text-sm font-bold text-primary">
               {lang === "af" && c.prize_af ? c.prize_af : c.prize_en}

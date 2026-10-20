@@ -19,6 +19,13 @@ export function concoursImageUrl(vehicleId: string): string {
   return `/api/public/concours-image?vid=${encodeURIComponent(vehicleId)}`;
 }
 
+/** Keep external sponsor images intact; stream uploaded logos through the event endpoint. */
+export function concoursSponsorImageUrl(eventId: string, stored: string): string {
+  return isPrivateStorageUrl(stored)
+    ? `/api/public/event-image?id=${encodeURIComponent(eventId)}&k=sponsor${ver(stored)}`
+    : stored;
+}
+
 /** True when a stored URL points at one of our private storage buckets. */
 export function isPrivateStorageUrl(url: string | null | undefined): boolean {
   if (!url) return false;

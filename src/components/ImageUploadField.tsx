@@ -19,6 +19,7 @@ type Props = {
   className?: string;
   /** Override the preview image source (e.g. a proxy URL for private buckets) */
   previewSrc?: string | null;
+  onUploadingChange?: (uploading: boolean) => void;
 };
 
 /**
@@ -39,6 +40,7 @@ export function ImageUploadField({
   maxMb = 5,
   className = "",
   previewSrc = null,
+  onUploadingChange,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,7 @@ export function ImageUploadField({
     }
 
     setUploading(true);
+    onUploadingChange?.(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
@@ -111,6 +114,7 @@ export function ImageUploadField({
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+      onUploadingChange?.(false);
     }
   }
 

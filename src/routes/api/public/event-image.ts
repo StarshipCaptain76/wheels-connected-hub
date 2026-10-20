@@ -29,7 +29,8 @@ const CONTENT_TYPES: Record<string, string> = {
 async function handle(request: Request) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
-  const kind = url.searchParams.get("k") === "hero" ? "hero" : "cover";
+  const requestedKind = url.searchParams.get("k");
+  const kind = requestedKind === "sponsor" ? "sponsor" : requestedKind === "hero" ? "hero" : "cover";
 
   if (!id || !/^[0-9a-f-]{32,36}$/i.test(id)) {
     return new Response("Bad request", { status: 400 });
@@ -63,7 +64,17 @@ async function handle(request: Request) {
     }
   }
 
-  const stored = kind === "hero" ? row?.hero_image_url : row?.cover_url;
+  let stored = kind === "hero" ? row?.hero_image_url : row?.cover_url;
+  if (kind === "sponsor") {
+    // Only published events with an enabled competition expose their saved logo.
+    if (!event?.is_published) return new Response("Not found", { status: 404 });
+    const { data: concours } = await anon.from("event_concours")
+      .select("sponsor_logo_url")
+      .eq("event_id", id)
+      .eq("enabled", true)
+      .maybeSingle();
+    stored = concours?.sponsor_logo_url;
+  }
   const ref = parsePath(stored ?? null);
   if (!ref) return new Response("Not found", { status: 404 });
 

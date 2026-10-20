@@ -29,6 +29,13 @@
       "when": 1792485855249,
       "tag": "0003_idle_test_members_only",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792495492674,
+      "tag": "0004_grant_spectator_score_execute",
+      "breakpoints": true
     }
   ]
 }

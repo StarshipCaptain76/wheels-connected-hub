@@ -344,7 +344,15 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           ? `Ingedien! Jou telling: ${res.totalScore}`
           : `Submitted! Your score: ${res.totalScore}`,
       );
-      closeSheet();
+      const doneIds = new Set([...scoredIds, vehicleId]);
+      const next = scorableVehicles.find((v) => !doneIds.has(v.id));
+      if (next) {
+        setAnswers({});
+        setQIdx(0);
+        setSelectedVehicle(next);
+      } else {
+        closeSheet();
+      }
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] }),
         qc.invalidateQueries({ queryKey: ["concours-my-scores", eventId] }),

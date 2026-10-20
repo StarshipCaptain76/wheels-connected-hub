@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.submit_concours_spectator_score(uuid, uuid, text, jsonb, numeric) TO anon;
+GRANT EXECUTE ON FUNCTION public.submit_concours_spectator_score(uuid, uuid, text, jsonb, numeric) TO authenticated;

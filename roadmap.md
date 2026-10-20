@@ -1,4 +1,5 @@
 # Concours corrections
+- [ ] Ensure Rolls-Royce member visibility updates after sign-in and spectators cannot participate.
 - [x] Repair Concours sponsor logo display and upload/save timing; saved MOOVE logo loads after refresh on desktop and mobile, URL tests pass. New uploads require an admin session to verify.
 - [x] Correct guest selection to draw five questions from the full active bank while keeping ten roadworthy member questions for 31 October; rule tests and live question loading verified.
 - [x] Add category/manual question selection and enforce the selected category during scoring; selection rule tests passed.

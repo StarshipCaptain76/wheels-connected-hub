@@ -79,31 +79,39 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const sessionRef = useRef<CaptureSession | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      const session = data.session;
-      if (!session?.user) {
-        setIdentityReady(true);
-        return;
-      }
-      setMyUserId(session.user.id);
-      const { data: profile } = await supabase.from("profiles").select("membership_status").eq("id", session.user.id).maybeSingle();
-      setIsMember(profile?.membership_status === "active" || profile?.membership_status === "member");
-      const { data: admin } = await supabase.rpc("has_role", {
-        _user_id: session.user.id,
-        _role: "admin",
-      });
-      setIsAdmin(!!admin);
-      setIdentityReady(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (!s) {
+    let active = true;
+    let revision = 0;
+    async function refreshIdentity(userId: string | null) {
+      const current = ++revision;
+      setIdentityReady(false);
+      if (!userId) {
         setIsAdmin(false);
         setIsMember(false);
         setMyUserId(null);
         setIdentityReady(true);
+        return;
+      }
+      const [{ data: profile }, { data: admin }] = await Promise.all([
+        supabase.from("profiles").select("membership_status").eq("id", userId).maybeSingle(),
+        supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      ]);
+      if (!active || current !== revision) return;
+      setMyUserId(userId);
+      setIsMember(profile?.membership_status === "active" || profile?.membership_status === "member");
+      setIsAdmin(!!admin);
+      setIdentityReady(true);
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && revision === 0) void refreshIdentity(data.session?.user.id ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        // Run profile reads outside the auth callback's session lock.
+        setTimeout(() => { if (active) void refreshIdentity(session?.user.id ?? null); }, 0);
       }
     });
     return () => {
+      active = false;
       sub.subscription.unsubscribe();
       sessionRef.current?.stop();
     };
@@ -348,8 +356,8 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       {prize && <p className="mt-1 text-sm font-bold text-primary">{prize}</p>}
       <p className="mt-2 text-sm text-ink/70">
         {af
-          ? "Net die eienaar (of ’n admin) mag ’n amptelike lopie doen. Een geldige lopie per kar. Toeskouers sien die ranglys wanneer dit oopgemaak word."
-          : "Only the tagged owner (or an admin) may record an official run. One valid run per car. Spectators see the board once it’s revealed."}
+          ? "Net die lid-eienaar (of ’n admin) mag ’n amptelike lopie doen. Een geldige lopie per kar."
+          : "Only the member who owns the car (or an admin) may record an official run. One valid run per car."}
       </p>
 
       {msg && <p className="mt-2 text-sm font-bold text-primary">{msg}</p>}

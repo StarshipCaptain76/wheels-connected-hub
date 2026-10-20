@@ -144,6 +144,9 @@ export const listIdleLeaderboard = createServerFn({ method: "GET" })
     const sb = (authed?.supabase ?? createPublicSupabase()) as unknown as AnyClient;
     const userId = authed?.userId ?? null;
 
+    if (!userId) return [];
+    await assertIdleMember(sb, userId);
+
     let isAdmin = false;
     if (userId) {
       const { data: admin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -234,6 +237,8 @@ export const submitIdleTest = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { supabase, userId } = context;
     const sb = supabase as unknown as AnyClient;
+
+    await assertIdleMember(sb, userId);
 
     const { data: isAdmin } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" });
 

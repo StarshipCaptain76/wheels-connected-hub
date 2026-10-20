@@ -468,7 +468,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || sponsorLogoUploading}
                   onClick={() => save(false)}
                   className="rounded-md border-2 border-ink bg-primary px-4 py-2 text-sm font-bold uppercase tracking-wider text-paper disabled:opacity-50"
                 >

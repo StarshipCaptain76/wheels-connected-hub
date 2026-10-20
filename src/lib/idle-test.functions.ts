@@ -460,6 +460,7 @@ export const saveIdleVehicleSetup = createServerFn({ method: "POST" })
   }).parse(i))
   .handler(async ({ context, data }) => {
     const sb = context.supabase as unknown as AnyClient;
+    await assertIdleMember(sb, context.userId);
     const { data: admin } = await sb.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     const { data: vehicle, error: readError } = await sb.from("event_concours_vehicles").select("id,event_id,tagged_user_id").eq("id", data.vehicleId).single();
     if (readError) throw new Error(readError.message);

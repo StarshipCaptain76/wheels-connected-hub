@@ -11,6 +11,7 @@ assert(JSON.stringify(picks.spectatorIds) === JSON.stringify(selectConcoursQuest
 assert(!canSeeIdleCompetition(false, false), 'Guests cannot see Rolls-Royce competition');
 assert(canSeeIdleCompetition(true, false), 'Members can see Rolls-Royce competition');
 assert(canSeeIdleCompetition(false, true), 'Admins can see Rolls-Royce competition');
+assert(!canSeeIdleCompetition(false, false), 'Signed-in spectators cannot participate in Rolls-Royce judging');
 console.log('Concours rules passed');
 const mixed = Array.from({ length: 15 }, (_, i) => ({ id: `road${i}`, category: 'Roadworthy', active: true }));
 mixed.push({ id: 'paint', category: 'Exterior', active: true }, { id: 'retired', category: 'Roadworthy', active: false });

@@ -3,6 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { scoreRun, type IdleMetrics } from "@/lib/idle-test-score";
 import { z } from "zod";
+import { canSeeIdleCompetition } from "./concours-questions";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type AnyClient = {
@@ -22,6 +23,16 @@ async function assertAdmin(supabase: AnyClient, userId: string) {
 }
 
 const powertrainSchema = z.enum(["ice", "diesel", "hybrid", "ev", "other"]);
+
+async function assertIdleMember(sb: AnyClient, userId: string) {
+  const [{ data: profile, error: profileError }, { data: admin, error: roleError }] = await Promise.all([
+    sb.from("profiles").select("membership_status").eq("id", userId).maybeSingle(),
+    sb.rpc("has_role", { _user_id: userId, _role: "admin" }),
+  ]);
+  if (profileError || roleError) throw new Error("Could not verify club membership.");
+  const member = profile?.membership_status === "active" || profile?.membership_status === "member";
+  if (!canSeeIdleCompetition(member, Boolean(admin))) throw new Error("The Rolls-Royce challenge is for club members only.");
+}
 
 const metricsSchema = z.object({
   startDetected: z.boolean(),

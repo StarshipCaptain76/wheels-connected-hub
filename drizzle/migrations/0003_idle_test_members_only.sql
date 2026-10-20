@@ -1,0 +1,5 @@
+DROP POLICY IF EXISTS "Public read revealed idle tests" ON public.event_idle_tests;
+REVOKE SELECT ON public.event_idle_tests FROM anon;
+ALTER POLICY "Members insert own idle tests" ON public.event_idle_tests WITH CHECK (user_id = auth.uid() AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.membership_status IN ('active','member')));
+ALTER POLICY "Members update own idle tests" ON public.event_idle_tests USING (user_id = auth.uid() AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.membership_status IN ('active','member'))) WITH CHECK (user_id = auth.uid() AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.membership_status IN ('active','member')));
+ALTER POLICY "Read own or revealed idle tests" ON public.event_idle_tests USING (public.has_role(auth.uid(), 'admin'::public.app_role) OR (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=auth.uid() AND p.membership_status IN ('active','member')) AND (user_id=auth.uid() OR EXISTS (SELECT 1 FROM public.event_concours ec WHERE ec.event_id=event_idle_tests.event_id AND ec.idle_test_revealed=true))));

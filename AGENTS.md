@@ -18,3 +18,5 @@
 - Prepare member card PNG files before offering native sharing or download, so mobile saving runs from a fresh user tap rather than after asynchronous image rendering.
 - Reuse the shared member-card image renderer for personal and admin exports; admin batch reads require verified admin access and package unique individual PNGs in one ZIP to avoid browser multi-download blocking.
 - Serve saved Concours sponsor logos through the cache-versioned event image endpoint, with public storage reads restricted to logos referenced by enabled competitions on published events; never expose unrelated uploads.
+- Use the shared pure Concours score validator for question-type validation and equal-weight averages; retain precision until display and resolve only exact first-place ties through the locked, admin-only recorded draw before winner publication.
+- Version start-and-idle capture metrics and require a detected start, settling phase, full sustained-idle window and sufficient continuous samples before official submission; historical runs retain their original scoring protocol.

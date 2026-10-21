@@ -1,4 +1,6 @@
 # Concours corrections
+- [ ] Re-evaluate question totals and implement a first-place tie-break method.
+- [ ] Evaluate Rolls-Royce starting and sustained idle; add cloth/chamois bonnet instructions and rule tests.
 - [x] Add admin member selection and one ZIP batch containing separate member-card PNGs; browser export downloaded two valid PNGs. Full admin selection/read verification requires an approved admin session.
 - [ ] Repair phone member-card saving using a prepared PNG and native share/download controls; signed-in device verification required.
 - [x] Enable 31 October Rolls-Royce challenge, refresh member visibility after sign-in, block spectator reads/submission; rule tests and guest event view passed. Member screen verification still requires an approved member session.

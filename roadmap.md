@@ -1,4 +1,7 @@
 # Concours corrections
+- [x] Spectator scoring now scrolls to the top when advancing to the next car, names the just-scored car in a confirmation banner, and shows "You are now scoring · car X of Y" with a larger photo; event page render verified on a phone-sized screen.
+- [x] Rolls-Royce leaderboard rows and admin run lists now show the car photo, make and model so each score is clearly tied to a vehicle.
+- [x] Rolls-Royce official runs now appear on the admin Scores tab (previously only under Settings).
 - [x] Re-evaluate question totals and implement a first-place tie-break method; question validation, exact ties and 1/0.5 weighting tests pass, recorded admin-only draw installed.
 - [x] Evaluate Rolls-Royce starting and sustained idle; cloth/chamois bonnet prompts and 30-second countdown render, simulated start/idle and missed-start tests pass.
 - [ ] Verify the recorded draw through a signed-in admin screen — own-account session could not be minted.

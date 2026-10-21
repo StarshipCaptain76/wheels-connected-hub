@@ -43,6 +43,13 @@
       "when": 1792564675700,
       "tag": "0005_concours_random_tiebreak",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792564716101,
+      "tag": "0006_concours_recorded_draw",
+      "breakpoints": true
     }
   ]
 }

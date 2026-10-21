@@ -1853,6 +1853,7 @@ export type Database = {
       }
       cron_key_ok: { Args: { _key: string; _name: string }; Returns: boolean }
       daily_featured_id: { Args: never; Returns: string }
+      draw_concours_tiebreak: { Args: { _event_id: string }; Returns: string }
       event_attendees: {
         Args: { _event_id: string }
         Returns: {

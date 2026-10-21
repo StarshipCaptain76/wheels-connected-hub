@@ -1,4 +1,4 @@
-import { eraSlack, powertrainSlack, scoreRun, toDisplayScore } from "./idle-test-score.ts";
+import { assertCompleteIdleRun, eraSlack, powertrainSlack, scoreRun, toDisplayScore } from "./idle-test-score.ts";
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error(msg);
@@ -59,3 +59,16 @@ console.log("idle-test-score ok", {
   old: { slack: old.slack, smooth01: old.smooth01, display: old.displayScore },
   neu: { slack: neu.slack, smooth01: neu.smooth01, display: neu.displayScore },
 });
+
+function rejects(fn: () => unknown) { try { fn(); } catch { return; } throw new Error("Expected incomplete run rejection"); }
+const complete = { ...metrics, protocolVersion: 2, idleDurationMs: 30_000, idleSampleCount: 1500, baselineRms: 0.02 };
+assertCompleteIdleRun(complete);
+rejects(() => assertCompleteIdleRun({ ...complete, startDetected: false }));
+rejects(() => assertCompleteIdleRun({ ...complete, idleDurationMs: 29_999 }));
+rejects(() => assertCompleteIdleRun({ ...complete, idleSampleCount: 299 }));
+const smooth = scoreRun({ ...complete, rms: 0.02, p2p: 0.02, cv: 2, year: 1980, rrStandard: 1 });
+const rough = scoreRun({ ...complete, rms: 0.2, p2p: 0.4, cv: 2, year: 1980, rrStandard: 1 });
+assert(smooth.smooth01 > rough.smooth01, "Sustained rough idling scores below smooth idling");
+const harshStart = scoreRun({ ...complete, startPeak: 2, durationMs: 1800, year: 1980, rrStandard: 1 });
+const gentleStart = scoreRun({ ...complete, year: 1980, rrStandard: 1 });
+assert(harshStart.smooth01 < gentleStart.smooth01, "Starting contributes to final score");

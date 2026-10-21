@@ -137,6 +137,11 @@ export type Database = {
           selected_question_ids: string[]
           sponsor_logo_url: string | null
           sponsor_name: string | null
+          tiebreak_drawn_at: string | null
+          tiebreak_drawn_by: string | null
+          tiebreak_score: number | null
+          tiebreak_vehicle_ids: string[]
+          tiebreak_winner_vehicle_id: string | null
           updated_at: string
           winner_average_score: number | null
           winner_blurb_af: string | null
@@ -167,6 +172,11 @@ export type Database = {
           selected_question_ids?: string[]
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
+          tiebreak_drawn_at?: string | null
+          tiebreak_drawn_by?: string | null
+          tiebreak_score?: number | null
+          tiebreak_vehicle_ids?: string[]
+          tiebreak_winner_vehicle_id?: string | null
           updated_at?: string
           winner_average_score?: number | null
           winner_blurb_af?: string | null
@@ -197,6 +207,11 @@ export type Database = {
           selected_question_ids?: string[]
           sponsor_logo_url?: string | null
           sponsor_name?: string | null
+          tiebreak_drawn_at?: string | null
+          tiebreak_drawn_by?: string | null
+          tiebreak_score?: number | null
+          tiebreak_vehicle_ids?: string[]
+          tiebreak_winner_vehicle_id?: string | null
           updated_at?: string
           winner_average_score?: number | null
           winner_blurb_af?: string | null

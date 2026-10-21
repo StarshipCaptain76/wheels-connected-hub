@@ -36,6 +36,13 @@
       "when": 1792495492674,
       "tag": "0004_grant_spectator_score_execute",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792564675700,
+      "tag": "0005_concours_random_tiebreak",
+      "breakpoints": true
     }
   ]
 }

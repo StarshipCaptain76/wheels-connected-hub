@@ -166,6 +166,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const [msg, setMsg] = useState<string | null>(null);
   const [taggingId, setTaggingId] = useState<string | null>(null);
   const [justScored, setJustScored] = useState<string[]>([]);
+  const [lastScored, setLastScored] = useState<{ label: string; score: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   // Admin bulk add
@@ -340,17 +341,21 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         },
       });
       setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
-      setMsg(
-        lang === "af"
-          ? `Ingedien! Jou telling: ${res.totalScore}`
-          : `Submitted! Your score: ${res.totalScore}`,
-      );
+      setLastScored({
+        label:
+          selectedVehicle.tagged_display_name ||
+          selectedVehicle.label ||
+          (lang === "af" ? "Voertuig" : "Vehicle"),
+        score: res.totalScore,
+      });
+      setMsg(null);
       const doneIds = new Set([...scoredIds, vehicleId]);
       const next = scorableVehicles.find((v) => !doneIds.has(v.id));
       if (next) {
         setAnswers({});
         setQIdx(0);
         setSelectedVehicle(next);
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
       } else {
         closeSheet();
       }

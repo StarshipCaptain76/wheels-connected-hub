@@ -338,8 +338,8 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
               ? "Die luier-toets is toe. Dankie dat jy deelgeneem het."
               : "The idle test is closed. Thanks for taking part."
             : af
-              ? "Sit die foon plat op die kar op die dag — ons meet hoe sag die aansit en luier is, soos ’n Rolls-Royce."
-              : "On the day, lay your phone flat on the car — we measure how gentle the start and idle are, Rolls-Royce style."}
+              ? "Lê die foon op ’n dun lap/seem op die enjinkap voordat jy aansit. Ons meet die aansit en 30 sekondes se luier."
+              : "Place the phone on a thin cloth/chamois on the bonnet before starting. We measure the start and 30 seconds of idling."}
         </p>
         {prize && <p className="mt-2 text-sm font-bold text-primary">{prize}</p>}
         {(revealed || phase === "after") && board}
@@ -360,6 +360,13 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           : "Only the member who owns the car (or an admin) may record an official run. One valid run per car."}
       </p>
 
+      <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-ink/80">
+        <li>{af ? "Parkeer buite, handrem aan, in parkeer/neutraal; enjin af." : "Park outdoors, parking brake on, in park/neutral; engine off."}</li>
+        <li>{af ? "Lê die foon plat op ’n dun, nie-glyende lap/seem op ’n koel, geslote enjinkap. Moenie dik opvou of naby ’n rand plaas nie." : "Place the phone flat on a thin, non-slip cloth/chamois on a cool, closed bonnet. Do not fold it thickly or place near an edge."}</li>
+        <li>{af ? "Hou hierdie skerm oop. Wag vir die aansitboodskap, begin dan die enjin sonder om te versnel." : "Keep this screen open. Wait for the start prompt, then start the engine without revving."}</li>
+        <li>{af ? "Los die foon onaangeraak terwyl die enjin stabiliseer en vir die volle 30-sekonde luierlesing. As aansit gemis word, probeer die volle toets weer." : "Leave the phone untouched while the engine settles and for the full 30-second idle reading. If the start is missed, retry the full test."}</li>
+      </ol>
+      <p className="mt-2 text-xs text-ink/60">{af ? "Foon-gebaseerde skatting, nie ’n meganiese diagnose nie; gebruik dieselfde foon en plasing vir vergelykings." : "Phone-based estimate, not a mechanical diagnosis; use the same phone and placement for comparisons."}</p>
       {msg && <p className="mt-2 text-sm font-bold text-primary">{msg}</p>}
 
       {identityReady && !myUserId && (

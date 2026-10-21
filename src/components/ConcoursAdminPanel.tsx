@@ -11,6 +11,7 @@ import {
   listConcoursQuestions,
   upsertConcoursQuestion,
   publishConcoursResults,
+  drawConcoursTiebreak,
   generateConcoursWinnerBlurb,
   listConcoursScoresAdmin,
   updateConcoursScoreAdmin,
@@ -26,6 +27,7 @@ import {
   adminSetVehicleYearMeta,
 } from "@/lib/idle-test.functions";
 import { Button } from "@/components/ui/button";
+import { firstPlaceIds } from "@/lib/concours-score";
 import { concoursQuestionPool } from "@/lib/concours-questions";
 import { concoursSponsorImageUrl } from "@/lib/event-image-url";
 import { ImageUploadField } from "@/components/ImageUploadField";
@@ -39,6 +41,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const reveal = useServerFn(revealConcoursLeaderboard);
   const upsertQ = useServerFn(upsertConcoursQuestion);
   const publish = useServerFn(publishConcoursResults);
+  const drawTie = useServerFn(drawConcoursTiebreak);
   const genBlurb = useServerFn(generateConcoursWinnerBlurb);
   const updateScore = useServerFn(updateConcoursScoreAdmin);
   const delScore = useServerFn(deleteConcoursScoreAdmin);
@@ -273,6 +276,18 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     }
   }
 
+  async function runTiebreak() {
+    if (!eventId) return;
+    setBusy(true);
+    try {
+      const out = await drawTie({ data: { eventId } });
+      setWinnerVehicleId(out.winnerId);
+      await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+      setMsg("Recorded draw complete — winning car selected.");
+    } catch (err) { setMsg(err instanceof Error ? err.message : "Draw failed"); }
+    finally { setBusy(false); }
+  }
+
   async function saveResults() {
     setBusy(true);
     setMsg(null);
@@ -308,6 +323,8 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const ranked = [...vehicles]
     .filter((v) => v.average_score != null)
     .sort((a, b) => (b.average_score ?? 0) - (a.average_score ?? 0));
+
+  const leaders = firstPlaceIds(ranked);
 
   return (
     <div className="space-y-4">
@@ -1036,13 +1053,19 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               <ol className="mt-1 space-y-0.5">
                 {ranked.slice(0, 5).map((v, i) => (
                   <li key={v.id}>
-                    #{i + 1} {v.tagged_display_name || v.label || "Vehicle"} — {v.average_score} (
+                    #{i + 1} {v.tagged_display_name || v.label || "Vehicle"} — {v.average_score?.toFixed(3)} (
                     {v.submission_count} votes)
                   </li>
                 ))}
               </ol>
             </div>
           )}
+
+          {leaders.length > 1 && <div className="space-y-2 border-l-4 border-primary pl-3">
+            <p className="text-sm font-bold">{leaders.length} cars tied for first place</p>
+            <Button disabled={busy || !!c?.results_published_at} onClick={() => void runTiebreak()}><RefreshCw className="mr-2 h-4 w-4" />{c?.tiebreak_drawn_at ? "Use recorded tie-break" : "Draw first-place winner"}</Button>
+            {c?.tiebreak_drawn_at && <p className="text-xs text-ink/70">Recorded draw: {new Date(c.tiebreak_drawn_at).toLocaleString()} · {vehicles.find((v) => v.id === c.tiebreak_winner_vehicle_id)?.label || c.tiebreak_winner_vehicle_id}</p>}
+          </div>}
 
           <label className="block">
             <span className="text-xs font-bold uppercase tracking-wider text-ink/70">

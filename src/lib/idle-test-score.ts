@@ -38,6 +38,10 @@ export function powertrainSlack(powertrain: string | null | undefined): number {
 }
 
 export type IdleMetrics = {
+  protocolVersion?: number;
+  idleDurationMs?: number;
+  idleSampleCount?: number;
+  baselineRms?: number;
   startDetected: boolean;
   startPeak: number;
   durationMs: number;
@@ -69,12 +73,23 @@ export function toDisplayScore(smooth01: number, rrStandard: number | null | und
   return clamp(1, 10, Math.round(((10 * smooth01) / std) * 10) / 10);
 }
 
+export function assertCompleteIdleRun(metrics: IdleMetrics) {
+  if (!metrics.startDetected) throw new Error("Engine start was not detected. Retry the full start-and-idle test.");
+  if (metrics.protocolVersion !== 2 || (metrics.idleDurationMs ?? 0) < 30_000 || (metrics.idleSampleCount ?? 0) < 300) throw new Error("A complete 30-second idle reading is required. Retry the test.");
+  for (const value of [metrics.startPeak, metrics.durationMs, metrics.rms, metrics.p2p, metrics.cv, metrics.baselineRms ?? 0]) {
+    if (!Number.isFinite(value) || value < 0) throw new Error("Invalid sensor reading. Retry the test.");
+  }
+}
+
 export function scoreRun(input: ScoreRunInput): ScoreRunResult {
   const era = eraSlack(input.year);
   const pt = powertrainSlack(input.powertrain);
   const slack = clamp(0.08, 1.15, era + pt);
   const startHarsh = input.startPeak * 0.55 + (input.durationMs / 800) * 0.45;
-  const idleHarsh = input.rms * 0.6 + input.p2p * 0.25 + input.cv * 0.15;
+  // Noise variance is removed; irregularity is amplitude-weighted so a nearly
+  // motionless phone is not penalised for a large CV of tiny readings.
+  const correctedRms = input.protocolVersion === 2 ? Math.sqrt(Math.max(0, input.rms ** 2 - (input.baselineRms ?? 0) ** 2)) : input.rms;
+  const idleHarsh = correctedRms * 0.6 + input.p2p * 0.25 + (input.protocolVersion === 2 ? Math.min(input.cv, 3) * correctedRms : input.cv) * 0.15;
   const rawHarsh = input.startDetected ? startHarsh * 0.35 + idleHarsh * 0.65 : idleHarsh;
   const adjustedHarsh = rawHarsh / slack;
   const smooth01 = clamp(0, 1, 1 / (1 + 18 * adjustedHarsh));

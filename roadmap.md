@@ -1,6 +1,7 @@
 # Concours corrections
-- [ ] Re-evaluate question totals and implement a first-place tie-break method.
-- [ ] Evaluate Rolls-Royce starting and sustained idle; add cloth/chamois bonnet instructions and rule tests.
+- [x] Re-evaluate question totals and implement a first-place tie-break method; question validation, exact ties and 1/0.5 weighting tests pass, recorded admin-only draw installed.
+- [x] Evaluate Rolls-Royce starting and sustained idle; cloth/chamois bonnet prompts and 30-second countdown render, simulated start/idle and missed-start tests pass.
+- [ ] Verify the recorded draw through a signed-in admin screen — own-account session could not be minted.
 - [x] Add admin member selection and one ZIP batch containing separate member-card PNGs; browser export downloaded two valid PNGs. Full admin selection/read verification requires an approved admin session.
 - [ ] Repair phone member-card saving using a prepared PNG and native share/download controls; signed-in device verification required.
 - [x] Enable 31 October Rolls-Royce challenge, refresh member visibility after sign-in, block spectator reads/submission; rule tests and guest event view passed. Member screen verification still requires an approved member session.

@@ -4,6 +4,7 @@ import {
   BASELINE_MS,
   ARM_TIMEOUT_MS,
   IDLE_MS,
+  IDLE_SETTLE_MS,
   BASELINE_SETTLE_TIMEOUT_MS,
   TILT_HOLD_MS,
   tiltDegFromGravity,
@@ -62,15 +63,18 @@ function feed(
   assert(e.phase === "armed", `quiet baseline arms, got ${e.phase}`);
   feed(e, t, 120, () => [2.5, 0, 9.81]);
   t += 120;
-  assert(e.phase === "start" || e.phase === "idle", `spike detected, got ${e.phase}`);
+  assert(e.phase === "start" || e.phase === "settling", `spike detected, got ${e.phase}`);
   feed(e, t, 2200, () => [0, 0, 9.81]);
   t += 2200;
-  assert(e.phase === "idle", `then idle, got ${e.phase}`);
+  assert(e.phase === "settling", `then settling, got ${e.phase}`);
+  feed(e, t, IDLE_SETTLE_MS + 40, () => [0, 0, 9.81]);
+  t += IDLE_SETTLE_MS + 40;
   feed(e, t, IDLE_MS + 40, () => [0, 0, 9.81]);
-  assert(e.phase === "done", `idle 12s completes, got ${e.phase}`);
+  assert(e.phase === "done", `idle 30s completes, got ${e.phase}`);
   const res = e.getResult();
   assert(res && res.ok && res.metrics.startDetected, "startDetected");
   assert(res && res.ok && res.samples.length > 0, "downsampled samples");
+  assert(res && res.ok && (res.metrics.idleDurationMs ?? 0) >= 30_000 && (res.metrics.idleSampleCount ?? 0) >= 300, "Full 30-second idle measured with enough samples");
 }
 
 {
@@ -81,7 +85,7 @@ function feed(
   feed(e, t, BASELINE_MS + 20, () => [0, 0, 9.81]);
   t += BASELINE_MS + 20;
   const after = feed(e, t, ARM_TIMEOUT_MS + 40, () => [0, 0, 9.81]);
-  assert(after === "idle", `no spike by 18s is idle-only, got ${after}`);
+  assert(after === "rejected" && e.rejectReason === "start_not_detected", `missing start requires full retry, got ${after}`);
 }
 
 {
@@ -97,7 +101,7 @@ function feed(
   feed(e, 0, FLAT_HOLD_MS + BASELINE_MS + 100, (t) => [Math.sin(t / 15) * 0.1, 0, 9.81]);
   assert(e.phase === 'armed', 'Normal small sensor noise must pass calibration');
   feed(e, FLAT_HOLD_MS + BASELINE_MS + 100, ARM_TIMEOUT_MS + IDLE_MS + 100, (t) => [Math.sin(t / 15) * 0.1, 0, 9.81]);
-  assert(e.getResult()?.ok === true, 'Noisy-but-stable phone completes idle capture');
+  assert(e.getResult()?.ok === false && e.rejectReason === 'start_not_detected', 'Quiet idle-only capture cannot be an official start-and-idle run');
 }
 {
   const e = new IdleCaptureEngine();

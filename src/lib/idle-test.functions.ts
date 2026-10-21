@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
-import { scoreRun, type IdleMetrics } from "@/lib/idle-test-score";
+import { scoreRun, assertCompleteIdleRun, type IdleMetrics } from "@/lib/idle-test-score";
 import { z } from "zod";
 import { canSeeIdleCompetition } from "./concours-questions";
 
@@ -35,12 +35,16 @@ async function assertIdleMember(sb: AnyClient, userId: string) {
 }
 
 const metricsSchema = z.object({
+  protocolVersion: z.literal(2),
+  idleDurationMs: z.number().min(30_000).max(40_000),
+  idleSampleCount: z.number().int().min(300).max(20_000),
+  baselineRms: z.number().finite().min(0).max(0.25),
   startDetected: z.boolean(),
-  startPeak: z.number(),
-  durationMs: z.number(),
-  rms: z.number(),
-  p2p: z.number(),
-  cv: z.number(),
+  startPeak: z.number().finite().min(0).max(200),
+  durationMs: z.number().finite().min(0).max(2000),
+  rms: z.number().finite().min(0).max(200),
+  p2p: z.number().finite().min(0).max(200),
+  cv: z.number().finite().min(0).max(1000),
 });
 
 export type IdleTestRow = {
@@ -68,6 +72,10 @@ export type IdleTestRow = {
 function asIdleMetrics(raw: unknown): IdleMetrics {
   const m = (raw ?? {}) as Partial<IdleMetrics>;
   return {
+    protocolVersion: m.protocolVersion,
+    idleDurationMs: m.idleDurationMs,
+    idleSampleCount: m.idleSampleCount,
+    baselineRms: m.baselineRms,
     startDetected: Boolean(m.startDetected),
     startPeak: Number(m.startPeak) || 0,
     durationMs: Number(m.durationMs) || 0,
@@ -317,6 +325,7 @@ export const submitIdleTest = createServerFn({ method: "POST" })
       if (metaErr) throw new Error(metaErr.message);
     }
 
+    assertCompleteIdleRun(data.metrics);
     const scored = scoreRun({
       ...data.metrics,
       year,

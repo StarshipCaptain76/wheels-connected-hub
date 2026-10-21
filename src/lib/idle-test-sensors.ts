@@ -10,7 +10,8 @@ export const HP_WINDOW_MS = 400;
 export const ARM_TIMEOUT_MS = 18_000;
 export const SPIKE_HOLD_MS = 80;
 export const SPIKE_MIN_MAG = 0.12;
-export const IDLE_MS = 12_000;
+export const IDLE_MS = 30_000;
+export const IDLE_SETTLE_MS = 3000;
 export const TILT_FLAT_MAX_DEG = 25;
 export const TILT_JUMP_DEG = 25;
 export const SAMPLE_HZ = 5;
@@ -18,10 +19,10 @@ export const SPIKE_MAX_MS = 2000;
 export const MOTION_WATCHDOG_MS = 5000;
 
 export type CapturePhase =
-  "wait_flat" | "baseline" | "armed" | "start" | "idle" | "done" | "rejected";
+  "wait_flat" | "baseline" | "armed" | "start" | "settling" | "idle" | "done" | "rejected";
 
 export type CaptureRejectReason =
-  "picked_up" | "noisy_baseline" | "no_motion" | "permission_denied" | "not_supported";
+  "start_not_detected" | "insufficient_samples" | "picked_up" | "noisy_baseline" | "no_motion" | "permission_denied" | "not_supported";
 
 export type CaptureLiveState = {
   phase: CapturePhase;
@@ -113,6 +114,8 @@ export class IdleCaptureEngine {
   private startDetected = false;
   private idleStart: number | null = null;
   private idleMags: number[] = [];
+  private idleTimes: number[] = [];
+  private settleStart: number | null = null;
   private magTrace: Array<{ t: number; mag: number }> = [];
   private lastTilt = 0;
   private lastMag = 0;
@@ -197,10 +200,7 @@ export class IdleCaptureEngine {
           this.spikeOnSince = null;
         }
         if (this.phase === "armed" && this.armStart != null && t - this.armStart >= ARM_TIMEOUT_MS) {
-          this.startDetected = false;
-          this.startPeak = 0;
-          this.durationMs = 0;
-          this.beginIdle(t);
+          return this.reject("start_not_detected");
         }
         break;
       }
@@ -216,8 +216,16 @@ export class IdleCaptureEngine {
         }
         break;
       }
+      case "settling": {
+        if (this.settleStart != null && t - this.settleStart >= IDLE_SETTLE_MS) {
+          this.phase = "idle";
+          this.idleStart = t;
+        }
+        break;
+      }
       case "idle": {
         this.idleMags.push(mag);
+        this.idleTimes.push(t);
         if (this.idleStart != null && t - this.idleStart >= IDLE_MS) {
           this.finishOk();
         }
@@ -238,12 +246,15 @@ export class IdleCaptureEngine {
   }
 
   private beginIdle(t: number) {
-    this.phase = "idle";
-    this.idleStart = t;
+    this.phase = "settling";
+    this.settleStart = t;
     this.idleMags = [];
+    this.idleTimes = [];
   }
 
   private finishOk() {
+    const idleDurationMs = (this.idleTimes[this.idleTimes.length - 1] ?? 0) - (this.idleStart ?? 0);
+    if (this.idleMags.length < 300 || this.idleTimes.some((t, i) => i > 0 && t - this.idleTimes[i - 1] > 500)) { this.reject("insufficient_samples"); return; }
     const idle = this.idleMags;
     const rms = rmsOf(idle);
     let min = Infinity;
@@ -259,6 +270,10 @@ export class IdleCaptureEngine {
     this.result = {
       ok: true,
       metrics: {
+        protocolVersion: 2,
+        idleDurationMs,
+        idleSampleCount: idle.length,
+        baselineRms: this.baselineRms,
         startDetected: this.startDetected,
         startPeak: this.startPeak,
         durationMs: this.durationMs,
@@ -293,6 +308,9 @@ export class IdleCaptureEngine {
       countdownSec = Math.max(0, (ARM_TIMEOUT_MS - elapsed) / 1000);
     } else if (this.phase === "start" && this.startOnSince != null) {
       progress01 = Math.min(1, (now - this.startOnSince) / SPIKE_MAX_MS);
+    } else if (this.phase === "settling" && this.settleStart != null) {
+      progress01 = Math.min(1, (now - this.settleStart) / IDLE_SETTLE_MS);
+      countdownSec = Math.max(0, (IDLE_SETTLE_MS - now + this.settleStart) / 1000);
     } else if (this.phase === "idle" && this.idleStart != null) {
       const elapsed = now - this.idleStart;
       progress01 = Math.min(1, elapsed / IDLE_MS);

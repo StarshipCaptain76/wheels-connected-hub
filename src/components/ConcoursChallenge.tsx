@@ -688,6 +688,15 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         </p>
       )}
 
+      {lastScored && (
+        <p className="mt-3 flex items-center gap-2 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm font-bold text-ink">
+          <Check className="h-4 w-4 shrink-0 text-primary" />
+          {lang === "af"
+            ? `Gestem: ${lastScored.label} — jou telling ${lastScored.score}`
+            : `Scored: ${lastScored.label} — your score ${lastScored.score}`}
+        </p>
+      )}
+
       {msg && <p className="mt-2 text-sm font-bold text-primary">{msg}</p>}
 
       {vehicles.length === 0 && (

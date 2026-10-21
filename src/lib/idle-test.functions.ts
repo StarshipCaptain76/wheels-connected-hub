@@ -67,6 +67,8 @@ export type IdleTestRow = {
   created_at: string;
   vehicle_label: string | null;
   tagged_display_name: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
 };
 
 function asIdleMetrics(raw: unknown): IdleMetrics {
@@ -201,14 +203,24 @@ export const listIdleLeaderboard = createServerFn({ method: "GET" })
     const vehicleIds = [...new Set(rows.map((r: { vehicle_id: string }) => r.vehicle_id))];
     const { data: vehicles } = await sb
       .from("event_concours_vehicles")
-      .select("id, label, tagged_display_name")
+      .select("id, label, tagged_display_name, vehicle_make, vehicle_model")
       .in("id", vehicleIds);
-    const byVeh = new Map<string, { label: string | null; tagged_display_name: string | null }>(
+    const byVeh = new Map<
+      string,
+      {
+        label: string | null;
+        tagged_display_name: string | null;
+        vehicle_make: string | null;
+        vehicle_model: string | null;
+      }
+    >(
       (
         (vehicles ?? []) as Array<{
           id: string;
           label: string | null;
           tagged_display_name: string | null;
+          vehicle_make: string | null;
+          vehicle_model: string | null;
         }>
       ).map((v) => [v.id, v]),
     );
@@ -235,6 +247,8 @@ export const listIdleLeaderboard = createServerFn({ method: "GET" })
         created_at: r.created_at as string,
         vehicle_label: v?.label ?? null,
         tagged_display_name: v?.tagged_display_name ?? null,
+        vehicle_make: v?.vehicle_make ?? null,
+        vehicle_model: v?.vehicle_model ?? null,
       };
     });
   });

@@ -166,6 +166,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
   const [msg, setMsg] = useState<string | null>(null);
   const [taggingId, setTaggingId] = useState<string | null>(null);
   const [justScored, setJustScored] = useState<string[]>([]);
+  const [lastScored, setLastScored] = useState<{ label: string; score: number } | null>(null);
   const gridRef = useRef<HTMLDivElement | null>(null);
 
   // Admin bulk add
@@ -340,17 +341,21 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         },
       });
       setJustScored((ids) => (ids.includes(vehicleId) ? ids : [...ids, vehicleId]));
-      setMsg(
-        lang === "af"
-          ? `Ingedien! Jou telling: ${res.totalScore}`
-          : `Submitted! Your score: ${res.totalScore}`,
-      );
+      setLastScored({
+        label:
+          selectedVehicle.tagged_display_name ||
+          selectedVehicle.label ||
+          (lang === "af" ? "Voertuig" : "Vehicle"),
+        score: res.totalScore,
+      });
+      setMsg(null);
       const doneIds = new Set([...scoredIds, vehicleId]);
       const next = scorableVehicles.find((v) => !doneIds.has(v.id));
       if (next) {
         setAnswers({});
         setQIdx(0);
         setSelectedVehicle(next);
+        requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
       } else {
         closeSheet();
       }
@@ -406,6 +411,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     const q = questions[qIdx];
     const text = q ? (lang === "af" && q.text_af ? q.text_af : q.text_en) : "";
     const cat = q && lang === "af" && q.category_af ? q.category_af : q?.category;
+    const carNumber = scorableVehicles.findIndex((v) => v.id === selectedVehicle.id) + 1;
 
     return (
       <section className="mt-8 rounded-lg border-2 border-ink bg-card p-5">
@@ -418,28 +424,45 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           {lang === "af" ? "Terug na voertuie" : "Back to cars"}
         </button>
 
-        <div className="flex gap-3">
-          <img
-            src={concoursImageUrl(selectedVehicle.id)}
-            alt=""
-            loading="lazy"
-            className="h-20 w-28 rounded border-2 border-ink object-cover"
-          />
-          <div>
-            <p className="font-display text-xl text-ink">
-              {selectedVehicle.tagged_display_name ||
-                selectedVehicle.label ||
-                (lang === "af" ? "Voertuig" : "Vehicle")}
-            </p>
-            <p className="text-xs text-ink/60">
-              {memberMode
-                ? lang === "af"
-                  ? "Volledige lid-stem"
-                  : "Full member vote"
-                : lang === "af"
-                  ? "Toeskouer-stem (50%)"
-                  : "Spectator vote (50%)"}
-            </p>
+        {lastScored && (
+          <p className="mb-3 flex items-center gap-2 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm font-bold text-ink">
+            <Check className="h-4 w-4 shrink-0 text-primary" />
+            {lang === "af"
+              ? `Gestem: ${lastScored.label} — jou telling ${lastScored.score}`
+              : `Scored: ${lastScored.label} — your score ${lastScored.score}`}
+          </p>
+        )}
+
+        <div className="rounded-lg border-2 border-primary bg-primary/5 p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            {lang === "af" ? "Jy gee nou punte vir" : "You are now scoring"}
+            {carNumber > 0
+              ? ` · ${lang === "af" ? "kar" : "car"} ${carNumber} ${lang === "af" ? "van" : "of"} ${scorableVehicles.length}`
+              : ""}
+          </p>
+          <div className="mt-2 flex gap-3">
+            <img
+              src={concoursImageUrl(selectedVehicle.id)}
+              alt=""
+              loading="lazy"
+              className="h-24 w-32 rounded border-2 border-ink object-cover"
+            />
+            <div>
+              <p className="font-display text-2xl leading-tight text-ink">
+                {selectedVehicle.tagged_display_name ||
+                  selectedVehicle.label ||
+                  (lang === "af" ? "Voertuig" : "Vehicle")}
+              </p>
+              <p className="text-xs text-ink/60">
+                {memberMode
+                  ? lang === "af"
+                    ? "Volledige lid-stem"
+                    : "Full member vote"
+                  : lang === "af"
+                    ? "Toeskouer-stem (50%)"
+                    : "Spectator vote (50%)"}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -662,6 +685,15 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           {lang === "af"
             ? "Admin: kies meerdere foto’s gelyk — geen etikette of tags nodig nie."
             : "Admin: pick several photos at once — no labels or tagging needed."}
+        </p>
+      )}
+
+      {lastScored && (
+        <p className="mt-3 flex items-center gap-2 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm font-bold text-ink">
+          <Check className="h-4 w-4 shrink-0 text-primary" />
+          {lang === "af"
+            ? `Gestem: ${lastScored.label} — jou telling ${lastScored.score}`
+            : `Scored: ${lastScored.label} — your score ${lastScored.score}`}
         </p>
       )}
 

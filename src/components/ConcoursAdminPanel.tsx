@@ -681,6 +681,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                     >
                       <span className="min-w-0 truncate">
                         {r.tagged_display_name || r.vehicle_label || "Vehicle"}
+                        {[r.vehicle_make, r.vehicle_model].filter(Boolean).length > 0
+                          ? ` · ${[r.vehicle_make, r.vehicle_model].filter(Boolean).join(" ")}`
+                          : ""}
                         {r.vehicle_year != null ? ` · ${r.vehicle_year}` : ""}
                         {r.display_score != null ? ` · ${r.display_score}` : ""}
                         {r.smooth01 != null ? ` · smooth ${Number(r.smooth01).toFixed(3)}` : ""}
@@ -1037,6 +1040,56 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               </li>
             ))}
           </ul>
+
+          <div className="mt-6 rounded-lg border-2 border-ink/20 bg-paper p-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              Rolls-Royce Start &amp; Idle — official runs
+            </p>
+            {(idleRunsQ.data ?? []).length === 0 ? (
+              <p className="mt-2 text-sm text-ink/50">No official idle tests yet.</p>
+            ) : (
+              <ul className="mt-2 space-y-1">
+                {(idleRunsQ.data ?? []).map((r, i) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-2 rounded border border-ink/20 px-2 py-1 text-xs"
+                  >
+                    <span className="min-w-0 truncate">
+                      <span className="mr-1 font-bold text-primary">#{i + 1}</span>
+                      {r.tagged_display_name || r.vehicle_label || "Vehicle"}
+                      {[r.vehicle_make, r.vehicle_model].filter(Boolean).length > 0
+                        ? ` · ${[r.vehicle_make, r.vehicle_model].filter(Boolean).join(" ")}`
+                        : ""}
+                      {r.vehicle_year != null ? ` · ${r.vehicle_year}` : ""}
+                      {r.display_score != null ? ` · score ${Number(r.display_score).toFixed(1)}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={async () => {
+                        if (!confirm("Reset this vehicle's official idle test?")) return;
+                        setBusy(true);
+                        try {
+                          await resetIdle({
+                            data: { eventId: eventId!, vehicleId: r.vehicle_id },
+                          });
+                          await qc.invalidateQueries({ queryKey: ["idle-tests", eventId] });
+                          await qc.invalidateQueries({ queryKey: ["concours", eventId] });
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : "Reset failed");
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                      className="shrink-0 text-[10px] font-bold uppercase text-primary"
+                    >
+                      Reset
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

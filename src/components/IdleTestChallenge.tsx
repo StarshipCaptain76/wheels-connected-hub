@@ -308,14 +308,28 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
             ).map((r, i) => (
               <li
                 key={r.id}
-                className="flex items-center justify-between rounded border-2 border-ink bg-paper px-3 py-2 text-sm"
+                className="flex items-center justify-between gap-3 rounded border-2 border-ink bg-paper px-3 py-2 text-sm"
               >
-                <span>
-                  {revealed && <span className="mr-2 font-bold text-primary">#{i + 1}</span>}
-                  {r.tagged_display_name || r.vehicle_label || (af ? "Voertuig" : "Vehicle")}
-                  {r.vehicle_year != null ? ` · ${r.vehicle_year}` : ""}
+                <span className="flex min-w-0 items-center gap-2">
+                  <img
+                    src={concoursImageUrl(r.vehicle_id)}
+                    alt=""
+                    loading="lazy"
+                    className="h-10 w-14 shrink-0 rounded border border-ink object-cover"
+                  />
+                  <span className="min-w-0">
+                    {revealed && <span className="mr-2 font-bold text-primary">#{i + 1}</span>}
+                    <span className="font-bold text-ink">
+                      {r.tagged_display_name || r.vehicle_label || (af ? "Voertuig" : "Vehicle")}
+                    </span>
+                    <span className="block truncate text-xs text-ink/60">
+                      {[r.vehicle_make, r.vehicle_model].filter(Boolean).join(" ") ||
+                        (af ? "Onbekende kar" : "Unknown car")}
+                      {r.vehicle_year != null ? ` · ${r.vehicle_year}` : ""}
+                    </span>
+                  </span>
                 </span>
-                <span className="font-bold tabular-nums">
+                <span className="shrink-0 font-bold tabular-nums">
                   {r.display_score != null ? r.display_score.toFixed(1) : "—"}
                 </span>
               </li>

@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
+import { scoreConcoursAnswers, weightedAverage, firstPlaceIds } from "./concours-score";
 import { selectConcoursQuestionIds, concoursQuestionPool, prepareConcoursSelection } from "./concours-questions";
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,10 @@ export type EventConcours = {
   sponsor_name: string | null;
   sponsor_logo_url: string | null;
   leaderboard_revealed: boolean;
+  tiebreak_vehicle_ids?: string[];
+  tiebreak_winner_vehicle_id?: string | null;
+  tiebreak_drawn_at?: string | null;
+  tiebreak_score?: number | null;
   winner_vehicle_id?: string | null;
   winner_photo_url?: string | null;
   winner_headline_en?: string | null;
@@ -112,65 +117,6 @@ function isClubMemberStatus(status: string | null | undefined): boolean {
 function orderQuestionsByIds(rows: ConcoursQuestion[], ids: string[]): ConcoursQuestion[] {
   const byId = new Map(rows.map((q) => [q.id, q]));
   return ids.map((id) => byId.get(id)).filter((q): q is ConcoursQuestion => !!q);
-}
-
-function scoreAnswers(
-  answers: Record<string, number | string | null>,
-  allowedIds: string[],
-): { totalScore: number; answered: number } {
-  let sum = 0;
-  let count = 0;
-  for (const qid of allowedIds) {
-    const val = answers[qid];
-    if (typeof val === "number" && !Number.isNaN(val)) {
-      sum += Math.max(0, Math.min(10, val));
-      count += 1;
-    } else if (val === "yes") {
-      sum += 10;
-      count += 1;
-    } else if (val === "no") {
-      sum += 0;
-      count += 1;
-    } else if (val === "na") {
-      // N/A is answered but excluded from the average
-    }
-  }
-  return {
-    totalScore: count > 0 ? Math.round((sum / count) * 10) / 10 : 0,
-    answered: count,
-  };
-}
-
-function assertAllQuestionsAnswered(
-  answers: Record<string, number | string | null>,
-  allowedIds: string[],
-) {
-  const missing = allowedIds.filter((id) => {
-    const val = answers[id];
-    return val === undefined || val === null || val === "";
-  });
-  if (missing.length > 0) {
-    throw new Error("Please answer every question before submitting.");
-  }
-}
-
-function weightedAverage(
-  scores: Array<{ total_score: number | null; weight: number | null }>,
-): { average: number | null; count: number } {
-  let wSum = 0;
-  let wTot = 0;
-  let count = 0;
-  for (const s of scores) {
-    if (s.total_score == null) continue;
-    const w = Number(s.weight) || 1;
-    wSum += Number(s.total_score) * w;
-    wTot += w;
-    count += 1;
-  }
-  return {
-    average: wTot > 0 ? Math.round((wSum / wTot) * 10) / 10 : null,
-    count,
-  };
 }
 
 async function sha256Hex(raw: string): Promise<string> {
@@ -801,8 +747,9 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       ec.question_category ?? null,
       );
       const allowedIds = allIds;
-      assertAllQuestionsAnswered(data.answers, allowedIds);
-      const { totalScore } = scoreAnswers(data.answers, allowedIds);
+      const { data: questionRows, error: questionError } = await publicSb.from("concours_questions").select("id, scoring_type").in("id", allowedIds);
+      if (questionError || questionRows?.length !== allowedIds.length) throw new Error("Could not validate question scores.");
+      const { totalScore } = scoreConcoursAnswers(data.answers, questionRows);
 
       const payload = {
         event_id: data.eventId,
@@ -836,8 +783,9 @@ export const submitConcoursScore = createServerFn({ method: "POST" })
       ec.question_category ?? null,
     );
     const allowedIds = spectatorIds;
-    assertAllQuestionsAnswered(data.answers, allowedIds);
-    const { totalScore } = scoreAnswers(data.answers, allowedIds);
+    const { data: questionRows, error: questionError } = await publicSb.from("concours_questions").select("id, scoring_type").in("id", allowedIds);
+    if (questionError || questionRows?.length !== allowedIds.length) throw new Error("Could not validate question scores.");
+    const { totalScore } = scoreConcoursAnswers(data.answers, questionRows);
     // Signed-in people get a personal fingerprint so a shared phone doesn't
     // lock the car for the next voter; anonymous spectators use the device key.
     const fingerprint = authed
@@ -1162,6 +1110,16 @@ export const upsertConcoursQuestion = createServerFn({ method: "POST" })
 // Publish results to home
 // ---------------------------------------------------------------------------
 
+export const drawConcoursTiebreak = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ eventId: z.string().uuid() }).parse(i))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase as unknown as AnyClient, context.userId);
+    const { data: winnerId, error } = await context.supabase.rpc("draw_concours_tiebreak", { _event_id: data.eventId });
+    if (error) throw new Error(error.message);
+    return { winnerId };
+  });
+
 export const publishConcoursResults = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) =>
@@ -1183,6 +1141,24 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const sb = supabase as unknown as AnyClient;
     await assertAdmin(sb, userId);
+
+    if (data.winnerVehicleId) {
+      const [{ data: vehicles, error: vehicleError }, { data: scores, error: scoreError }, { data: ec, error: configError }] = await Promise.all([
+        sb.from("event_concours_vehicles").select("id").eq("event_id", data.eventId),
+        sb.from("event_concours_scores").select("vehicle_id, total_score, weight").eq("event_id", data.eventId),
+        sb.from("event_concours").select("tiebreak_vehicle_ids, tiebreak_winner_vehicle_id, tiebreak_score").eq("event_id", data.eventId).single(),
+      ]);
+      if (vehicleError || scoreError || configError) throw new Error("Could not verify winner scores.");
+      const ranking = (vehicles ?? []).map((v: { id: string }) => ({ id: v.id, average_score: weightedAverage((scores ?? []).filter((s: { vehicle_id: string }) => s.vehicle_id === v.id)).average }));
+      const leaders = firstPlaceIds(ranking);
+      if (!leaders.includes(data.winnerVehicleId)) throw new Error("The winner must be a first-place vehicle with recorded votes.");
+      if (leaders.length > 1) {
+        const best = ranking.find((v: { id: string }) => v.id === leaders[0])?.average_score;
+        if (JSON.stringify([...(ec?.tiebreak_vehicle_ids ?? [])].sort()) !== JSON.stringify(leaders) || ec?.tiebreak_winner_vehicle_id !== data.winnerVehicleId || best == null || Math.abs(Number(ec.tiebreak_score) - best) > 1e-10) throw new Error("Run the recorded first-place tie-break before publishing.");
+      }
+    } else if (data.resultsOnHome) {
+      throw new Error("Choose the winning vehicle before publishing.");
+    }
 
     let winnerAverage: number | null = null;
     let winnerCount = 0;

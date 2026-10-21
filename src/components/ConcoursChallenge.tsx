@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -465,6 +466,9 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
             <p className="mt-1 text-lg font-bold text-ink">{text}</p>
 
             <div className="mt-4">
+              {q.scoring_type === "count" && <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 11 }, (_, n) => <Button key={n} disabled={busy} variant={answers[q.id] === n ? "default" : "outline"} onClick={() => answer(q.id, n, questions.length)} className="h-11 w-11">{n}</Button>)}
+              </div>}
               {q.scoring_type === "scale_1_10" && (
                 <div className="flex flex-wrap gap-1.5">
                   {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -486,8 +490,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
               )}
 
               {(q.scoring_type === "yes_no" ||
-                q.scoring_type === "yes_no_na" ||
-                q.scoring_type === "count") && (
+                q.scoring_type === "yes_no_na") && (
                 <div className="flex flex-wrap gap-2">
                   {(["yes", "no"] as const).map((v) => (
                     <button

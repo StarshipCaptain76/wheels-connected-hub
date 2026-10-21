@@ -48,7 +48,7 @@ export function NotificationBell() {
 
   const { data: items = [] } = useQuery({
     queryKey: ["notifications", userId],
-    queryFn: () => fetchNotifications(20),
+    queryFn: () => fetchNotifications(10),
     enabled: Boolean(userId),
     staleTime: 30_000,
   });
@@ -130,7 +130,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
+        <div className="fixed inset-x-3 top-[4.5rem] z-50 overflow-hidden rounded-lg border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)] sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-[22rem]">
           <div className="flex items-center justify-between border-b-2 border-ink px-3 py-2">
             <span className="font-display text-sm tracking-wide text-ink">{t("notif.title")}</span>
             {unread > 0 && (

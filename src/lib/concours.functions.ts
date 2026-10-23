@@ -4,6 +4,7 @@ import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
 import { scoreConcoursAnswers, weightedAverage, firstPlaceIds } from "./concours-score";
 import { selectConcoursQuestionIds, concoursQuestionPool, prepareConcoursSelection } from "./concours-questions";
+import { filterVotingReadyEventIds } from "./concours-voting";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -1287,7 +1288,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
   },
 );
 
-/** Enabled, unpublished Mini events whose SAST voting window is open today. */
+/** Enabled, unpublished Mini events whose SAST voting window is open today and which have at least two cars. */
 export const listOpenConcoursEventIds = createServerFn({ method: "GET" }).handler(
   async (): Promise<string[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");
@@ -1306,9 +1307,21 @@ export const listOpenConcoursEventIds = createServerFn({ method: "GET" }).handle
       .in("id", ids)
       .eq("is_published", true);
     if (evErr) throw new Error(evErr.message);
-    return ((events ?? []) as Array<{ id: string; starts_at: string; ends_at: string | null }>)
+    const openIds = ((events ?? []) as Array<{ id: string; starts_at: string; ends_at: string | null }>)
       .filter((e) => isConcoursWindowOpen(e.starts_at, e.ends_at))
       .map((e) => e.id);
+    if (openIds.length === 0) return [];
+    // "Vote now" stays inactive until the event has at least two cars loaded.
+    const { data: vehicleRows, error: vehErr } = await supabase
+      .from("event_concours_vehicles")
+      .select("event_id")
+      .in("event_id", openIds);
+    if (vehErr) throw new Error(vehErr.message);
+    const vehicleCounts = new Map<string, number>();
+    for (const v of (vehicleRows ?? []) as Array<{ event_id: string }>) {
+      vehicleCounts.set(v.event_id, (vehicleCounts.get(v.event_id) ?? 0) + 1);
+    }
+    return filterVotingReadyEventIds(openIds, vehicleCounts);
   },
 );
 

@@ -1,4 +1,5 @@
 # Concours corrections
+- [x] Keep "Vote now" inactive until at least two cars have been added to the event; rule test passes.
 - [x] Move the today-event banner to the very top of the home page so the active event is the first thing visitors see and the first call to action.
 - [x] Spectator scoring now scrolls to the top when advancing to the next car, names the just-scored car in a confirmation banner, and shows "You are now scoring · car X of Y" with a larger photo; event page render verified on a phone-sized screen.
 - [x] Rolls-Royce leaderboard rows and admin run lists now show the car photo, make and model so each score is clearly tied to a vehicle.

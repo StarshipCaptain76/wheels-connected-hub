@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { useI18n } from "@/i18n/I18nProvider";
 import { LOGO_URL, LOGO_URL_HERO } from "@/lib/brand";
-import { Calendar, IdCard, MessageCircle, Users } from "lucide-react";
+import { Calendar, CarFront, Clock, IdCard, MapPin, MessageCircle, Users } from "lucide-react";
 import { getNextEvent } from "@/lib/events.functions";
+import { getMyRoles } from "@/lib/roles.functions";
 import { getCurrentFeaturedMember } from "@/lib/featured-member.functions";
 import { SponsorCarousel } from "@/components/SponsorCarousel";
 import { ConcoursHomeWinner } from "@/components/ConcoursHomeWinner";
@@ -130,6 +131,15 @@ function Index() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // Admin check for the "Add cars" shortcut on today's event frame.
+  const { data: myRoles } = useQuery({
+    queryKey: ["my-roles"],
+    queryFn: () => getMyRoles(),
+    enabled: signedIn === true,
+    staleTime: 60_000,
+  });
+  const isAdmin = Boolean(myRoles?.isAdmin);
 
   const nextTitle = nextEvent
     ? lang === "af" && nextEvent.title_af
@@ -259,87 +269,80 @@ function Index() {
         </div>
       </section>
 
-      <div
-        className={
-          isToday
-            ? "border-b-2 border-ink bg-ink text-white"
-            : "border-b-2 border-ink bg-primary text-white"
-        }
-      >
-        <div className="relative mx-auto max-w-6xl px-4 py-6">
-          <Link
-            {...(nextEvent
-              ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
-              : ({ to: "/events" } as const))}
-            className={`flex flex-wrap items-center justify-between gap-4 ${voteEventId ? "pr-24 sm:pr-36" : ""}`}
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display text-xs tracking-[0.3em] text-white/80">
-                  {(isToday ? t("home.happeningToday") : t("home.nextEvent")).toUpperCase()}
-                </span>
-                {isToday && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
-                    {t("home.todayBadge")}
-                  </span>
-                )}
-                {isTomorrow && (
-                  <span className="rounded-full border border-white/60 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
-                    {t("home.tomorrowBadge")}
-                  </span>
-                )}
-              </div>
-              <div
-                className={
-                  isToday
-                    ? "font-display text-3xl tracking-wide sm:text-5xl"
-                    : "font-display text-2xl tracking-wide sm:text-3xl"
-                }
-              >
-                {nextTitle}
-              </div>
-              {isToday && startTime && (
-                <p className="mt-1 font-display text-2xl tracking-wide text-primary sm:text-3xl">
-                  {startTime}
-                  {nextEvent?.location ? (
-                    <span className="ml-2 font-sans text-sm font-semibold text-white/85">
-                      · {nextEvent.location}
-                    </span>
-                  ) : null}
-                </p>
-              )}
-              {!isToday && nextMeta && (
-                <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>
-              )}
-              {countdown && <p className="mt-1 text-sm font-bold text-white/90">{countdown}</p>}
-              {nextEvent && (nextEvent.going_count ?? 0) > 0 && (
-                <p className="mt-1 text-sm font-bold text-white/90">
-                  {lang === "af"
-                    ? `${nextEvent.going_count} lede gaan · ${nextEvent.going_party_total} mense verwag`
-                    : `${nextEvent.going_count} going · ${nextEvent.going_party_total} people expected`}
-                </p>
-              )}
-
-            </div>
-            <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
-          </Link>
-
-          {voteEventId && (
-            <VoteNowPulse
-              eventId={voteEventId}
-              size="lg"
-              tone="onDark"
-              className="absolute right-2 top-2 z-10 origin-top-right max-sm:scale-[0.78] sm:right-4 sm:top-1/2 sm:-translate-y-1/2"
-            />
+      {isToday && nextEvent ? (
+        /* TODAY — full-bleed cover photo, rich details, admin "add cars" shortcut */
+        <section className="relative overflow-hidden border-b-2 border-ink bg-ink text-paper">
+          {nextEvent.cover_display_url && (
+            <>
+              <img
+                src={nextEvent.cover_display_url}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/75 to-ink/40" />
+            </>
           )}
+          <div className="relative mx-auto max-w-6xl px-4 py-10 sm:py-14">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-display text-xs tracking-[0.3em] text-paper/80">
+                {t("home.happeningToday").toUpperCase()}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-primary-foreground">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-primary-foreground" />
+                {t("home.todayBadge")}
+              </span>
+            </div>
 
-          {isToday && nextEvent && (
-            <div className={`mt-4 flex flex-wrap gap-3 ${voteEventId ? "pr-24 sm:pr-36" : ""}`}>
+            <Link
+              to="/events/$id"
+              params={{ id: nextEvent.id }}
+              className="mt-2 block font-display text-4xl leading-[0.95] tracking-wide sm:text-6xl"
+            >
+              {nextTitle}
+            </Link>
+
+            <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-paper/90">
+              {startTime && (
+                <span className="inline-flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="font-display text-xl tracking-wide text-primary">{startTime}</span>
+                  {countdown ? <span className="text-paper/80">· {countdown}</span> : null}
+                </span>
+              )}
+              {nextEvent.location && (
+                <span className="inline-flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {nextEvent.location}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-primary" />
+                {formatDate(nextEvent.starts_at, lang)}
+              </span>
+            </div>
+
+            {nextDesc && (
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-paper/85 line-clamp-3">
+                {nextDesc}
+              </p>
+            )}
+
+            {(nextEvent.going_count ?? 0) > 0 && (
+              <p className="mt-3 text-sm font-bold text-paper/90">
+                {lang === "af"
+                  ? `${nextEvent.going_count} lede gaan · ${nextEvent.going_party_total} mense verwag`
+                  : `${nextEvent.going_count} going · ${nextEvent.going_party_total} people expected`}
+              </p>
+            )}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {voteEventId && (
+                <VoteNowPulse eventId={voteEventId} size="lg" tone="onDark" />
+              )}
               <Link
                 to="/events/$id"
                 params={{ id: nextEvent.id }}
-                className="inline-flex items-center rounded-md border-2 border-white bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white"
+                className="inline-flex items-center rounded-md border-2 border-paper bg-primary px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-primary-foreground"
               >
                 {t("home.seeDetails")}
               </Link>
@@ -348,15 +351,70 @@ function Index() {
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextEvent.location)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-md border-2 border-white/70 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:border-white"
+                  className="inline-flex items-center rounded-md border-2 border-paper/70 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper hover:border-paper"
                 >
                   {t("home.getDirections")}
                 </a>
               )}
+              {isAdmin && (
+                <Link
+                  to="/admin/concours"
+                  className="inline-flex items-center gap-2 rounded-md border-2 border-dashed border-paper/70 bg-ink/40 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper hover:border-paper hover:bg-ink/60"
+                >
+                  <CarFront className="h-4 w-4" />
+                  {lang === "af" ? "Voeg motors by" : "Add cars"}
+                </Link>
+              )}
             </div>
-          )}
+          </div>
+        </section>
+      ) : (
+        <div className="border-b-2 border-ink bg-primary text-white">
+          <div className="relative mx-auto max-w-6xl px-4 py-6">
+            <Link
+              {...(nextEvent
+                ? ({ to: "/events/$id", params: { id: nextEvent.id } } as const)
+                : ({ to: "/events" } as const))}
+              className={`flex flex-wrap items-center justify-between gap-4 ${voteEventId ? "pr-24 sm:pr-36" : ""}`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-xs tracking-[0.3em] text-white/80">
+                    {t("home.nextEvent").toUpperCase()}
+                  </span>
+                  {isTomorrow && (
+                    <span className="rounded-full border border-white/60 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest">
+                      {t("home.tomorrowBadge")}
+                    </span>
+                  )}
+                </div>
+                <div className="font-display text-2xl tracking-wide sm:text-3xl">{nextTitle}</div>
+                {nextMeta && (
+                  <p className="mt-1 text-sm font-semibold text-white/85">{nextMeta}</p>
+                )}
+                {nextEvent && (nextEvent.going_count ?? 0) > 0 && (
+                  <p className="mt-1 text-sm font-bold text-white/90">
+                    {lang === "af"
+                      ? `${nextEvent.going_count} lede gaan · ${nextEvent.going_party_total} mense verwag`
+                      : `${nextEvent.going_count} going · ${nextEvent.going_party_total} people expected`}
+                  </p>
+                )}
+              </div>
+              <p className="max-w-md text-sm text-white/90 line-clamp-3">{nextDesc || nextBody}</p>
+            </Link>
+
+            {voteEventId && (
+              <VoteNowPulse
+                eventId={voteEventId}
+                size="lg"
+                tone="onDark"
+                className="absolute right-2 top-2 z-10 origin-top-right max-sm:scale-[0.78] sm:right-4 sm:top-1/2 sm:-translate-y-1/2"
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
 
 
       <SponsorCarousel />

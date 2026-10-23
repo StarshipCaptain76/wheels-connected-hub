@@ -39,6 +39,9 @@ export const Route = createFileRoute("/_authenticated/admin/events")({
       { name: "robots", content: "noindex" },
     ],
   }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    edit: typeof search.edit === "string" ? search.edit : undefined,
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsAdminQuery),
   component: AdminEvents,
   errorComponent: ({ error }) => (

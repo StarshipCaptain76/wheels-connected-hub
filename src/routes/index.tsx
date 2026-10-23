@@ -132,6 +132,15 @@ function Index() {
     };
   }, []);
 
+  // Admin check for the "Add cars" shortcut on today's event frame.
+  const { data: myRoles } = useQuery({
+    queryKey: ["my-roles"],
+    queryFn: () => getMyRoles(),
+    enabled: signedIn === true,
+    staleTime: 60_000,
+  });
+  const isAdmin = Boolean(myRoles?.isAdmin);
+
   const nextTitle = nextEvent
     ? lang === "af" && nextEvent.title_af
       ? nextEvent.title_af

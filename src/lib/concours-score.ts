@@ -35,6 +35,14 @@ export function weightedAverage(scores: Array<{ total_score: number | null; weig
   return { average: weight > 0 ? total / weight : null, count };
 }
 
+/** Round a concours score for display; internal math keeps full precision for tie-breaks. */
+export function formatConcoursScore(value: number | null | undefined, digits = 1) {
+  const num = Number(value);
+  if (value == null || !Number.isFinite(num)) return "";
+  const f = 10 ** digits;
+  return (Math.round(num * f) / f).toFixed(digits);
+}
+
 export function firstPlaceIds(vehicles: Array<{ id: string; average_score?: number | null }>) {
   const scored = vehicles.filter((v) => v.average_score != null);
   const best = Math.max(...scored.map((v) => v.average_score ?? -Infinity));

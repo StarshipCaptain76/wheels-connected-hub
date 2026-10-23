@@ -308,7 +308,8 @@ function Index() {
               )}
               {isAdmin && (
                 <Link
-                  to="/admin/concours"
+                  to="/admin/events"
+                  search={{ edit: nextEvent.id }}
                   className="inline-flex items-center gap-2 rounded-md border-2 border-dashed border-paper/70 bg-ink/40 px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-paper hover:border-paper hover:bg-ink/60"
                 >
                   <CarFront className="h-4 w-4" />

@@ -1288,7 +1288,7 @@ export const getLatestConcoursHomeWinner = createServerFn({ method: "GET" }).han
   },
 );
 
-/** Enabled, unpublished Mini events whose SAST voting window is open today. */
+/** Enabled, unpublished Mini events whose SAST voting window is open today and which have at least two cars. */
 export const listOpenConcoursEventIds = createServerFn({ method: "GET" }).handler(
   async (): Promise<string[]> => {
     const { createPublicSupabase } = await import("./public-supabase.server");

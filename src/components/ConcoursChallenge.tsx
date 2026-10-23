@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { formatConcoursScore } from "@/lib/concours-score";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -428,8 +429,8 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
           <p className="mb-3 flex items-center gap-2 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm font-bold text-ink">
             <Check className="h-4 w-4 shrink-0 text-primary" />
             {lang === "af"
-              ? `Gestem: ${lastScored.label} — jou telling ${lastScored.score}`
-              : `Scored: ${lastScored.label} — your score ${lastScored.score}`}
+              ? `Gestem: ${lastScored.label} — jou telling ${formatConcoursScore(lastScored.score)}`
+              : `Scored: ${lastScored.label} — your score ${formatConcoursScore(lastScored.score)}`}
           </p>
         )}
 
@@ -692,8 +693,8 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
         <p className="mt-3 flex items-center gap-2 rounded-md border-2 border-ink bg-primary/10 px-3 py-2 text-sm font-bold text-ink">
           <Check className="h-4 w-4 shrink-0 text-primary" />
           {lang === "af"
-            ? `Gestem: ${lastScored.label} — jou telling ${lastScored.score}`
-            : `Scored: ${lastScored.label} — your score ${lastScored.score}`}
+            ? `Gestem: ${lastScored.label} — jou telling ${formatConcoursScore(lastScored.score)}`
+            : `Scored: ${lastScored.label} — your score ${formatConcoursScore(lastScored.score)}`}
         </p>
       )}
 
@@ -757,7 +758,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                         ? "Gestem ✓"
                         : "Scored ✓"
                       : `${v.submission_count ?? 0} ${lang === "af" ? "stemme" : "scores"}`}
-                    {c.leaderboard_revealed && v.average_score != null ? ` · ${v.average_score}` : ""}
+                    {c.leaderboard_revealed && v.average_score != null ? ` · ${formatConcoursScore(v.average_score)}` : ""}
                   </p>
                 </div>
               </button>
@@ -893,7 +894,7 @@ export function ConcoursChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                     {v.tagged_display_name || v.label || (lang === "af" ? "Voertuig" : "Vehicle")}
                   </span>
                   <span className="font-bold">
-                    {v.average_score}
+                    {formatConcoursScore(v.average_score)}
                     <span className="ml-1 text-xs font-normal text-ink/50">
                       ({v.submission_count})
                     </span>

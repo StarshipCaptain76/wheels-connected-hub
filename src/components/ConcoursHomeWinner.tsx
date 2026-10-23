@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { getLatestConcoursHomeWinner } from "@/lib/concours.functions";
+import { formatConcoursScore } from "@/lib/concours-score";
 import { concoursImageUrl } from "@/lib/event-image-url";
 import { useI18n } from "@/i18n/I18nProvider";
 import { Trophy } from "lucide-react";
@@ -71,7 +72,7 @@ export function ConcoursHomeWinner() {
                 <>
                   {" · "}
                   <span className="font-bold text-ink">
-                    {data.averageScore}
+                    {formatConcoursScore(data.averageScore)}
                     <span className="font-normal text-ink/50">
                       {" "}
                       / 10 · {data.submissionCount}{" "}

@@ -27,7 +27,7 @@ import {
   adminSetVehicleYearMeta,
 } from "@/lib/idle-test.functions";
 import { Button } from "@/components/ui/button";
-import { firstPlaceIds } from "@/lib/concours-score";
+import { firstPlaceIds, formatConcoursScore } from "@/lib/concours-score";
 import { concoursQuestionPool } from "@/lib/concours-questions";
 import { concoursSponsorImageUrl } from "@/lib/event-image-url";
 import { ImageUploadField } from "@/components/ImageUploadField";
@@ -530,7 +530,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
                         >
                           <span className="truncate">
                             {v.tagged_display_name || v.label || "Vehicle"}
-                            {v.average_score != null ? ` · ${v.average_score}` : ""}
+                            {v.average_score != null ? ` · ${formatConcoursScore(v.average_score)}` : ""}
                           </span>
                           <button
                             type="button"
@@ -1133,7 +1133,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               {vehicles.map((v) => (
                 <option key={v.id} value={v.id}>
                   {(v.tagged_display_name || v.label || "Vehicle") +
-                    (v.average_score != null ? ` (${v.average_score})` : "")}
+                    (v.average_score != null ? ` (${formatConcoursScore(v.average_score)})` : "")}
                 </option>
               ))}
             </select>

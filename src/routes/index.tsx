@@ -219,56 +219,6 @@ function Index() {
 
   return (
     <SiteLayout>
-      <section className="border-b-2 border-ink bg-paper text-ink">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
-          <div>
-            <div className="mb-4 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
-              {t("home.heroKicker")}
-            </div>
-            <h1 className="font-display text-6xl leading-[0.9] tracking-wide sm:text-7xl md:text-8xl">
-              JUST WHEELS
-              <br />
-              <span className="text-primary">HESSEQUA</span>
-              <span className="mt-3 block font-sans text-base font-bold uppercase tracking-[0.2em] text-ink/70 sm:text-lg">
-                Southern Cape Car Club
-              </span>
-            </h1>
-            <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-ink/40 bg-paper px-3 py-1.5 text-xs font-semibold text-ink/70">
-              <MessageCircle className="h-3.5 w-3.5 text-primary" />
-              {t("home.originBadge")}
-            </div>
-            <div className="mt-8 flex flex-wrap gap-3">
-              {/* Hide "Become a Member" when the user is already signed in */}
-              {signedIn !== true && (
-                <Link
-                  to="/join"
-                  className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
-                >
-                  {t("cta.becomeMember")}
-                </Link>
-              )}
-              <Link
-                to="/events"
-                className="inline-flex items-center rounded-md border-2 border-ink/40 px-6 py-3 font-bold uppercase tracking-wider text-ink/80 hover:border-ink hover:text-ink"
-              >
-                {t("cta.viewEvents")}
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center">
-            <img
-              src={LOGO_URL_HERO}
-              alt="Just Wheels Hessequa club badge"
-              width={320}
-              height={320}
-              className="h-64 w-64 -rotate-6 rounded-full border-4 border-ink object-cover shadow-2xl md:h-80 md:w-80"
-            />
-          </div>
-        </div>
-      </section>
-
       {isToday && nextEvent ? (
         /* TODAY — full-bleed cover photo, rich details, admin "add cars" shortcut */
         <section className="relative overflow-hidden border-b-2 border-ink bg-ink text-paper">
@@ -368,7 +318,58 @@ function Index() {
             </div>
           </div>
         </section>
-      ) : (
+      ) : null}
+      <section className="border-b-2 border-ink bg-paper text-ink">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-[1.3fr_1fr] md:py-24">
+          <div>
+            <div className="mb-4 inline-block rounded-full border-2 border-primary bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.25em] text-primary">
+              {t("home.heroKicker")}
+            </div>
+            <h1 className="font-display text-6xl leading-[0.9] tracking-wide sm:text-7xl md:text-8xl">
+              JUST WHEELS
+              <br />
+              <span className="text-primary">HESSEQUA</span>
+              <span className="mt-3 block font-sans text-base font-bold uppercase tracking-[0.2em] text-ink/70 sm:text-lg">
+                Southern Cape Car Club
+              </span>
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-ink/80">{t("home.heroSubtitle")}</p>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-dashed border-ink/40 bg-paper px-3 py-1.5 text-xs font-semibold text-ink/70">
+              <MessageCircle className="h-3.5 w-3.5 text-primary" />
+              {t("home.originBadge")}
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {/* Hide "Become a Member" when the user is already signed in */}
+              {signedIn !== true && (
+                <Link
+                  to="/join"
+                  className="inline-flex items-center rounded-md border-2 border-ink bg-primary px-6 py-3 font-bold uppercase tracking-wider text-paper shadow-[4px_4px_0_0_var(--color-ink)] transition-transform hover:translate-x-1 hover:translate-y-1 hover:shadow-none"
+                >
+                  {t("cta.becomeMember")}
+                </Link>
+              )}
+              <Link
+                to="/events"
+                className="inline-flex items-center rounded-md border-2 border-ink/40 px-6 py-3 font-bold uppercase tracking-wider text-ink/80 hover:border-ink hover:text-ink"
+              >
+                {t("cta.viewEvents")}
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <img
+              src={LOGO_URL_HERO}
+              alt="Just Wheels Hessequa club badge"
+              width={320}
+              height={320}
+              className="h-64 w-64 -rotate-6 rounded-full border-4 border-ink object-cover shadow-2xl md:h-80 md:w-80"
+            />
+          </div>
+        </div>
+      </section>
+
+      {!(isToday && nextEvent) && (
         <div className="border-b-2 border-ink bg-primary text-white">
           <div className="relative mx-auto max-w-6xl px-4 py-6">
             <Link

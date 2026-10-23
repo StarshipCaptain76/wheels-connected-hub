@@ -79,6 +79,14 @@ function AdminEvents() {
   const del = useServerFn(deleteEvent);
   const [editing, setEditing] = useState<FormState | null>(null);
   const confirm = useConfirm();
+  // Deep link: /admin/events?edit=<id> opens that event's editor (and its
+  // Concours "Add cars" panel) straight away — used by the home-page shortcut.
+  const { edit: editId } = Route.useSearch();
+  useEffect(() => {
+    if (!editId || editing) return;
+    const ev = events.find((e) => e.id === editId);
+    if (ev) setEditing(ev as ExtendedEvent);
+  }, [editId, events, editing]);
 
   async function save(form: FormState, waypoints: Array<Partial<EventWaypoint>>) {
     const res = await upsert({

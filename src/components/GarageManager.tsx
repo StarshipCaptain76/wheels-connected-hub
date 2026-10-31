@@ -719,7 +719,11 @@ function VehicleCard({
                 <img
                   src={p.url}
                   alt=""
-                  className="h-20 w-20 rounded border-2 border-ink object-cover"
+                  onClick={() => {
+                    const idx = photos.findIndex((x) => x.id === p.id);
+                    if (idx >= 0) { setPhotoIndex(idx); setLightbox(true); }
+                  }}
+                  className="h-20 w-20 cursor-zoom-in rounded border-2 border-ink object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.opacity = "0.3";
                   }}

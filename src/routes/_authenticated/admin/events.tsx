@@ -93,7 +93,7 @@ function AdminEvents() {
   // above immediately reopens the modal.
   function closeEditor() {
     setEditing(null);
-    if (editId) void navigate({ search: {}, replace: true });
+    if (editId) void navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true });
   }
 
   async function save(form: FormState, waypoints: Array<Partial<EventWaypoint>>) {

@@ -1144,19 +1144,10 @@ export const publishConcoursResults = createServerFn({ method: "POST" })
     await assertAdmin(sb, userId);
 
     if (data.winnerVehicleId) {
-      const [{ data: vehicles, error: vehicleError }, { data: scores, error: scoreError }, { data: ec, error: configError }] = await Promise.all([
-        sb.from("event_concours_vehicles").select("id").eq("event_id", data.eventId),
-        sb.from("event_concours_scores").select("vehicle_id, total_score, weight").eq("event_id", data.eventId),
-        sb.from("event_concours").select("tiebreak_vehicle_ids, tiebreak_winner_vehicle_id, tiebreak_score").eq("event_id", data.eventId).single(),
-      ]);
-      if (vehicleError || scoreError || configError) throw new Error("Could not verify winner scores.");
-      const ranking = (vehicles ?? []).map((v: { id: string }) => ({ id: v.id, average_score: weightedAverage((scores ?? []).filter((s: { vehicle_id: string }) => s.vehicle_id === v.id)).average }));
-      const leaders = firstPlaceIds(ranking);
-      if (!leaders.includes(data.winnerVehicleId)) throw new Error("The winner must be a first-place vehicle with recorded votes.");
-      if (leaders.length > 1) {
-        const best = ranking.find((v: { id: string }) => v.id === leaders[0])?.average_score;
-        if (JSON.stringify([...(ec?.tiebreak_vehicle_ids ?? [])].sort()) !== JSON.stringify(leaders) || ec?.tiebreak_winner_vehicle_id !== data.winnerVehicleId || best == null || Math.abs(Number(ec.tiebreak_score) - best) > 1e-10) throw new Error("Run the recorded first-place tie-break before publishing.");
-      }
+      const { data: leader, error } = await sb.from("competition_leaders")
+        .select("vehicle_id").eq("event_id", data.eventId).eq("competition", "concours").maybeSingle();
+      if (error) throw new Error("Could not verify winner scores.");
+      if (!leader || leader.vehicle_id !== data.winnerVehicleId) throw new Error("Scores changed. Refresh and publish the automatically selected current leader.");
     } else if (data.resultsOnHome) {
       throw new Error("Choose the winning vehicle before publishing.");
     }

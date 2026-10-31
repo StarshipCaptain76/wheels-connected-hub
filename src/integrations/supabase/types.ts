@@ -1198,16 +1198,19 @@ export type Database = {
       }
       member_birthdays: {
         Row: {
+          admin_notified_on: string | null
           birthday_day: number
           birthday_month: number
           user_id: string
         }
         Insert: {
+          admin_notified_on?: string | null
           birthday_day: number
           birthday_month: number
           user_id: string
         }
         Update: {
+          admin_notified_on?: string | null
           birthday_day?: number
           birthday_month?: number
           user_id?: string
@@ -1928,6 +1931,27 @@ export type Database = {
       }
     }
     Functions: {
+      birthday_admin_notices_due: {
+        Args: { _key: string }
+        Returns: {
+          bio: string
+          birthday_day: number
+          birthday_month: number
+          display_name: string
+          favourite_ride: string
+          member_id: string
+          member_number: number
+          notice_date: string
+          phone: string
+          recipient_email: string
+          recipient_lang: string
+          town: string
+        }[]
+      }
+      complete_birthday_admin_notice: {
+        Args: { _key: string; _member_id: string; _notice_date: string }
+        Returns: undefined
+      }
       concours_scored_vehicles: {
         Args: { _event_id: string; _fingerprint?: string }
         Returns: string[]

@@ -85,6 +85,13 @@
       "when": 1793428361329,
       "tag": "0011_admin_member_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793428517612,
+      "tag": "0012_birthday_admin_notices",
+      "breakpoints": true
     }
   ]
 }

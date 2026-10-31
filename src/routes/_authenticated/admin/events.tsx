@@ -142,8 +142,7 @@ function AdminEvents() {
     // Public event pages are server-rendered; refresh router data too so the
     // change is visible immediately, not only in the admin list.
     await router.invalidate();
-    setEditing(null);
-
+    closeEditor();
   }
 
   async function remove(id: string) {
@@ -227,7 +226,7 @@ function AdminEvents() {
         ))}
       </ul>
 
-      {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}
+      {editing && <EditModal state={editing} onSave={save} onClose={closeEditor} />}
     </div>
   );
 }

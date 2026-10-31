@@ -39,13 +39,16 @@ export async function sendEmail(input: {
   html: string;
   from?: string;
   replyTo?: string;
+  idempotencyKey?: string;
 }): Promise<void> {
   const key = process.env["RESEND_API_KEY"];
   if (!key) throw new Error("RESEND_API_KEY not configured");
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + key,
+      ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}),
+    },
     body: JSON.stringify({
       from: input.from ?? SPONSORS_FROM,
       to: input.to,

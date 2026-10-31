@@ -215,6 +215,106 @@ export const setAdminRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export type AdminMemberDetail = {
+  profile: {
+    id: string;
+    display_name: string | null;
+    member_number: number;
+    town: string | null;
+    favourite_ride: string | null;
+    joined_at: string;
+    membership_status: string;
+    featured_bio: string | null;
+  };
+  facePhoto: string | null;
+  carPhoto: string | null;
+  vehicles: Array<{
+    id: string;
+    make: string | null;
+    model: string | null;
+    year: number | null;
+    nickname: string | null;
+    is_primary: boolean;
+    photos: string[];
+  }>;
+};
+
+/** Admin: full member detail — card data plus all garage photos (signed URLs). */
+export const getAdminMemberDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ userId: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }): Promise<AdminMemberDetail> => {
+    const sb = context.supabase;
+    await assertAdmin(sb, context.userId);
+    const { data: profile, error } = await sb
+      .from("profiles")
+      .select("id,display_name,member_number,town,favourite_ride,joined_at,membership_status,avatar_url,featured_bio")
+      .eq("id", data.userId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!profile) throw new Error("Member not found.");
+
+    const { data: vehicles, error: vehicleError } = await sb
+      .from("garage_vehicles")
+      .select("id,user_id,make,model,year,nickname,is_primary,sort")
+      .eq("user_id", data.userId)
+      .order("sort");
+    if (vehicleError) throw new Error(vehicleError.message);
+    const vehicleIds = (vehicles ?? []).map((v) => v.id);
+    const { data: photos, error: photoError } = vehicleIds.length
+      ? await sb
+          .from("garage_vehicle_photos")
+          .select("vehicle_id,storage_path,sort")
+          .in("vehicle_id", vehicleIds)
+          .order("sort")
+          .order("created_at")
+      : { data: [], error: null };
+    if (photoError) throw new Error(photoError.message);
+
+    const { signPaths, signStoredUrls } = await import("./storage-urls.server");
+    const [photoUrls, avatars] = await Promise.all([
+      signPaths(sb, "garage", (photos ?? []).map((p) => p.storage_path)),
+      signStoredUrls(sb, [profile.avatar_url]),
+    ]);
+
+    const ordered = [...(vehicles ?? [])].sort(
+      (a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort - b.sort,
+    );
+    let carPhoto: string | null = null;
+    const vehicleList = ordered.map((v) => {
+      const urls = (photos ?? [])
+        .filter((p) => p.vehicle_id === v.id)
+        .map((p) => photoUrls.get(p.storage_path))
+        .filter((u): u is string => Boolean(u));
+      if (!carPhoto && urls.length) carPhoto = urls[0];
+      return {
+        id: v.id,
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        nickname: v.nickname,
+        is_primary: Boolean(v.is_primary),
+        photos: urls,
+      };
+    });
+
+    return {
+      profile: {
+        id: profile.id,
+        display_name: profile.display_name,
+        member_number: Number(profile.member_number ?? 0),
+        town: profile.town,
+        favourite_ride: profile.favourite_ride,
+        joined_at: String(profile.joined_at ?? ""),
+        membership_status: String(profile.membership_status ?? "pending"),
+        featured_bio: profile.featured_bio ?? null,
+      },
+      facePhoto: profile.avatar_url ? avatars.get(profile.avatar_url) ?? profile.avatar_url : null,
+      carPhoto,
+      vehicles: vehicleList,
+    };
+  });
+
 /** Admin: edit another member's profile details. */
 export const adminUpdateMemberProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

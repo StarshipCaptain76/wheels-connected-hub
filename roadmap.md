@@ -1,4 +1,5 @@
 # Concours corrections
+- [ ] Add birthday-on-the-day admin emails using profile details and send Max Geldenhuys example — awaiting sender setup and birthday data.
 - [x] Automatically maintain both competition leaders with recorded random exact-score tie-breaks; database score triggers installed, pure rule tests pass.
 - [x] Fill admin winner fields and show live leaders in the home event frame, refreshing every ten seconds; guest home frame opens and build passes.
 - [ ] Verify real score-trigger leader changes and signed-in admin/member displays — event currently has no votes or official runs; requesting account has no mintable preview session.

@@ -299,6 +299,7 @@ function AdminMembersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adminsOpen, setAdminsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"club" | "features">("club");
 
@@ -396,14 +397,24 @@ function AdminMembersPage() {
             </button>
           </td>
           <td className="px-3 py-2">
-            <button
-              type="button"
-              onClick={() => setEditId(editId === m.user_id ? null : m.user_id)}
-              title="Edit profile"
-              className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
-            >
-              <Pencil className="h-3 w-3" /> Edit
-            </button>
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setViewId(m.user_id)}
+                title="View profile, card and pictures"
+                className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
+              >
+                <Eye className="h-3 w-3" /> View
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditId(editId === m.user_id ? null : m.user_id)}
+                title="Edit profile"
+                className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+            </div>
           </td>
         </tr>
         {editId === m.user_id && <EditMemberRow member={m} onDone={() => setEditId(null)} />}

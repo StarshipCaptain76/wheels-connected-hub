@@ -21,3 +21,4 @@
 - Use the shared pure Concours score validator for equal-weight averages; retain precision until display. Score triggers maintain locked, persisted provisional leaders for both competitions with stable random draws for exact best-score ties; published winners remain admin-controlled snapshots. Rolls-Royce leader summaries remain member/admin-only through RLS.
 - Version start-and-idle capture metrics and require a detected start, settling phase, full sustained-idle window and sufficient continuous samples before official submission; historical runs retain their original scoring protocol.
 - Keep birthday day/month in owner/admin-only profile extension storage, not directory-readable profiles; never collect a birth year for birthday reminders.
+- Send admin announcements through a role-checked authenticated RPC to all active/member profiles; stable request IDs prevent duplicate deliveries on retry and no service-role keys are used.

@@ -9,7 +9,7 @@ import {
   fetchPrefs,
   savePrefs,
   type NotificationPrefs,
-  type NotificationType,
+  type PreferenceNotificationType,
 } from "@/lib/notifications";
 import {
   iosNeedsInstall,
@@ -75,7 +75,7 @@ export function NotificationSettings({ isAdmin }: { isAdmin?: boolean }) {
   }, [data]);
 
 
-  async function update(type: NotificationType, value: boolean) {
+  async function update(type: PreferenceNotificationType, value: boolean) {
     const next = { ...prefs, [type]: value };
     setPrefs(next);
     try {

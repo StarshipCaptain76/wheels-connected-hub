@@ -2077,6 +2077,16 @@ export type Database = {
           lang: string
         }[]
       }
+      send_member_announcement: {
+        Args: {
+          _body_af?: string
+          _body_en: string
+          _request_id: string
+          _title_af?: string
+          _title_en: string
+        }
+        Returns: number
+      }
       submit_concours_spectator_score: {
         Args: {
           _answers: Json

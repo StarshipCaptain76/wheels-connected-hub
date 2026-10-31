@@ -11,6 +11,7 @@ import { listSubscribers } from "@/lib/newsletter.functions";
 import { listAllSponsors } from "@/lib/sponsors.functions";
 import { sendTestNotification } from "@/lib/notify-test.functions";
 import { listAllConcoursQuestionsAdmin } from "@/lib/concours.functions";
+import { AdminAnnouncementForm } from "@/components/AdminAnnouncementForm";
 import {
   Tag,
   Calendar,
@@ -26,7 +27,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
-    meta: [{ title: "Admin Overview — Just Wheels" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Admin Overview — Just Wheels" }, { name: "description", content: "Manage Just Wheels Hessequa club activity and member announcements." }, { property: "og:title", content: "Admin Overview — Just Wheels" }, { property: "og:description", content: "Club administration and member announcements." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex" }],
   }),
   component: AdminOverview,
 });
@@ -205,6 +206,7 @@ function AdminOverview() {
       </div>
 
       <TestNotificationButton />
+      <AdminAnnouncementForm />
     </div>
   );
 }

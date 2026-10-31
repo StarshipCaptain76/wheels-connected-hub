@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type NotificationType =
+  | "announcement"
   | "new_listing"
   | "new_event"
   | "event_reminder"
@@ -11,7 +12,8 @@ export type NotificationType =
   | "admin_new_member"
   | "admin_listing_review";
 
-export const MEMBER_TYPES: NotificationType[] = [
+export type PreferenceNotificationType = Exclude<NotificationType, "announcement">;
+export const MEMBER_TYPES: PreferenceNotificationType[] = [
   "new_listing",
   "new_event",
   "event_reminder",
@@ -19,7 +21,7 @@ export const MEMBER_TYPES: NotificationType[] = [
   "new_newsletter",
   "photo_tag",
 ];
-export const ADMIN_TYPES: NotificationType[] = [
+export const ADMIN_TYPES: PreferenceNotificationType[] = [
   "admin_new_sponsor",
   "admin_new_member",
   "admin_listing_review",
@@ -37,7 +39,7 @@ export type AppNotification = {
   created_at: string;
 };
 
-export type NotificationPrefs = Record<NotificationType, boolean>;
+export type NotificationPrefs = Record<PreferenceNotificationType, boolean>;
 
 export const DEFAULT_PREFS: NotificationPrefs = {
   new_listing: true,

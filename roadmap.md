@@ -1,4 +1,5 @@
 # Concours corrections
+- [ ] Add admin-only announcements to all club members with delivery confirmation and tests.
 - [x] Add private birthday day/month editing to personal and admin member profiles; save Maximus Geldenhuys as 31 October. Date matching tests pass.
 - [ ] Create managed birthday email template, daily notices and send Max example — sender domain setup required before email scaffolding/sending.
 - [x] Automatically maintain both competition leaders with recorded random exact-score tie-breaks; database score triggers installed, pure rule tests pass.

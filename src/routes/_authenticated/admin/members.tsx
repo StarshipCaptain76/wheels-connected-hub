@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createMemberCardImage } from "@/lib/member-card-image";
 import { useI18n } from "@/i18n/I18nProvider";
 import { MemberFeatureAdminPanel } from "@/components/MemberFeatureAdminPanel";
+import { MemberBirthdayField } from "@/components/MemberBirthdayField";
 
 const inputCls = "w-full rounded border-2 border-ink bg-paper px-2 py-1 text-xs text-ink";
 
@@ -81,6 +82,7 @@ function EditMemberRow({ member, onDone }: { member: AdminMember; onDone: () => 
             placeholder="Favourite ride"
           />
         </div>
+        <MemberBirthdayField userId={member.user_id} />
         <textarea
           className={`${inputCls} mt-2`}
           rows={3}

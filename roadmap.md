@@ -2,7 +2,8 @@
 - [x] Add admin-only announcements on the admin overview, bilingual messages, confirmation, recipient count and retry deduplication; permission/input tests and build pass.
 - [ ] Verify announcement delivery through signed-in admin/member screens — requesting account has no mintable session; no test announcement sent to real members.
 - [x] Add private birthday day/month editing to personal and admin member profiles; save Maximus Geldenhuys as 31 October. Date matching tests pass.
-- [ ] Create managed birthday email template, daily notices and send Max example — sender domain setup required before email scaffolding/sending.
+- [x] Reuse newsletter Resend sender for bilingual birthday notices at 08:17 Johannesburg daily; Max notice accepted for all five admins, retries sent zero duplicates, invalid secret rejected, build/tests pass.
+- [ ] Publish birthday reminder endpoint so the configured daily production schedule can run — awaiting user publishing.
 - [x] Automatically maintain both competition leaders with recorded random exact-score tie-breaks; database score triggers installed, pure rule tests pass.
 - [x] Fill admin winner fields and show live leaders in the home event frame, refreshing every ten seconds; guest home frame opens and build passes.
 - [ ] Verify real score-trigger leader changes and signed-in admin/member displays — event currently has no votes or official runs; requesting account has no mintable preview session.

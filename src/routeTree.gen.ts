@@ -53,6 +53,7 @@ import { Route as ApiPublicConcoursImageRouteImport } from './routes/api/public/
 import { Route as ApiPublicEventImageRouteImport } from './routes/api/public/event-image'
 import { Route as ApiPublicEventRsvpRouteImport } from './routes/api/public/event-rsvp'
 import { Route as ApiPublicNewsletterPdfRouteImport } from './routes/api/public/newsletter-pdf'
+import { Route as ApiPublicHooksBirthdayRemindersRouteImport } from './routes/api/public/hooks/birthday-reminders'
 import { Route as ApiPublicHooksEventRemindersRouteImport } from './routes/api/public/hooks/event-reminders'
 import { Route as ApiPublicNewsletterUnsubscribeRouteImport } from './routes/api/public/newsletter.unsubscribe'
 
@@ -290,6 +291,12 @@ const ApiPublicNewsletterPdfRoute = ApiPublicNewsletterPdfRouteImport.update({
   path: '/api/public/newsletter-pdf',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBirthdayRemindersRoute =
+  ApiPublicHooksBirthdayRemindersRouteImport.update({
+    id: '/api/public/hooks/birthday-reminders',
+    path: '/api/public/hooks/birthday-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksEventRemindersRoute =
   ApiPublicHooksEventRemindersRouteImport.update({
     id: '/api/public/hooks/event-reminders',
@@ -347,6 +354,7 @@ export interface FileRoutesByFullPath {
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/members/': typeof AuthenticatedMembersIndexRoute
+  '/api/public/hooks/birthday-reminders': typeof ApiPublicHooksBirthdayRemindersRoute
   '/api/public/hooks/event-reminders': typeof ApiPublicHooksEventRemindersRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -390,6 +398,7 @@ export interface FileRoutesByTo {
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/members': typeof AuthenticatedMembersIndexRoute
+  '/api/public/hooks/birthday-reminders': typeof ApiPublicHooksBirthdayRemindersRoute
   '/api/public/hooks/event-reminders': typeof ApiPublicHooksEventRemindersRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -439,6 +448,7 @@ export interface FileRoutesById {
   '/api/public/newsletter-pdf': typeof ApiPublicNewsletterPdfRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/members/': typeof AuthenticatedMembersIndexRoute
+  '/api/public/hooks/birthday-reminders': typeof ApiPublicHooksBirthdayRemindersRoute
   '/api/public/hooks/event-reminders': typeof ApiPublicHooksEventRemindersRoute
   '/api/public/newsletter/unsubscribe': typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/api/public/newsletter-pdf'
     | '/admin/'
     | '/members/'
+    | '/api/public/hooks/birthday-reminders'
     | '/api/public/hooks/event-reminders'
     | '/api/public/newsletter/unsubscribe'
   fileRoutesByTo: FileRoutesByTo
@@ -531,6 +542,7 @@ export interface FileRouteTypes {
     | '/api/public/newsletter-pdf'
     | '/admin'
     | '/members'
+    | '/api/public/hooks/birthday-reminders'
     | '/api/public/hooks/event-reminders'
     | '/api/public/newsletter/unsubscribe'
   id:
@@ -579,6 +591,7 @@ export interface FileRouteTypes {
     | '/api/public/newsletter-pdf'
     | '/_authenticated/admin/'
     | '/_authenticated/members/'
+    | '/api/public/hooks/birthday-reminders'
     | '/api/public/hooks/event-reminders'
     | '/api/public/newsletter/unsubscribe'
   fileRoutesById: FileRoutesById
@@ -604,6 +617,7 @@ export interface RootRouteChildren {
   ApiPublicEventImageRoute: typeof ApiPublicEventImageRoute
   ApiPublicEventRsvpRoute: typeof ApiPublicEventRsvpRoute
   ApiPublicNewsletterPdfRoute: typeof ApiPublicNewsletterPdfRoute
+  ApiPublicHooksBirthdayRemindersRoute: typeof ApiPublicHooksBirthdayRemindersRoute
   ApiPublicHooksEventRemindersRoute: typeof ApiPublicHooksEventRemindersRoute
   ApiPublicNewsletterUnsubscribeRoute: typeof ApiPublicNewsletterUnsubscribeRoute
 }
@@ -918,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicNewsletterPdfRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/birthday-reminders': {
+      id: '/api/public/hooks/birthday-reminders'
+      path: '/api/public/hooks/birthday-reminders'
+      fullPath: '/api/public/hooks/birthday-reminders'
+      preLoaderRoute: typeof ApiPublicHooksBirthdayRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/event-reminders': {
       id: '/api/public/hooks/event-reminders'
       path: '/api/public/hooks/event-reminders'
@@ -1054,6 +1075,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEventImageRoute: ApiPublicEventImageRoute,
   ApiPublicEventRsvpRoute: ApiPublicEventRsvpRoute,
   ApiPublicNewsletterPdfRoute: ApiPublicNewsletterPdfRoute,
+  ApiPublicHooksBirthdayRemindersRoute: ApiPublicHooksBirthdayRemindersRoute,
   ApiPublicHooksEventRemindersRoute: ApiPublicHooksEventRemindersRoute,
   ApiPublicNewsletterUnsubscribeRoute: ApiPublicNewsletterUnsubscribeRoute,
 }

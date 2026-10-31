@@ -1,6 +1,7 @@
 # Concours corrections
-- [ ] Automatically maintain both competition leaders with recorded random exact-score tie-breaks.
-- [ ] Fill admin winner fields and show live leaders in the home event frame; verify tests and live reads.
+- [x] Automatically maintain both competition leaders with recorded random exact-score tie-breaks; database score triggers installed, pure rule tests pass.
+- [x] Fill admin winner fields and show live leaders in the home event frame, refreshing every ten seconds; guest home frame opens and build passes.
+- [ ] Verify real score-trigger leader changes and signed-in admin/member displays — event currently has no votes or official runs; requesting account has no mintable preview session.
 - [x] Format displayed concours scores to one decimal at every public and admin surface; stored precision and tie-break math unchanged. Tests pass.
 - [x] Keep "Vote now" inactive until at least two cars have been added to the event; rule test passes.
 - [x] Move the today-event banner to the very top of the home page so the active event is the first thing visitors see and the first call to action.

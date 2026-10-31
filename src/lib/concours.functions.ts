@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isConcoursWindowOpen } from "@/lib/concours-window";
 import { z } from "zod";
-import { scoreConcoursAnswers, weightedAverage, firstPlaceIds } from "./concours-score";
+import { scoreConcoursAnswers, weightedAverage } from "./concours-score";
 import { selectConcoursQuestionIds, concoursQuestionPool, prepareConcoursSelection } from "./concours-questions";
 import { filterVotingReadyEventIds } from "./concours-voting";
 

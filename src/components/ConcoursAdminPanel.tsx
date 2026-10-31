@@ -158,12 +158,12 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   }, [concoursQ.data]);
 
   const liveWinnerId = liveLeaders.data?.find(l => l.competition === "concours")?.vehicleId ?? "";
+  const liveWinnerPhoto = vehiclesQ.data?.find(v => v.id === liveWinnerId)?.photo_url ?? "";
   useEffect(() => {
     if (concoursQ.data?.results_published_at) return;
     setWinnerVehicleId(liveWinnerId);
-    const vehicle = vehiclesQ.data?.find(v => v.id === liveWinnerId);
-    setWinnerPhotoUrl(vehicle?.photo_url ?? "");
-  }, [liveWinnerId, concoursQ.data?.results_published_at, vehiclesQ.data]);
+    setWinnerPhotoUrl(liveWinnerPhoto);
+  }, [liveWinnerId, liveWinnerPhoto, concoursQ.data?.results_published_at]);
 
   if (!eventId) {
     return (

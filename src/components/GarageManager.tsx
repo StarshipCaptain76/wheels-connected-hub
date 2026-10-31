@@ -733,7 +733,7 @@ function VehicleCard({
                   no url
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center gap-1 rounded bg-ink/60 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1 rounded bg-ink/60 opacity-0 transition-opacity group-hover:opacity-100 [&>button]:pointer-events-auto">
                 {p.url && (
                   <button
                     type="button"

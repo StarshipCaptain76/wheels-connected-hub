@@ -14,7 +14,7 @@ import {
 import { getMyProfile } from "@/lib/profile.functions";
 import { downloadDisplayBoard } from "@/lib/display-board";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown } from "lucide-react";
+import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 /** Spec-sheet fields shown on the printable exhibition board */
@@ -543,21 +543,34 @@ function VehicleCard({
   const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
   const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   const story = lang === "af" ? v.story_af || v.story : v.story;
-  const hero = v.photos.find((p) => p.url) ?? v.photos[0];
+  const photos = v.photos.filter((p) => p.url);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const safeIndex = Math.min(photoIndex, Math.max(photos.length - 1, 0));
+  const hero = photos[safeIndex] ?? v.photos[0];
+  const stepPhoto = (delta: number) =>
+    setPhotoIndex((i) => (photos.length ? (i + delta + photos.length) % photos.length : 0));
 
   return (
     <li className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">
       <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="relative min-h-[200px] bg-ink/10">
           {hero?.url ? (
-            <img
-              src={hero.url}
-              alt={title}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              title={lang === "af" ? "Bekyk foto's" : "View photos"}
+              className="absolute inset-0 block h-full w-full cursor-zoom-in"
+            >
+              <img
+                src={hero.url}
+                alt={title}
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </button>
           ) : (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-ink/30">
               <ImageIcon className="h-10 w-10" />
@@ -565,6 +578,40 @@ function VehicleCard({
                 {lang === "af" ? "Voeg foto by" : "Add a photo"}
               </span>
             </div>
+          )}
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Vorige foto" : "Previous photo"}
+                onClick={() => stepPhoto(-1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-paper/90 p-1.5 text-ink shadow hover:bg-paper"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Volgende foto" : "Next photo"}
+                onClick={() => stepPhoto(1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-paper/90 p-1.5 text-ink shadow hover:bg-paper"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {photos.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-label={`Photo ${i + 1}`}
+                    onClick={() => setPhotoIndex(i)}
+                    className={`h-2 w-2 rounded-full border border-ink ${i === safeIndex ? "bg-primary" : "bg-paper/80"}`}
+                  />
+                ))}
+              </div>
+              <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-paper">
+                {safeIndex + 1}/{photos.length}
+              </span>
+            </>
           )}
           {v.is_primary && (
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-primary bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">
@@ -672,7 +719,11 @@ function VehicleCard({
                 <img
                   src={p.url}
                   alt=""
-                  className="h-20 w-20 rounded border-2 border-ink object-cover"
+                  onClick={() => {
+                    const idx = photos.findIndex((x) => x.id === p.id);
+                    if (idx >= 0) { setPhotoIndex(idx); setLightbox(true); }
+                  }}
+                  className="h-20 w-20 cursor-zoom-in rounded border-2 border-ink object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.opacity = "0.3";
                   }}
@@ -682,7 +733,7 @@ function VehicleCard({
                   no url
                 </div>
               )}
-              <div className="absolute inset-0 flex items-center justify-center gap-1 rounded bg-ink/60 opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1 rounded bg-ink/60 opacity-0 transition-opacity group-hover:opacity-100 [&>button]:pointer-events-auto">
                 {p.url && (
                   <button
                     type="button"
@@ -717,6 +768,67 @@ function VehicleCard({
         </div>
         <p className="mt-2 text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB</p>
       </div>
+
+      {lightbox && photos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[70] flex flex-col bg-black/90 p-4"
+          role="dialog"
+          aria-label={lang === "af" ? "Foto's" : "Photos"}
+          onClick={() => setLightbox(false)}
+        >
+          <div className="flex items-center justify-between text-paper">
+            <span className="text-sm font-bold">{title} · {safeIndex + 1}/{photos.length}</span>
+            <button
+              type="button"
+              aria-label={lang === "af" ? "Maak toe" : "Close"}
+              className="rounded-full border-2 border-paper p-1.5"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={photos[safeIndex].url}
+              alt={title}
+              className="max-h-full max-w-full rounded border-2 border-paper/40 object-contain"
+            />
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label={lang === "af" ? "Vorige foto" : "Previous photo"}
+                  onClick={() => stepPhoto(-1)}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-ink/60 p-2 text-paper"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={lang === "af" ? "Volgende foto" : "Next photo"}
+                  onClick={() => stepPhoto(1)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-ink/60 p-2 text-paper"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+          </div>
+          {photos.length > 1 && (
+            <div className="mt-3 flex justify-center gap-2 overflow-x-auto pb-1" onClick={(e) => e.stopPropagation()}>
+              {photos.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPhotoIndex(i)}
+                  className={`h-14 w-14 shrink-0 overflow-hidden rounded border-2 ${i === safeIndex ? "border-primary" : "border-paper/30"}`}
+                >
+                  <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 }

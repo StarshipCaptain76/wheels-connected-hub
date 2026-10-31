@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { GarageManager } from "@/components/GarageManager";
 import { TaggedPhotos } from "@/components/TaggedPhotos";
 import { ChangePassword } from "@/components/ChangePassword";
+import { MemberBirthdayField } from "@/components/MemberBirthdayField";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { ProfileWizard } from "@/components/ProfileWizard";
@@ -25,6 +26,11 @@ export const Route = createFileRoute("/_authenticated/members/")({
   head: () => ({
     meta: [
       { title: "Members — Just Wheels Hessequa" },
+      { name: "description", content: "Manage your Just Wheels Hessequa member profile, birthday and garage." },
+      { property: "og:title", content: "Members — Just Wheels Hessequa" },
+      { property: "og:description", content: "Your club member profile and garage." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -305,6 +311,7 @@ function MembersPage() {
                   value={form.favourite_ride}
                   onChange={(v) => setForm((f) => ({ ...f, favourite_ride: v }))}
                 />
+                <MemberBirthdayField />
 
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-ink/70">

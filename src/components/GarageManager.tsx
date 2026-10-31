@@ -14,7 +14,7 @@ import {
 import { getMyProfile } from "@/lib/profile.functions";
 import { downloadDisplayBoard } from "@/lib/display-board";
 import { TranslateButton } from "@/components/TranslateButton";
-import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown } from "lucide-react";
+import { Plus, Trash2, X, Upload, Star, Loader2, Car, IdCard, ImageIcon, FileDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 
 /** Spec-sheet fields shown on the printable exhibition board */

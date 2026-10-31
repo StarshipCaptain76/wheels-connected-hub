@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, useEffect, type ReactNode } from "react";
@@ -82,11 +82,19 @@ function AdminEvents() {
   // Deep link: /admin/events?edit=<id> opens that event's editor (and its
   // Concours "Add cars" panel) straight away — used by the home-page shortcut.
   const { edit: editId } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   useEffect(() => {
     if (!editId || editing) return;
     const ev = events.find((e) => e.id === editId);
     if (ev) setEditing(ev as ExtendedEvent);
   }, [editId, events, editing]);
+
+  // Closing the editor must also clear the ?edit= param, otherwise the effect
+  // above immediately reopens the modal.
+  function closeEditor() {
+    setEditing(null);
+    if (editId) void navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true });
+  }
 
   async function save(form: FormState, waypoints: Array<Partial<EventWaypoint>>) {
     const res = await upsert({
@@ -134,8 +142,7 @@ function AdminEvents() {
     // Public event pages are server-rendered; refresh router data too so the
     // change is visible immediately, not only in the admin list.
     await router.invalidate();
-    setEditing(null);
-
+    closeEditor();
   }
 
   async function remove(id: string) {
@@ -219,7 +226,7 @@ function AdminEvents() {
         ))}
       </ul>
 
-      {editing && <EditModal state={editing} onSave={save} onClose={() => setEditing(null)} />}
+      {editing && <EditModal state={editing} onSave={save} onClose={closeEditor} />}
     </div>
   );
 }

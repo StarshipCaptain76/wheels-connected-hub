@@ -1,5 +1,6 @@
 # Concours corrections
-- [ ] Add birthday-on-the-day admin emails using profile details and send Max Geldenhuys example — awaiting sender setup and birthday data.
+- [x] Add private birthday day/month editing to personal and admin member profiles; save Maximus Geldenhuys as 31 October. Date matching tests pass.
+- [ ] Create managed birthday email template, daily notices and send Max example — sender domain setup required before email scaffolding/sending.
 - [x] Automatically maintain both competition leaders with recorded random exact-score tie-breaks; database score triggers installed, pure rule tests pass.
 - [x] Fill admin winner fields and show live leaders in the home event frame, refreshing every ten seconds; guest home frame opens and build passes.
 - [ ] Verify real score-trigger leader changes and signed-in admin/member displays — event currently has no votes or official runs; requesting account has no mintable preview session.

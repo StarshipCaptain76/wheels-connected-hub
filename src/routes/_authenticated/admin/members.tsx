@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Fragment, useMemo, useState, useEffect } from "react";
 import {
@@ -9,11 +9,14 @@ import {
   approveAllPendingMembers,
   adminUpdateMemberProfile,
   getMemberCardBatch,
+  getAdminMemberDetail,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil, Download } from "lucide-react";
+import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MemberCard } from "@/components/MemberCard";
 import { createMemberCardImage } from "@/lib/member-card-image";
 import { useI18n } from "@/i18n/I18nProvider";
 import { MemberFeatureAdminPanel } from "@/components/MemberFeatureAdminPanel";
@@ -114,6 +117,93 @@ function EditMemberRow({ member, onDone }: { member: AdminMember; onDone: () => 
   );
 }
 
+function MemberDetailDialog({ userId, onClose }: { userId: string | null; onClose: () => void }) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "member-detail", userId],
+    queryFn: () => getAdminMemberDetail({ data: { userId: userId! } }),
+    enabled: Boolean(userId),
+    retry: 1,
+  });
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  return (
+    <Dialog open={Boolean(userId)} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto border-2 border-ink bg-paper">
+        <DialogHeader>
+          <DialogTitle className="font-display text-2xl tracking-wide text-ink">
+            {data?.profile.display_name ?? "Member"}
+          </DialogTitle>
+        </DialogHeader>
+        {isLoading && <p className="py-8 text-center text-sm text-ink/60">Loading member…</p>}
+        {error && (
+          <p className="rounded border-2 border-primary bg-primary/10 px-3 py-2 text-sm text-primary">
+            {(error as Error).message}
+          </p>
+        )}
+        {data && (
+          <div className="space-y-4">
+            <MemberCard
+              profile={data.profile}
+              carPhoto={data.carPhoto}
+              facePhoto={data.facePhoto}
+            />
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-ink sm:grid-cols-3">
+              <div><dt className="text-xs uppercase tracking-wider text-ink/50">Number</dt><dd className="font-mono">{String(data.profile.member_number).padStart(4, "0")}</dd></div>
+              <div><dt className="text-xs uppercase tracking-wider text-ink/50">Town</dt><dd>{data.profile.town ?? "—"}</dd></div>
+              <div><dt className="text-xs uppercase tracking-wider text-ink/50">Status</dt><dd>{data.profile.membership_status}</dd></div>
+              <div><dt className="text-xs uppercase tracking-wider text-ink/50">Favourite ride</dt><dd>{data.profile.favourite_ride ?? "—"}</dd></div>
+              <div><dt className="text-xs uppercase tracking-wider text-ink/50">Joined</dt><dd>{data.profile.joined_at ? new Date(data.profile.joined_at).toLocaleDateString() : "—"}</dd></div>
+            </dl>
+            {data.profile.featured_bio && (
+              <p className="rounded border border-ink/20 bg-ink/5 px-3 py-2 text-sm text-ink/80">{data.profile.featured_bio}</p>
+            )}
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-ink">
+                Pictures ({data.vehicles.reduce((n, v) => n + v.photos.length, 0)})
+              </h3>
+              {data.vehicles.length === 0 ? (
+                <p className="mt-2 text-sm text-ink/50">No vehicles or photos in the garage yet.</p>
+              ) : (
+                <div className="mt-2 space-y-3">
+                  {data.vehicles.map((v) => (
+                    <div key={v.id}>
+                      <p className="text-sm font-semibold text-ink">
+                        {[v.year, v.make, v.model].filter(Boolean).join(" ") || v.nickname || "Vehicle"}
+                        {v.is_primary && <span className="ml-2 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Primary</span>}
+                      </p>
+                      {v.photos.length === 0 ? (
+                        <p className="text-xs text-ink/50">No photos.</p>
+                      ) : (
+                        <div className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {v.photos.map((url, i) => (
+                            <button key={i} type="button" onClick={() => setLightbox(url)} className="overflow-hidden rounded border-2 border-ink/20 focus:outline-none focus:ring-2 focus:ring-primary">
+                              <img src={url} alt="" className="aspect-square h-full w-full object-cover" loading="lazy" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {lightbox && (
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+            aria-label="Close photo"
+          >
+            <img src={lightbox} alt="" className="max-h-full max-w-full rounded border-2 border-white object-contain" />
+          </button>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SectionRow({ label }: { label: string }) {
   return (
     <tr className="border-t-2 border-ink bg-ink/5">
@@ -209,6 +299,7 @@ function AdminMembersPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [adminsOpen, setAdminsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"club" | "features">("club");
 
@@ -306,14 +397,24 @@ function AdminMembersPage() {
             </button>
           </td>
           <td className="px-3 py-2">
-            <button
-              type="button"
-              onClick={() => setEditId(editId === m.user_id ? null : m.user_id)}
-              title="Edit profile"
-              className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
-            >
-              <Pencil className="h-3 w-3" /> Edit
-            </button>
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setViewId(m.user_id)}
+                title="View profile, card and pictures"
+                className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
+              >
+                <Eye className="h-3 w-3" /> View
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditId(editId === m.user_id ? null : m.user_id)}
+                title="Edit profile"
+                className="inline-flex items-center gap-1 rounded border-2 border-ink bg-paper px-2 py-1 text-xs font-bold uppercase text-ink"
+              >
+                <Pencil className="h-3 w-3" /> Edit
+              </button>
+            </div>
           </td>
         </tr>
         {editId === m.user_id && <EditMemberRow member={m} onDone={() => setEditId(null)} />}
@@ -455,6 +556,7 @@ function AdminMembersPage() {
       </div>
       </>
       )}
+      <MemberDetailDialog userId={viewId} onClose={() => setViewId(null)} />
     </div>
   );
 }

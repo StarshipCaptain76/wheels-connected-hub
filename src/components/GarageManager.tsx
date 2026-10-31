@@ -556,14 +556,21 @@ function VehicleCard({
       <div className="grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="relative min-h-[200px] bg-ink/10">
           {hero?.url ? (
-            <img
-              src={hero.url}
-              alt={title}
-              className="absolute inset-0 h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              title={lang === "af" ? "Bekyk foto's" : "View photos"}
+              className="absolute inset-0 block h-full w-full cursor-zoom-in"
+            >
+              <img
+                src={hero.url}
+                alt={title}
+                className="absolute inset-0 h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </button>
           ) : (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-ink/30">
               <ImageIcon className="h-10 w-10" />
@@ -571,6 +578,40 @@ function VehicleCard({
                 {lang === "af" ? "Voeg foto by" : "Add a photo"}
               </span>
             </div>
+          )}
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Vorige foto" : "Previous photo"}
+                onClick={() => stepPhoto(-1)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-paper/90 p-1.5 text-ink shadow hover:bg-paper"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label={lang === "af" ? "Volgende foto" : "Next photo"}
+                onClick={() => stepPhoto(1)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-paper/90 p-1.5 text-ink shadow hover:bg-paper"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {photos.map((p, i) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    aria-label={`Photo ${i + 1}`}
+                    onClick={() => setPhotoIndex(i)}
+                    className={`h-2 w-2 rounded-full border border-ink ${i === safeIndex ? "bg-primary" : "bg-paper/80"}`}
+                  />
+                ))}
+              </div>
+              <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-2 py-0.5 text-[10px] font-bold text-paper">
+                {safeIndex + 1}/{photos.length}
+              </span>
+            </>
           )}
           {v.is_primary && (
             <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full border border-primary bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-paper">

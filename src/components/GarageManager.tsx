@@ -764,6 +764,67 @@ function VehicleCard({
         </div>
         <p className="mt-2 text-[10px] text-ink/40">JPG / PNG / WebP · max {MAX_PHOTO_MB}MB</p>
       </div>
+
+      {lightbox && photos.length > 0 && (
+        <div
+          className="fixed inset-0 z-[70] flex flex-col bg-black/90 p-4"
+          role="dialog"
+          aria-label={lang === "af" ? "Foto's" : "Photos"}
+          onClick={() => setLightbox(false)}
+        >
+          <div className="flex items-center justify-between text-paper">
+            <span className="text-sm font-bold">{title} · {safeIndex + 1}/{photos.length}</span>
+            <button
+              type="button"
+              aria-label={lang === "af" ? "Maak toe" : "Close"}
+              className="rounded-full border-2 border-paper p-1.5"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={photos[safeIndex].url}
+              alt={title}
+              className="max-h-full max-w-full rounded border-2 border-paper/40 object-contain"
+            />
+            {photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label={lang === "af" ? "Vorige foto" : "Previous photo"}
+                  onClick={() => stepPhoto(-1)}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-ink/60 p-2 text-paper"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={lang === "af" ? "Volgende foto" : "Next photo"}
+                  onClick={() => stepPhoto(1)}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full border-2 border-paper bg-ink/60 p-2 text-paper"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              </>
+            )}
+          </div>
+          {photos.length > 1 && (
+            <div className="mt-3 flex justify-center gap-2 overflow-x-auto pb-1" onClick={(e) => e.stopPropagation()}>
+              {photos.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPhotoIndex(i)}
+                  className={`h-14 w-14 shrink-0 overflow-hidden rounded border-2 ${i === safeIndex ? "border-primary" : "border-paper/30"}`}
+                >
+                  <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 }

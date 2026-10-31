@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type NotificationType =
+  | "announcement"
   | "new_listing"
   | "new_event"
   | "event_reminder"
@@ -40,6 +41,7 @@ export type AppNotification = {
 export type NotificationPrefs = Record<NotificationType, boolean>;
 
 export const DEFAULT_PREFS: NotificationPrefs = {
+  announcement: true,
   new_listing: true,
   new_event: true,
   event_reminder: true,

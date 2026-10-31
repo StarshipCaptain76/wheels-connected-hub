@@ -31,6 +31,8 @@ import { firstPlaceIds, formatConcoursScore } from "@/lib/concours-score";
 import { concoursQuestionPool } from "@/lib/concours-questions";
 import { concoursSponsorImageUrl } from "@/lib/event-image-url";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import { getMemberCompetitionLeaders } from "@/lib/competition-leaders.functions";
+import { LiveCompetitionLeaders } from "@/components/LiveCompetitionLeaders";
 import { Trophy, Eye, EyeOff, RefreshCw, Camera, Plus, Pencil } from "lucide-react";
 
 type Props = { eventId: string | undefined; hasDestination?: boolean };
@@ -50,6 +52,13 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
   const resetIdle = useServerFn(adminResetIdleTest);
   const setVehicleMeta = useServerFn(adminSetVehicleYearMeta);
   const [adminTab, setAdminTab] = useState<"settings" | "questions" | "scores" | "results">("settings");
+  const loadLeaders = useServerFn(getMemberCompetitionLeaders);
+  const liveLeaders = useQuery({
+    queryKey: ["competition-leaders", eventId, true],
+    enabled: Boolean(eventId),
+    queryFn: () => eventId ? loadLeaders({ data: { eventId } }) : Promise.resolve([]),
+    refetchInterval: 10_000,
+  });
 
 
   const concoursQ = useQuery({
@@ -61,6 +70,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     queryKey: ["concours-vehicles-admin", eventId],
     enabled: !!eventId,
     queryFn: () => listConcoursVehiclesAdmin({ data: { eventId: eventId! } }),
+    refetchInterval: 10_000,
   });
   const questionsQ = useQuery({
     queryKey: ["concours-questions-admin"],
@@ -82,6 +92,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
     queryKey: ["idle-tests", eventId],
     enabled: !!eventId,
     queryFn: () => listIdleLeaderboard({ data: { eventId: eventId! } }),
+    refetchInterval: 10_000,
   });
 
   const [enabled, setEnabled] = useState(false);
@@ -145,6 +156,14 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
       setIdlePrizeAf(c.idle_prize_af ?? "");
     }
   }, [concoursQ.data]);
+
+  const liveWinnerId = liveLeaders.data?.find(l => l.competition === "concours")?.vehicleId ?? "";
+  useEffect(() => {
+    if (concoursQ.data?.results_published_at) return;
+    setWinnerVehicleId(liveWinnerId);
+    const vehicle = vehiclesQ.data?.find(v => v.id === liveWinnerId);
+    setWinnerPhotoUrl(vehicle?.photo_url ?? "");
+  }, [liveWinnerId, concoursQ.data?.results_published_at, vehiclesQ.data]);
 
   if (!eventId) {
     return (
@@ -1095,9 +1114,9 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
 
       {adminTab === "results" && (
         <div className="space-y-3">
+          <LiveCompetitionLeaders eventId={eventId} signedIn />
           <p className="text-xs text-ink/60">
-            After the event: pick the winner, upload a showcase photo, and optionally pin it on the
-            home page.
+            Current leader and photo are filled automatically. Publish when judging is complete.
           </p>
 
           {ranked.length > 0 && (
@@ -1106,7 +1125,7 @@ export function ConcoursAdminPanel({ eventId, hasDestination }: Props) {
               <ol className="mt-1 space-y-0.5">
                 {ranked.slice(0, 5).map((v, i) => (
                   <li key={v.id}>
-                    #{i + 1} {v.tagged_display_name || v.label || "Vehicle"} — {v.average_score?.toFixed(3)} (
+                    #{i + 1} {v.tagged_display_name || v.label || "Vehicle"} — {formatConcoursScore(v.average_score)} (
                     {v.submission_count} votes)
                   </li>
                 ))}

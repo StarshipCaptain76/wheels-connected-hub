@@ -10,6 +10,7 @@ assert(scoreConcoursAnswers({ a: 0 }, [{ id: "a", scoring_type: "count" }]).tota
 assert(weightedAverage([{ total_score: 10, weight: 1 }, { total_score: 4, weight: 0.5 }]).average === 8, "Members weight 1; spectators 0.5");
 assert(firstPlaceIds([{ id: "a", average_score: 8.04 }, { id: "b", average_score: 8.01 }]).join() === "a", "Display rounding does not create ties");
 assert(firstPlaceIds([{ id: "a", average_score: 8 }, { id: "b", average_score: 8 }, { id: "c", average_score: 7 }]).join() === "a,b", "Only equal first-place vehicles enter draw");
+assert(firstPlaceIds([{ id: "a", average_score: 8 }, { id: "b", average_score: 8.00000000001 }]).join() === "b", "Close but unequal best scores are not tied");
 assert(formatConcoursScore(6.666666666666667) === "6.7", "Spectator score rounds to one decimal");
 assert(formatConcoursScore(7.333333333333333) === "7.3", "Average rounds to one decimal");
 assert(formatConcoursScore(8) === "8.0", "Whole scores keep one decimal place");

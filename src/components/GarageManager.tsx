@@ -543,7 +543,13 @@ function VehicleCard({
   const [boardMode, setBoardMode] = useState<"specs" | "story">("specs");
   const title = v.nickname || [v.year, v.make, v.model].filter(Boolean).join(" ") || "Vehicle";
   const story = lang === "af" ? v.story_af || v.story : v.story;
-  const hero = v.photos.find((p) => p.url) ?? v.photos[0];
+  const photos = v.photos.filter((p) => p.url);
+  const [photoIndex, setPhotoIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
+  const safeIndex = Math.min(photoIndex, Math.max(photos.length - 1, 0));
+  const hero = photos[safeIndex] ?? v.photos[0];
+  const stepPhoto = (delta: number) =>
+    setPhotoIndex((i) => (photos.length ? (i + delta + photos.length) % photos.length : 0));
 
   return (
     <li className="overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[4px_4px_0_0_var(--color-ink)]">

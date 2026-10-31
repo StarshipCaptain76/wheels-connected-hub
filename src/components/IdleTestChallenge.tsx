@@ -211,10 +211,6 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
       setMsg(af ? "Jaar van die kar word vereis." : "Vehicle year is required.");
       return;
     }
-    if (!draft.make.trim() || !draft.model.trim()) {
-      setMsg(af ? "Vul die fabrikaat en model in." : "Enter the vehicle make and model.");
-      return;
-    }
     if (!hasMotionSupport()) {
       setMsg(
         af ? "Hierdie toestel het geen bewegingsensor nie." : "This device has no motion sensor.",
@@ -231,7 +227,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
     }
     setBusy(true);
     try {
-      await saveSetup({ data: { eventId, vehicleId: v.id, year, make: draft.make.trim(), model: draft.model.trim(), powertrain: draft.powertrain as "ice" | "diesel" | "hybrid" | "ev" | "other" } });
+      await saveSetup({ data: { eventId, vehicleId: v.id, year, powertrain: draft.powertrain as "ice" | "diesel" } });
       await qc.invalidateQueries({ queryKey: ["concours-vehicles", eventId] });
       await qc.invalidateQueries({ queryKey: ["concours-vehicles-admin", eventId] });
     } catch (err) {
@@ -267,7 +263,7 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
 
   function vehicleDraft(v: ConcoursVehicle): IdleVehicleDraft {
     const garage = garageQ.data?.find((g) => g.id === v.garage_vehicle_id);
-    return drafts[v.id] ?? { year: String(v.vehicle_year ?? garage?.year ?? ""), make: v.vehicle_make ?? garage?.make ?? "", model: v.vehicle_model ?? garage?.model ?? "", powertrain: v.powertrain ?? "ice" };
+    return drafts[v.id] ?? { year: String(v.vehicle_year ?? garage?.year ?? ""), powertrain: v.powertrain === "diesel" ? "diesel" : "ice" };
   }
 
   async function sendCapture(capture: NonNullable<typeof pendingCapture>) {
@@ -431,9 +427,9 @@ export function IdleTestChallenge({ eventId, eventStartsAt, eventEndsAt }: Props
                     {af ? "Amptelike lopie is in." : "Official run is in."}
                   </p>
                 )}
-                {(!done || isAdmin) && <fieldset disabled={locked} className="mt-3 grid gap-3 sm:grid-cols-4">
-                  {([['year', af ? 'Jaar' : 'Year'], ['make', af ? 'Fabrikaat' : 'Make'], ['model', 'Model']] as const).map(([key, label]) => <label key={key} className="text-xs font-bold text-ink">{label}<input aria-label={`${label} ${v.id}`} inputMode={key === 'year' ? 'numeric' : 'text'} value={draft[key]} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, [key]: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm" /></label>)}
-                  <label className="text-xs font-bold text-ink">{af ? 'Aandrywing' : 'Powertrain'}<select value={draft.powertrain} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, powertrain: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"><option value="ice">Petrol</option><option value="diesel">Diesel</option><option value="hybrid">Hybrid</option><option value="ev">EV</option><option value="other">Other</option></select></label>
+                {(!done || isAdmin) && <fieldset disabled={locked} className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="text-xs font-bold text-ink">{af ? 'Jaar' : 'Year'}<input aria-label={`${af ? 'Jaar' : 'Year'} ${v.id}`} inputMode="numeric" value={draft.year} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, year: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm" /></label>
+                  <label className="text-xs font-bold text-ink">{af ? 'Petrol of diesel' : 'Petrol or diesel'}<select value={draft.powertrain} onChange={(e) => setDrafts((d) => updateIdleVehicleDraft(d, v.id, { ...draft, powertrain: e.target.value }))} className="mt-1 w-full rounded-md border-2 border-ink bg-paper px-3 py-2 text-sm"><option value="ice">Petrol</option><option value="diesel">Diesel</option></select></label>
                 </fieldset>}
                 <Button
                   type="button"

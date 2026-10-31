@@ -478,7 +478,7 @@ export const saveIdleVehicleSetup = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => z.object({
     eventId: z.string().uuid(), vehicleId: z.string().uuid(),
     year: z.number().int().min(1886).max(2100),
-    make: z.string().trim().min(1).max(80), model: z.string().trim().min(1).max(80),
+    make: z.string().trim().max(80).optional(), model: z.string().trim().max(80).optional(),
     powertrain: powertrainSchema,
   }).parse(i))
   .handler(async ({ context, data }) => {
@@ -489,9 +489,11 @@ export const saveIdleVehicleSetup = createServerFn({ method: "POST" })
     if (readError) throw new Error(readError.message);
     if (!vehicle || vehicle.event_id !== data.eventId) throw new Error("Vehicle is not part of this event.");
     if (!admin && vehicle.tagged_user_id !== context.userId) throw new Error("Only the owner or an admin can save vehicle details.");
-    const { data: saved, error } = await sb.from("event_concours_vehicles").update({
-      vehicle_year: data.year, vehicle_make: data.make, vehicle_model: data.model, powertrain: data.powertrain,
-    }).eq("id", data.vehicleId).eq("event_id", data.eventId).select("id,vehicle_year,vehicle_make,vehicle_model,powertrain").single();
+    const patch: Record<string, unknown> = { vehicle_year: data.year, powertrain: data.powertrain };
+    if (data.make) patch.vehicle_make = data.make;
+    if (data.model) patch.vehicle_model = data.model;
+    const { data: saved, error } = await sb.from("event_concours_vehicles").update(patch)
+      .eq("id", data.vehicleId).eq("event_id", data.eventId).select("id,vehicle_year,vehicle_make,vehicle_model,powertrain").single();
     if (error) throw new Error(error.message);
     return saved;
   });

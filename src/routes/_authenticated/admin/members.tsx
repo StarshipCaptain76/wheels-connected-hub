@@ -556,6 +556,7 @@ function AdminMembersPage() {
       </div>
       </>
       )}
+      <MemberDetailDialog userId={viewId} onClose={() => setViewId(null)} />
     </div>
   );
 }

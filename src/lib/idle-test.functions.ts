@@ -190,7 +190,7 @@ export const listIdleLeaderboard = createServerFn({ method: "GET" })
       .eq("event_id", data.eventId)
       .eq("valid", true)
       .eq("superseded", false)
-      .order("display_score", { ascending: false });
+      .order("smooth01", { ascending: false });
 
     if (!isAdmin && !revealed && userId) {
       q = q.eq("user_id", userId);
@@ -225,7 +225,9 @@ export const listIdleLeaderboard = createServerFn({ method: "GET" })
       ).map((v) => [v.id, v]),
     );
 
-    return (rows as Array<Record<string, unknown>>).map((r) => {
+    const { data: leader } = await sb.from("competition_leaders").select("vehicle_id").eq("event_id", data.eventId).eq("competition", "idle").maybeSingle();
+    const orderedRows = [...rows].sort((a, b) => Number(b.smooth01) - Number(a.smooth01) || Number(b.vehicle_id === leader?.vehicle_id) - Number(a.vehicle_id === leader?.vehicle_id) || String(a.vehicle_id).localeCompare(String(b.vehicle_id)));
+    return (orderedRows as Array<Record<string, unknown>>).map((r) => {
       const v = byVeh.get(r.vehicle_id as string);
       return {
         id: r.id as string,

@@ -15,6 +15,7 @@ import { NewsletterHomeSection } from "@/components/NewsletterHomeSection";
 import { HomePolls } from "@/components/HomePolls";
 import { openConcoursIdsQuery, useOpenConcoursIds, VoteNowPulse } from "@/components/VoteNowPulse";
 import { supabase } from "@/integrations/supabase/client";
+import { LiveCompetitionLeaders } from "@/components/LiveCompetitionLeaders";
 
 const nextEventQuery = queryOptions({
   queryKey: ["events", "next"],
@@ -317,6 +318,7 @@ function Index() {
                 </Link>
               )}
             </div>
+            <LiveCompetitionLeaders eventId={nextEvent.id} signedIn={signedIn === true} />
           </div>
         </section>
       ) : null}

@@ -46,5 +46,5 @@ export function formatConcoursScore(value: number | null | undefined, digits = 1
 export function firstPlaceIds(vehicles: Array<{ id: string; average_score?: number | null }>) {
   const scored = vehicles.filter((v) => v.average_score != null);
   const best = Math.max(...scored.map((v) => v.average_score ?? -Infinity));
-  return scored.filter((v) => Math.abs((v.average_score ?? -Infinity) - best) < 1e-10).map((v) => v.id).sort();
+  return scored.filter((v) => v.average_score === best).map((v) => v.id).sort();
 }

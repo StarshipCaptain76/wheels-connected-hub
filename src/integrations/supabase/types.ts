@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      competition_leaders: {
+        Row: {
+          competition: string
+          drawn_at: string | null
+          event_id: string
+          score: number
+          submission_count: number
+          tied_vehicle_ids: string[]
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          competition: string
+          drawn_at?: string | null
+          event_id: string
+          score: number
+          submission_count: number
+          tied_vehicle_ids: string[]
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          competition?: string
+          drawn_at?: string | null
+          event_id?: string
+          score?: number
+          submission_count?: number
+          tied_vehicle_ids?: string[]
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_leaders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event_rsvp_counts"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "competition_leaders_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competition_leaders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "event_concours_vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concours_questions: {
         Row: {
           active: boolean
@@ -1974,6 +2029,10 @@ export type Database = {
       }
       recompute_idle_rr_standard: {
         Args: { _event_id: string }
+        Returns: undefined
+      }
+      refresh_competition_leader: {
+        Args: { _competition: string; _event_id: string }
         Returns: undefined
       }
       route_cache_put: {

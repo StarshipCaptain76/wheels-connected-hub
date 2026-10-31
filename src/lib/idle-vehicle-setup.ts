@@ -1,4 +1,4 @@
-export type IdleVehicleDraft = { year: string; make: string; model: string; powertrain: string };
+export type IdleVehicleDraft = { year: string; powertrain: string };
 export function parseIdleVehicleYear(value: string): number | null {
   if (!value.trim()) return null;
   const year = Number(value);

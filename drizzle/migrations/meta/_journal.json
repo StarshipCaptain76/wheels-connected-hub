@@ -64,6 +64,13 @@
       "when": 1793427439508,
       "tag": "0008_automatic_competition_leaders",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793427541610,
+      "tag": "0009_reuse_automatic_concours_draw",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { queryOptions, useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Fragment, useMemo, useState, useEffect } from "react";
 import {
@@ -9,11 +9,14 @@ import {
   approveAllPendingMembers,
   adminUpdateMemberProfile,
   getMemberCardBatch,
+  getAdminMemberDetail,
   type AdminMember,
 } from "@/lib/admin-members.functions";
-import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil, Download } from "lucide-react";
+import { Search, Shield, CheckCheck, ChevronDown, ChevronRight, Pencil, Download, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MemberCard } from "@/components/MemberCard";
 import { createMemberCardImage } from "@/lib/member-card-image";
 import { useI18n } from "@/i18n/I18nProvider";
 import { MemberFeatureAdminPanel } from "@/components/MemberFeatureAdminPanel";

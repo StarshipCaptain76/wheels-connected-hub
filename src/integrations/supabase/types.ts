@@ -1196,6 +1196,32 @@ export type Database = {
         }
         Relationships: []
       }
+      member_birthdays: {
+        Row: {
+          birthday_day: number
+          birthday_month: number
+          user_id: string
+        }
+        Insert: {
+          birthday_day: number
+          birthday_month: number
+          user_id: string
+        }
+        Update: {
+          birthday_day?: number
+          birthday_month?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_birthdays_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_emails: {
         Row: {
           email: string | null

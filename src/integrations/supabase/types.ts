@@ -1296,6 +1296,7 @@ export type Database = {
           member_user_id: string
           publishead_at: string | null
           published: boolean
+          published_at: string | null
           show_on_home: boolean
           slug: string | null
           updated_at: string
@@ -1314,6 +1315,7 @@ export type Database = {
           member_user_id: string
           publishead_at?: string | null
           published?: boolean
+          published_at?: string | null
           show_on_home?: boolean
           slug?: string | null
           updated_at?: string
@@ -1332,6 +1334,7 @@ export type Database = {
           member_user_id?: string
           publishead_at?: string | null
           published?: boolean
+          published_at?: string | null
           show_on_home?: boolean
           slug?: string | null
           updated_at?: string

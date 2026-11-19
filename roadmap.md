@@ -1,5 +1,5 @@
 # Concours corrections
-- [x] Automatically activate new member signups and update informational admin notices; new test signup received active status and only the member role, and its signed-in member page opened successfully. Email verification and existing membership statuses unchanged.
+- [x] Automatically activate new member signups and update informational admin notices; new test signup received active status and only the member role. Verified profile and onward member-card access at desktop/phone widths in light/dark themes. Email verification and existing membership statuses unchanged.
 - [x] Add admin-only announcements on the admin overview, bilingual messages, confirmation, recipient count and retry deduplication; permission/input tests and build pass.
 - [ ] Verify announcement delivery through signed-in admin/member screens — requesting account has no mintable session; no test announcement sent to real members.
 - [x] Add private birthday day/month editing to personal and admin member profiles; save Maximus Geldenhuys as 31 October. Date matching tests pass.

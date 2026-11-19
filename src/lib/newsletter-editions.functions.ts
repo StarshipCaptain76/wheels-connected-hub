@@ -463,7 +463,7 @@ export const sendEdition = createServerFn({ method: "POST" })
         await new Promise((r) => setTimeout(r, 120));
       } catch (e) {
         failed++;
-        console.error(`[newsletter-edition] send to ${s.email} failed`, e);
+        console.error("[newsletter-edition] delivery failed");
       }
     }
 

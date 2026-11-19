@@ -120,7 +120,7 @@ export async function runEventInvites(
       await new Promise((res) => setTimeout(res, 120));
     } catch (e) {
       failed++;
-      console.error("[event-invites] send failed", r.email, e);
+      console.error("[event-invites] delivery failed");
     }
   }
 

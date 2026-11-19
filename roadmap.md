@@ -1,4 +1,6 @@
 # Concours corrections
+- [x] Fixed 14 selected security findings: membership/role guards, legitimate tag notifications/removal, private poll totals, unpublished event media and email-log privacy. Regression checks and direct member-denial tests passed; public event opens on phone/desktop in both themes.
+- [ ] Await confirmation for 11 selected findings affecting RSVP sharing, photo invitation emails, visitor route calculations and intended public/member media access; left active with no dismissals. Unselected findings untouched.
 - [x] Automatically activate new member signups and update informational admin notices; new test signup received active status and only the member role. Verified profile and onward member-card access at desktop/phone widths in light/dark themes. Email verification and existing membership statuses unchanged.
 - [x] Add admin-only announcements on the admin overview, bilingual messages, confirmation, recipient count and retry deduplication; permission/input tests and build pass.
 - [ ] Verify announcement delivery through signed-in admin/member screens — requesting account has no mintable session; no test announcement sent to real members.

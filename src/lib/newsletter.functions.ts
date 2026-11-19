@@ -197,7 +197,7 @@ export const sendNewsletter = createServerFn({ method: "POST" })
         await new Promise((r) => setTimeout(r, 120));
       } catch (e) {
         failures.push(s.email);
-        console.error(`Newsletter to ${s.email} failed`, e);
+        console.error("[newsletter] delivery failed");
       }
     }
 

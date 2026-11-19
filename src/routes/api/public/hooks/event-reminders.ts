@@ -72,7 +72,7 @@ async function handle(request: Request) {
         await sendEmail({ to: [r.email], subject, html, from: SPONSORS_FROM });
         emailed += 1;
       } catch (e) {
-        console.error("[event-reminders] email failed", r.email, e);
+        console.error("[event-reminders] delivery failed");
       }
     }
   }

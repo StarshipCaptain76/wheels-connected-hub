@@ -24,3 +24,7 @@
 - Birthday admin notices reuse the newsletter Resend sender and secret-checked cron RPCs; Johannesburg dates, provider idempotency keys and success-only completion prevent early or duplicate notices without service-role keys.
 - Send admin announcements through a role-checked authenticated RPC to all active/member profiles; stable request IDs prevent duplicate deliveries on retry and no service-role keys are used.
 - Enforce signup membership activation in the profile default and auth lifecycle trigger, preserving member-role assignment, email synchronization and confirmed-email admin allowlisting; client-side activation cannot enforce signup policy securely.
+- Keep membership status and number admin-controlled through a profile update trigger; automatic signup activation must not allow suspended members to reactivate themselves.
+- Scope role probes to self/admin, tag removal to involved users/admin, private poll totals to admin, and non-admin direct alerts to persisted photo tags with fixed content; privileged functions must enforce caller authority.
+- Public event image delivery uses published-event reads and ordinary storage permissions only; privileged fallbacks leak unpublished media.
+- Do not log recipient addresses or provider exceptions in invite, reminder or newsletter delivery failures; provider errors can contain personal data.

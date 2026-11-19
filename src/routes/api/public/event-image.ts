@@ -4,7 +4,7 @@ import { createFileRoute } from "@tanstack/react-router";
  * Stable image endpoint for event cover / hero images.
  *
  * Event images live in the private `gallery` bucket, so browsers cannot load
- * them directly and signed URLs expire (and need the service key). This route
+ * them directly and signed URLs expire. This route
  * streams the bytes with a plain, cacheable URL that never expires.
  *
  * GET /api/public/event-image?id=<eventId>&k=cover|hero
@@ -43,26 +43,14 @@ async function handle(request: Request) {
     .from("events")
     .select("id, cover_url, hero_image_url, is_published")
     .eq("id", id)
+    .eq("is_published", true)
     .maybeSingle();
 
-  let row = event as
+  const row = event as
     | { cover_url: string | null; hero_image_url: string | null }
     | null;
 
-  // Unpublished events are hidden from the anon policy — fall back to admin.
-  if (!row && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin
-        .from("events")
-        .select("cover_url, hero_image_url")
-        .eq("id", id)
-        .maybeSingle();
-      row = (data as typeof row) ?? null;
-    } catch (e) {
-      console.error("[event-image] admin lookup failed", e);
-    }
-  }
+  if (!event?.is_published) return new Response("Not found", { status: 404 });
 
   let stored = kind === "hero" ? row?.hero_image_url : row?.cover_url;
   if (kind === "sponsor") {
@@ -82,14 +70,6 @@ async function handle(request: Request) {
   const { data: dl } = await anon.storage.from(ref.bucket).download(ref.path);
   if (dl) {
     blob = dl as Blob;
-  } else if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data } = await supabaseAdmin.storage.from(ref.bucket).download(ref.path);
-      if (data) blob = data as Blob;
-    } catch (e) {
-      console.error("[event-image] admin download failed", e);
-    }
   }
 
   if (!blob) return new Response("Not found", { status: 404 });

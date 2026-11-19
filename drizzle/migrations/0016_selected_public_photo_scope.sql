@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.has_role(uuid,public.app_role) TO anon;
+ALTER POLICY "gallery_public_read_concours_photos" ON storage.objects USING (bucket_id='gallery' AND EXISTS (SELECT 1 FROM public.event_concours_vehicles v JOIN public.event_concours ec ON ec.event_id=v.event_id JOIN public.events e ON e.id=v.event_id WHERE ec.enabled AND e.is_published AND right(split_part(v.photo_url,'?',1),length('/storage/v1/object/public/gallery/'||objects.name))='/storage/v1/object/public/gallery/'||objects.name));

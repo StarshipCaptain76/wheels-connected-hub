@@ -11,7 +11,7 @@ const schema = z.object({
 const FROM = "Just Wheels <members@notify.justwheels.co.za>";
 
 /**
- * Public: notify the club admin that a new member signed up and needs approval.
+ * Public: inform the club admin of an automatically approved new signup.
  * Recipient is fixed to the club admin address; only the applicant details vary.
  */
 export const notifyAdminNewMember = createServerFn({ method: "POST" })
@@ -24,8 +24,8 @@ export const notifyAdminNewMember = createServerFn({ method: "POST" })
       const { fanOut } = await import("./notify.server");
       const res = await fanOut({
         type: "admin_new_member",
-        title_en: "New member awaiting approval",
-        title_af: "Nuwe lid wag vir goedkeuring",
+        title_en: "New member — automatically approved",
+        title_af: "Nuwe lid — outomaties goedgekeur",
         body_en: name + " (" + data.email + ")",
         body_af: name + " (" + data.email + ")",
         link: "/admin/members",
@@ -39,7 +39,7 @@ export const notifyAdminNewMember = createServerFn({ method: "POST" })
     try {
       await sendEmail({
         to: [ADMIN_EMAIL],
-        subject: "New member sign-up: " + name + " — approval needed",
+        subject: "New member sign-up: " + name + " — automatically approved",
         html,
         from: FROM,
         replyTo: data.email,

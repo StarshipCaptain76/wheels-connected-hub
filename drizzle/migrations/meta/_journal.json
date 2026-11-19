@@ -99,6 +99,13 @@
       "when": 1793519375095,
       "tag": "0013_fix_member_features_published_at",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795065320695,
+      "tag": "0014_auto_approve_new_members",
+      "breakpoints": true
     }
   ]
 }
